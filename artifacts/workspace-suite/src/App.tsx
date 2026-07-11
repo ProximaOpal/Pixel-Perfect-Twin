@@ -7,6 +7,8 @@ import { AppNav } from '@/components/AppNav';
 import { Dashboard } from '@/pages/Dashboard';
 import { CalendarPage } from '@/pages/Calendar';
 import { SetupWizard } from '@/pages/SetupWizard';
+import { EmployeeDashboard } from '@/pages/EmployeeDashboard';
+import { ProcessTimeline } from '@/pages/ProcessTimeline';
 
 const queryClient = new QueryClient();
 
@@ -18,6 +20,8 @@ function Router() {
         <Route path="/" component={Dashboard} />
         <Route path="/calendar" component={CalendarPage} />
         <Route path="/setup" component={SetupWizard} />
+        <Route path="/employees" component={EmployeeDashboard} />
+        <Route path="/timeline" component={ProcessTimeline} />
         <Route component={NotFound} />
       </Switch>
     </>

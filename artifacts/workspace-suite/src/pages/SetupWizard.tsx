@@ -383,7 +383,7 @@ export function SetupWizard() {
   };
 
   return (
-    <div className="relative flex min-h-[calc(100vh-4rem)] w-full items-center justify-center overflow-hidden bg-[#ecebf7] px-10 py-10">
+    <div className="relative flex h-[calc(100vh-4rem)] w-full overflow-hidden bg-[#ecebf7]">
 
       {/* ── decorative blobs ── */}
       <div
@@ -411,7 +411,7 @@ export function SetupWizard() {
 
       {/* ── main card ── */}
       <motion.div
-        className="relative flex w-full max-w-[840px] min-h-[470px] rounded-[18px] shadow-2xl z-10"
+        className="relative flex w-full h-full z-10"
         initial={{ opacity: 0, y: 24, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
