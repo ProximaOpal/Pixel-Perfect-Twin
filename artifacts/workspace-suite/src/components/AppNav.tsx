@@ -5,7 +5,7 @@ const navItems = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/employees', label: 'Leads', icon: Users },
   { href: '/dashboard', label: 'Tasks', icon: LayoutDashboard },
-  { href: '/setup', label: 'Forms', icon: Settings2 },
+  { href: '/forms', label: 'Forms', icon: Settings2 },
   { href: '/proposal-doc', label: 'Proposal Doc', icon: FileText },
   { href: '/timeline', label: 'Timeline', icon: GitBranch },
   { href: '/calendar', label: 'Calendar', icon: CalendarDays },

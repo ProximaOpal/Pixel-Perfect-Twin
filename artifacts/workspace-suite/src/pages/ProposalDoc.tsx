@@ -1,23 +1,57 @@
-import { useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useRef, useCallback } from 'react';
+import { motion, AnimatePresence, Reorder, useDragControls } from 'framer-motion';
 import {
-  ArrowLeft, ArrowRight, ChevronRight, FileText, Layers, PenSquare,
-  CheckCircle2, MessageSquareText, Printer, Plus, Trash2, Volume2, Search,
+  ArrowLeft, FileText, Layers, PenSquare, CheckCircle2, MessageSquareText,
+  Printer, Plus, Trash2, Search, Volume2, ChevronRight, Sun, Moon, Download,
+  GripVertical, X,
 } from 'lucide-react';
 
-/* ─────────── document content (real proposal, not placeholder lorem) ─────────── */
+/* ─── Types ─── */
+type Page = { id: string; title: string; content: string };
 
-const DOC = {
-  title: 'Catering Services Proposal — Blue Apple Contract Catering',
-  breadcrumb: 'Proposals › Hospitality Sector › WE.18795',
-  body: [
-    `This proposal outlines the scope, pricing and service levels for Blue Apple Contract Catering's staff dining programme across its Manchester and Leeds sites, effective from the agreed start date for an initial 12-month term.`,
-    `Nexus will provide day-to-day catering operations, menu planning, allergen management and monthly reporting. `,
-    `The agreed management fee is £4,250 per site per month, inclusive of staffing, equipment servicing and compliance audits. Food cost is charged at net invoice plus an 8% handling margin, reviewed quarterly.`,
-    `Either party may terminate this agreement with 90 days' written notice. Blue Apple Contract Catering retains the right to request a service review after the first 3 months of operation.`,
-  ],
-  highlight: 'The agreed management fee is £4,250 per site per month',
-};
+/* ─── Initial doc pages ─── */
+const INITIAL_PAGES: Page[] = [
+  {
+    id: 'p1',
+    title: 'Cover Letter',
+    content: `Catering Services Proposal — Blue Apple Contract Catering\n\nThis proposal outlines the scope, pricing and service levels for Blue Apple Contract Catering's staff dining programme across its Manchester and Leeds sites, effective from the agreed start date for an initial 12-month term.\n\nNexus will provide day-to-day catering operations, menu planning, allergen management and monthly reporting.`,
+  },
+  {
+    id: 'p2',
+    title: 'Scope & Pricing',
+    content: `The agreed management fee is £4,250 per site per month, inclusive of staffing, equipment servicing and compliance audits. Food cost is charged at net invoice plus an 8% handling margin, reviewed quarterly.\n\nThis covers both the Manchester and Leeds sites for an initial period of 12 months from commencement date.`,
+  },
+  {
+    id: 'p3',
+    title: 'Terms & Conditions',
+    content: `Either party may terminate this agreement with 90 days' written notice. Blue Apple Contract Catering retains the right to request a service review after the first 3 months of operation.\n\nAll services are subject to the standard Nexus terms and conditions document, version 4.2 (March 2026).`,
+  },
+  {
+    id: 'p4',
+    title: 'Staffing Plan',
+    content: `Nexus will deploy a dedicated Site Manager at each location, supported by a team of qualified catering assistants. All staff hold Level 2 Food Hygiene certificates and undergo quarterly refresher training.\n\nStaffing ratios are maintained at 1:20 for standard service and 1:15 for elevated events.`,
+  },
+  {
+    id: 'p5',
+    title: 'Menu Strategy',
+    content: `Seasonal menus are refreshed quarterly in line with produce availability and client feedback. Allergen management follows FSA guidance with full transparency at point of service.\n\nSpecial dietary requirements are accommodated with 48 hours' notice across all menu categories.`,
+  },
+  {
+    id: 'p6',
+    title: 'Compliance & Reporting',
+    content: `Monthly performance reports will be submitted by the 5th of each calendar month. These include footfall data, food cost analysis, waste metrics, and customer satisfaction scores.\n\nQuarterly business reviews are scheduled for the first Monday of January, April, July, and October.`,
+  },
+  {
+    id: 'p7',
+    title: 'Pricing Schedule',
+    content: `Management Fee: £4,250 per site per month\nFood Cost Handling Margin: 8% on net invoice\nEquipment Servicing: Included\nCompliance Audits: Included (2 per year)\nAd-hoc Events: Quoted separately at time of request`,
+  },
+  {
+    id: 'p8',
+    title: 'Sign-off',
+    content: `This proposal is valid for 30 days from the date of issue. To proceed, please countersign the enclosed agreement and return to your Nexus account manager.\n\nFor any queries, contact: proposals@nexus.co.uk | +44 20 7946 0958`,
+  },
+];
 
 const TOP_TABS = [
   { icon: FileText, label: 'Details' },
@@ -27,232 +61,371 @@ const TOP_TABS = [
   { icon: MessageSquareText, label: 'Notes' },
 ];
 
-const SUMMARY_CARDS = [
-  { label: 'Status', value: 'In Review' },
-  { label: 'Contract Value', value: '£51,000 / yr' },
-  { label: 'Valid Until', value: '30 days' },
-];
+const BREADCRUMB = ['Proposals', 'Hospitality Sector', 'WE.18795'];
 
-type Draft = {
-  id: string;
-  title: string;
-  excerpt: string;
-  step: number;
-};
-
-const INITIAL_DRAFTS: Draft[] = [
-  { id: 'd1', title: 'Cover Letter', excerpt: 'A personal introduction addressed to the Blue Apple procurement team, referencing our site visit on 02 Jun.', step: 1 },
-  { id: 'd2', title: 'Scope & Pricing', excerpt: 'Per-site management fee, food cost margin, and quarterly review clause drafted from the pricing sheet.', step: 2 },
-  { id: 'd3', title: 'Terms & Conditions', excerpt: '90-day termination notice, liability caps, and the 3-month service review checkpoint.', step: 3 },
-];
-
-/* ─────────── draggable draft card ─────────── */
-
-function DraftCard({
-  draft,
-  onDragStart,
+/* ─── Draggable page thumbnail (right column) ─── */
+function PageThumb({
+  page,
+  index,
+  active,
+  dark,
+  onClick,
 }: {
-  draft: Draft;
-  onDragStart: (id: string) => void;
+  page: Page;
+  index: number;
+  active: boolean;
+  dark: boolean;
+  onClick: () => void;
 }) {
+  const controls = useDragControls();
+
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      draggable
-      onDragStart={() => onDragStart(draft.id)}
-      whileHover={{ y: -2 }}
-      className="w-[180px] shrink-0 cursor-grab rounded-[10px] border border-gray-200 bg-white p-4 shadow-sm active:cursor-grabbing"
-    >
-      <span className="mb-2 inline-block rounded-full bg-[#eafaf1] px-2 py-0.5 text-[10px] font-semibold text-[#219251]">
-        Draft {draft.step}
-      </span>
-      <p className="text-[13px] font-semibold text-gray-800 leading-tight">{draft.title}</p>
-      <p className="mt-1.5 text-[10.5px] leading-relaxed text-gray-400 line-clamp-4">{draft.excerpt}</p>
-    </motion.div>
+    <Reorder.Item value={page} dragListener={false} dragControls={controls}>
+      <motion.div
+        whileHover={{ scale: 1.015 }}
+        onClick={onClick}
+        className={`relative flex cursor-pointer gap-2 p-0 transition-all ${
+          active
+            ? 'ring-2 ring-[#2ecc71]'
+            : dark
+            ? 'ring-1 ring-white/10 hover:ring-white/25'
+            : 'ring-1 ring-black/10 hover:ring-black/25'
+        }`}
+      >
+        {/* Drag handle */}
+        <button
+          onPointerDown={(e) => controls.start(e)}
+          className={`flex w-5 shrink-0 cursor-grab items-center justify-center active:cursor-grabbing ${
+            dark ? 'bg-white/5 text-white/20' : 'bg-black/5 text-black/20'
+          }`}
+        >
+          <GripVertical className="h-3 w-3" />
+        </button>
+
+        {/* Preview */}
+        <div
+          className={`flex flex-1 flex-col p-3 ${dark ? 'bg-[#111]' : 'bg-white'}`}
+        >
+          <div className="mb-1.5 flex items-center justify-between">
+            <span
+              className={`text-[9px] font-bold uppercase tracking-widest ${
+                active ? 'text-[#2ecc71]' : dark ? 'text-white/40' : 'text-black/30'
+              }`}
+            >
+              {String(index + 1).padStart(2, '0')}
+            </span>
+            <span
+              className={`text-[9px] font-semibold ${dark ? 'text-white/30' : 'text-black/30'}`}
+            >
+              {page.title}
+            </span>
+          </div>
+          {/* Mini lines */}
+          {[100, 85, 90, 70, 80].map((w, i) => (
+            <div
+              key={i}
+              className={`mb-1 h-[2px] ${dark ? 'bg-white/10' : 'bg-black/8'}`}
+              style={{ width: `${w}%` }}
+            />
+          ))}
+          <div
+            className={`mt-1 h-[2px] w-[55%] ${active ? 'bg-[#2ecc71]/60' : dark ? 'bg-white/6' : 'bg-black/6'}`}
+          />
+        </div>
+      </motion.div>
+    </Reorder.Item>
   );
 }
 
-/* ─────────── main page ─────────── */
-
+/* ─── Main export ─── */
 export function ProposalDoc() {
-  const [activeTab, setActiveTab] = useState(2); // Drafts
-  const [drafts, setDrafts] = useState<Draft[]>(INITIAL_DRAFTS);
-  const [trashed, setTrashed] = useState<Draft | null>(null);
-  const [dragOverTrash, setDragOverTrash] = useState(false);
+  const [dark, setDark] = useState(false);
+  const [activeTab, setActiveTab] = useState(2);
+  const [pages, setPages] = useState<Page[]>(INITIAL_PAGES);
+  const [activePage, setActivePage] = useState(0);
+  const [trashed, setTrashed] = useState<Page | null>(null);
+  const [dragOver, setDragOver] = useState(false);
   const draggingId = useRef<string | null>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
+
+  const currentPage = pages[activePage] ?? pages[0];
+
+  /* ── helpers ── */
+  const addPage = () => {
+    const newPage: Page = {
+      id: `p${Date.now()}`,
+      title: `Section ${pages.length + 1}`,
+      content: 'Start writing here...',
+    };
+    setPages((prev) => [...prev, newPage]);
+    setActivePage(pages.length);
+  };
 
   const handleDrop = () => {
-    setDragOverTrash(false);
+    setDragOver(false);
     const id = draggingId.current;
     if (!id) return;
-    const found = drafts.find((d) => d.id === id);
+    const found = pages.find((p) => p.id === id);
     if (!found) return;
-    setDrafts((prev) => prev.filter((d) => d.id !== id));
+    setPages((prev) => prev.filter((p) => p.id !== id));
     setTrashed(found);
+    setActivePage(0);
     draggingId.current = null;
   };
 
   const undoTrash = () => {
     if (!trashed) return;
-    setDrafts((prev) => [...prev, trashed]);
+    setPages((prev) => [...prev, trashed]);
     setTrashed(null);
   };
 
-  const addDraft = () => {
-    const n = drafts.length + trashed ? drafts.length + 1 : 1;
-    setDrafts((prev) => [
-      ...prev,
-      { id: `d${Date.now()}`, title: 'Untitled Draft', excerpt: 'New section — click to start writing.', step: n },
-    ]);
+  const handleContentChange = useCallback(() => {
+    if (!editorRef.current) return;
+    setPages((prev) =>
+      prev.map((p, i) =>
+        i === activePage ? { ...p, content: editorRef.current!.innerText } : p
+      )
+    );
+  }, [activePage]);
+
+  const handlePrint = () => window.print();
+
+  const handleDownload = () => {
+    const txt = pages.map((p) => `## ${p.title}\n\n${p.content}`).join('\n\n---\n\n');
+    const blob = new Blob([txt], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'proposal.txt';
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
+  /* ── theme tokens ── */
+  const bg = dark ? 'bg-black' : 'bg-[#f2f3f5]';
+  const docBg = dark ? 'bg-[#0d0d0d]' : 'bg-white';
+  const textPrimary = dark ? 'text-white' : 'text-gray-900';
+  const textMuted = dark ? 'text-white/40' : 'text-gray-400';
+  const border = dark ? 'border-white/10' : 'border-[#e8e8e8]';
+  const sidebarBg = dark ? 'bg-[#0a0a0a]' : 'bg-[#f8f8f8]';
+
   return (
-    <div className="min-h-[calc(100vh-4rem)] w-full bg-[#0a0a0a] px-6 py-8 flex justify-center">
-      <div className="w-full max-w-[1180px] overflow-hidden rounded-[18px] bg-[#f4f5f7] shadow-2xl ring-1 ring-white/10">
+    <div className={`flex min-h-[calc(100vh-4rem)] w-full flex-col ${bg} transition-colors duration-300`}>
 
-        {/* ── top bar ── */}
-        <div className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-3">
-          <button className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100">
-            <ArrowLeft className="h-4 w-4" />
+      {/* ── TOP BAR: full bleed, no padding gaps ── */}
+      <div className={`flex items-center border-b ${border} ${dark ? 'bg-[#0a0a0a]' : 'bg-white'}`}>
+        {/* Back */}
+        <button className={`flex h-12 w-12 shrink-0 items-center justify-center border-r ${border} ${textMuted} hover:${textPrimary} transition-colors`}>
+          <ArrowLeft className="h-4 w-4" />
+        </button>
+
+        {/* Title + breadcrumb inline */}
+        <div className={`flex items-center gap-2 border-r ${border} px-5 py-0 h-12 flex-shrink-0`}>
+          <span className={`text-[12px] font-bold ${textPrimary} whitespace-nowrap`}>
+            Catering Services Proposal
+          </span>
+          <ChevronRight className={`h-3 w-3 ${textMuted}`} />
+          {BREADCRUMB.map((part, i) => (
+            <span key={i} className={`flex items-center gap-1 text-[11px] ${textMuted} whitespace-nowrap`}>
+              {part}
+              {i < BREADCRUMB.length - 1 && <ChevronRight className="h-3 w-3" />}
+            </span>
+          ))}
+        </div>
+
+        {/* Tabs inline */}
+        <div className="flex flex-1 items-center">
+          {TOP_TABS.map((tab, i) => {
+            const Icon = tab.icon;
+            const active = activeTab === i;
+            return (
+              <button
+                key={tab.label}
+                onClick={() => setActiveTab(i)}
+                className={`flex h-12 items-center gap-2 border-r px-5 text-[11px] font-semibold transition-colors ${border} ${
+                  active
+                    ? 'bg-[#2ecc71] text-white'
+                    : `${textMuted} hover:${textPrimary} ${dark ? 'hover:bg-white/5' : 'hover:bg-gray-50'}`
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Actions */}
+        <div className={`flex items-center border-l ${border}`}>
+          <button
+            onClick={() => setDark((d) => !d)}
+            className={`flex h-12 w-12 items-center justify-center border-r ${border} ${textMuted} hover:text-[#2ecc71] transition-colors`}
+            title={dark ? 'Light mode' : 'Dark mode'}
+          >
+            {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
+          <button
+            onClick={handleDownload}
+            className={`flex h-12 w-12 items-center justify-center border-r ${border} ${textMuted} hover:text-[#2ecc71] transition-colors`}
+            title="Download"
+          >
+            <Download className="h-4 w-4" />
+          </button>
+          <button
+            onClick={handlePrint}
+            className={`flex h-12 w-12 items-center justify-center border-r ${border} ${textMuted} hover:text-[#2ecc71] transition-colors`}
+            title="Print"
+          >
+            <Printer className="h-4 w-4" />
+          </button>
+          <button className="flex h-12 items-center gap-2 bg-[#2ecc71] px-6 text-[11px] font-bold uppercase tracking-widest text-white hover:bg-[#27af61] transition-colors">
+            Publish
+          </button>
+        </div>
+      </div>
 
-          <div className="flex items-center gap-8">
-            {TOP_TABS.map((tab, i) => {
-              const Icon = tab.icon;
-              const active = activeTab === i;
-              return (
-                <button
-                  key={tab.label}
-                  onClick={() => setActiveTab(i)}
-                  className="flex flex-col items-center gap-1"
-                >
-                  <span
-                    className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
-                      active ? 'bg-[#2ecc71] text-white' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                  </span>
-                  <span className={`text-[10.5px] font-medium ${active ? 'text-[#219251]' : 'text-gray-400'}`}>
-                    {tab.label}
-                  </span>
-                </button>
-              );
-            })}
+      {/* ── BODY: full bleed grid ── */}
+      <div className="flex flex-1 overflow-hidden">
+
+        {/* LEFT: document editor */}
+        <div className={`flex flex-1 flex-col overflow-hidden ${docBg}`}>
+          {/* Doc header */}
+          <div className={`flex items-center gap-3 border-b ${border} px-8 py-5`}>
+            <button className={`flex h-7 w-7 shrink-0 items-center justify-center ${textMuted} hover:${textPrimary}`}>
+              <Volume2 className="h-3.5 w-3.5" />
+            </button>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <input
+                  value={currentPage?.title || ''}
+                  onChange={(e) =>
+                    setPages((prev) =>
+                      prev.map((p, i) =>
+                        i === activePage ? { ...p, title: e.target.value } : p
+                      )
+                    )
+                  }
+                  className={`bg-transparent text-[18px] font-black ${textPrimary} outline-none border-none w-full placeholder-gray-300`}
+                  placeholder="Section title"
+                />
+              </div>
+              <div className={`mt-1 flex items-center gap-1 text-[11px] ${textMuted}`}>
+                <span>Page {activePage + 1} of {pages.length}</span>
+                <ChevronRight className="h-3 w-3" />
+                <span>{currentPage?.title}</span>
+              </div>
+            </div>
+            <button className={`flex h-7 w-7 items-center justify-center ${textMuted} hover:text-[#2ecc71]`}>
+              <Search className="h-3.5 w-3.5" />
+            </button>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100">
-              <Printer className="h-4 w-4" />
-            </button>
-            <button className="rounded-full bg-[#2ecc71] px-5 py-2 text-[12.5px] font-semibold text-white hover:bg-[#27af61] transition-colors">
-              PUBLISH
-            </button>
+          {/* Editable body */}
+          <div className="flex-1 overflow-y-auto px-8 py-8">
+            <div
+              ref={editorRef}
+              contentEditable
+              suppressContentEditableWarning
+              onInput={handleContentChange}
+              className={`min-h-[400px] text-[14px] leading-[2] ${textPrimary} outline-none whitespace-pre-wrap`}
+              style={{ fontFamily: 'inherit' }}
+            >
+              {currentPage?.content}
+            </div>
+          </div>
+
+          {/* Status row */}
+          <div className={`flex items-center justify-between border-t ${border} px-8 py-3`}>
+            <div className={`flex items-center gap-4 text-[11px] ${textMuted}`}>
+              <span className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 bg-[#2ecc71]" />
+                In Review
+              </span>
+              <span>£51,000 / yr</span>
+              <span>Valid 30 days</span>
+            </div>
+            <span className={`text-[11px] ${textMuted}`}>
+              {currentPage?.content.split(/\s+/).filter(Boolean).length || 0} words
+            </span>
           </div>
         </div>
 
-        {/* ── body ── */}
-        <div className="grid grid-cols-[1fr_360px] gap-8 p-8">
-
-          {/* left: document */}
-          <div className="rounded-[14px] bg-white p-9 shadow-sm">
-            <div className="flex items-start gap-3">
-              <button className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-gray-300 hover:bg-gray-100">
-                <Volume2 className="h-3.5 w-3.5" />
-              </button>
-              <div>
-                <h1 className="text-[21px] font-bold leading-snug text-gray-900">{DOC.title}</h1>
-                <p className="mt-1.5 flex items-center gap-1 text-[12px] text-gray-400">
-                  {DOC.breadcrumb.split('›').map((part, i, arr) => (
-                    <span key={i} className="flex items-center gap-1">
-                      {part.trim()}
-                      {i < arr.length - 1 && <ChevronRight className="h-3 w-3 text-gray-300" />}
-                    </span>
-                  ))}
-                </p>
-              </div>
-            </div>
-
-            <button className="mt-5 flex h-7 w-7 items-center justify-center rounded-full text-gray-300 hover:bg-gray-100">
-              <Search className="h-3.5 w-3.5" />
+        {/* RIGHT: draggable page thumbnails */}
+        <div className={`flex w-[220px] shrink-0 flex-col border-l ${border} ${sidebarBg}`}>
+          <div className={`flex items-center justify-between border-b ${border} px-3 py-3`}>
+            <span className={`text-[9px] font-bold uppercase tracking-widest ${textMuted}`}>
+              Pages — {pages.length}
+            </span>
+            <button
+              onClick={addPage}
+              className={`flex h-6 w-6 items-center justify-center transition-colors ${textMuted} hover:text-[#2ecc71]`}
+            >
+              <Plus className="h-3.5 w-3.5" />
             </button>
-
-            <div className="mt-4 space-y-4 text-[13.5px] leading-[1.9] text-gray-600">
-              {DOC.body.map((para, i) => {
-                if (!para.includes(DOC.highlight)) {
-                  return <p key={i}>{para}</p>;
-                }
-                const [before, after] = para.split(DOC.highlight);
-                return (
-                  <p key={i}>
-                    {before}
-                    <span className="rounded-[3px] bg-[#c7f9dd] px-0.5 text-gray-800">{DOC.highlight}</span>
-                    {after}
-                  </p>
-                );
-              })}
-            </div>
           </div>
 
-          {/* right: summary + drafts */}
-          <div className="flex flex-col gap-5">
-            <div className="grid grid-cols-3 gap-3">
-              {SUMMARY_CARDS.map((card) => (
-                <div key={card.label} className="rounded-[10px] bg-white p-3 shadow-sm">
-                  <p className="text-[9.5px] font-semibold uppercase tracking-wide text-gray-400">{card.label}</p>
-                  <p className="mt-1 text-[12.5px] font-semibold text-gray-800 leading-tight">{card.value}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <AnimatePresence mode="popLayout">
-                {drafts.map((draft) => (
-                  <DraftCard key={draft.id} draft={draft} onDragStart={(id) => (draggingId.current = id)} />
-                ))}
-              </AnimatePresence>
-
-              <button
-                onClick={addDraft}
-                className="flex h-[128px] w-[180px] shrink-0 flex-col items-center justify-center gap-2 rounded-[10px] border border-dashed border-gray-300 text-gray-400 transition-colors hover:border-[#2ecc71] hover:text-[#219251]"
-              >
-                <Plus className="h-5 w-5" />
-                <span className="text-[11px] font-medium">Create draft</span>
-              </button>
-            </div>
-
-            {/* trash / delete drop zone */}
-            <div
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDragOverTrash(true);
+          {/* Reorder list */}
+          <div className="flex-1 overflow-y-auto py-2">
+            <Reorder.Group
+              axis="y"
+              values={pages}
+              onReorder={(newOrder) => {
+                const activeId = pages[activePage]?.id;
+                setPages(newOrder);
+                const newIdx = newOrder.findIndex((p) => p.id === activeId);
+                if (newIdx >= 0) setActivePage(newIdx);
               }}
-              onDragLeave={() => setDragOverTrash(false)}
-              onDrop={handleDrop}
-              className={`mt-2 flex flex-1 flex-col items-center justify-center gap-2 rounded-[10px] border-2 border-dashed py-6 text-center transition-colors ${
-                dragOverTrash ? 'border-red-400 bg-red-50 text-red-500' : 'border-gray-200 text-gray-300'
-              }`}
+              className="flex flex-col gap-2 px-2"
             >
-              <Trash2 className="h-5 w-5" />
-              <span className="text-[11px]">Drop your drafts here to delete</span>
-            </div>
+              {pages.map((page, i) => (
+                <PageThumb
+                  key={page.id}
+                  page={page}
+                  index={i}
+                  active={i === activePage}
+                  dark={dark}
+                  onClick={() => setActivePage(i)}
+                />
+              ))}
+            </Reorder.Group>
+          </div>
 
+          {/* Trash drop zone */}
+          <div
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+            className={`border-t ${border} flex flex-col items-center justify-center gap-1.5 py-4 transition-colors ${
+              dragOver
+                ? 'bg-red-500/10 text-red-400'
+                : `${textMuted}`
+            }`}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            <span className="text-[9px] font-semibold uppercase tracking-wide">Drop to delete</span>
+          </div>
+
+          {/* Undo toast */}
+          <AnimatePresence>
             {trashed && (
               <motion.div
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex items-center justify-between rounded-[8px] bg-white px-4 py-2.5 text-[12px] text-gray-500 shadow-sm"
+                exit={{ opacity: 0, y: 8 }}
+                className={`border-t ${border} flex items-center justify-between px-3 py-2.5`}
               >
-                <span>"{trashed.title}" moved to trash</span>
-                <button onClick={undoTrash} className="font-semibold text-[#219251] hover:underline">
+                <span className={`text-[10px] ${textMuted} truncate max-w-[110px]`}>
+                  "{trashed.title}" deleted
+                </span>
+                <button
+                  onClick={undoTrash}
+                  className="text-[10px] font-bold text-[#2ecc71] hover:underline"
+                >
                   Undo
                 </button>
               </motion.div>
             )}
-          </div>
+          </AnimatePresence>
         </div>
       </div>
     </div>

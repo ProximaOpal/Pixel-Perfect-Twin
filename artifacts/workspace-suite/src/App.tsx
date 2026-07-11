@@ -11,6 +11,7 @@ import { SetupWizard } from '@/pages/SetupWizard';
 import { EmployeeDashboard } from '@/pages/EmployeeDashboard';
 import { ProposalDoc } from '@/pages/ProposalDoc';
 import { ProcessTimeline } from '@/pages/ProcessTimeline';
+import { Forms } from '@/pages/Forms';
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ function Router() {
         <Route path="/employees" component={EmployeeDashboard} />
         <Route path="/proposal-doc" component={ProposalDoc} />
         <Route path="/timeline" component={ProcessTimeline} />
+        <Route path="/forms" component={Forms} />
         <Route component={NotFound} />
       </Switch>
     </>
