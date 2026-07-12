@@ -7,7 +7,7 @@ import { ActiveLeadProvider } from '@/context/ActiveLeadContext';
 import { Home } from '@/pages/Home';
 import { Leads } from '@/pages/Leads';
 import { Tasks } from '@/pages/Tasks';
-import { Forms } from '@/pages/Forms';
+import { Forms as QuoteBuilder } from '@/pages/Forms';
 import { ProposalDoc } from '@/pages/ProposalDoc';
 import { Timeline } from '@/pages/Timeline';
 import { Calendar } from '@/pages/Calendar';
@@ -25,7 +25,7 @@ function Router() {
         <Route path="/" component={Home} />
         <Route path="/leads" component={Leads} />
         <Route path="/tasks" component={Tasks} />
-        <Route path="/forms" component={Forms} />
+        <Route path="/quote-builder" component={QuoteBuilder} />
         <Route path="/proposal-doc" component={ProposalDoc} />
         <Route path="/timeline" component={Timeline} />
         <Route path="/calendar" component={Calendar} />

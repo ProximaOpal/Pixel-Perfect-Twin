@@ -24,8 +24,8 @@ const TILES: Tile[] = [
     features: ['Track tasks', 'Manage projects', 'View progress', 'Quick search'],
   },
   {
-    href: '/forms',
-    label: 'Forms',
+    href: '/quote-builder',
+    label: 'Quote Builder',
     icon: ClipboardList,
     features: ['Configure business info', 'Set modules & permissions', 'Import / export data', 'Map categories'],
   },

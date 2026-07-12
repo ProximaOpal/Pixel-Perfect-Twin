@@ -15,7 +15,7 @@ const NAV_ITEMS = [
   { href: '/',             label: 'Home',         icon: Home           },
   { href: '/leads',        label: 'Leads',        icon: Users          },
   { href: '/tasks',        label: 'Tasks',        icon: LayoutDashboard },
-  { href: '/forms',        label: 'Forms',        icon: ClipboardList  },
+  { href: '/quote-builder', label: 'Quote Builder', icon: ClipboardList  },
   { href: '/proposal-doc', label: 'Proposal Doc', icon: FileText       },
   { href: '/timeline',     label: 'Timeline',     icon: GitBranch      },
   { href: '/calendar',     label: 'Calendar',     icon: CalendarDays   },

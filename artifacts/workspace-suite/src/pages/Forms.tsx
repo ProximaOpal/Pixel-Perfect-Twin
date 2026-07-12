@@ -337,7 +337,7 @@ export function Forms() {
           <span className="text-[15px] font-bold tracking-tight text-[#101a15]">Nexus</span>
         </div>
 
-        <h1 className="mb-7 text-[24px] font-bold tracking-tight text-[#101a15]">Create Proposal</h1>
+        <h1 className="mb-7 text-[24px] font-bold tracking-tight text-[#101a15]">Quote Builder</h1>
 
         <nav className="flex flex-col gap-1">
           {STEPS.map(({ n, label }) => {
