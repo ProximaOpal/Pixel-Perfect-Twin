@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ArrowRight, Check, HelpCircle, Loader2, FileCheck2, AlertTriangle, X } from 'lucide-react';
 import { addProposal } from '@/lib/proposalStore';
 import { VESSEL_TYPES, EVENT_TYPES, MENU_TYPES, getStoredPreview } from '@/lib/formOptions';
+import { ItineraryWatch } from '@/components/ItineraryWatch';
 
 const QUOTE_WEBHOOK_URL = 'https://ravenmark.app.n8n.cloud/webhook/QuoteBuilder';
 
@@ -199,10 +200,11 @@ function FormSelect({
 /* ─── Steps ─── */
 const STEPS = [
   { n: 1, label: 'Event Core' },
-  { n: 2, label: 'Itinerary' },
-  { n: 3, label: 'Catering' },
-  { n: 4, label: 'Financials' },
-  { n: 5, label: 'Upgrades' },
+  { n: 2, label: 'Guest Count' },
+  { n: 3, label: 'Schedule Timings' },
+  { n: 4, label: 'Catering' },
+  { n: 5, label: 'Financials' },
+  { n: 6, label: 'Upgrades' },
 ];
 
 export function Forms() {
@@ -435,7 +437,7 @@ export function Forms() {
               </motion.div>
             )}
 
-            {/* STEP 2 — Itinerary */}
+            {/* STEP 2 — Guest Count */}
             {step === 2 && (
               <motion.div key="step2" variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.25 }}>
                 <p className={sectionLabelCls}>Guest Count</p>
@@ -451,7 +453,12 @@ export function Forms() {
                   />
                   <p className="mt-1.5 text-[11.5px] text-gray-400">Used to calculate staffing across the event.</p>
                 </div>
+              </motion.div>
+            )}
 
+            {/* STEP 3 — Schedule Timings */}
+            {step === 3 && (
+              <motion.div key="step3-schedule" variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.25 }}>
                 <p className={sectionLabelCls}>Schedule Timings</p>
                 <div className="grid grid-cols-2 gap-5">
                   {(
@@ -473,11 +480,19 @@ export function Forms() {
                     </div>
                   ))}
                 </div>
+
+                <ItineraryWatch
+                  embarkation={data.embarkation}
+                  departure={data.departure}
+                  returnTime={data.returnTime}
+                  disembarkation={data.disembarkation}
+                  onChangeField={(key, value) => set(key, value)}
+                />
               </motion.div>
             )}
 
-            {/* STEP 3 — Catering */}
-            {step === 3 && (
+            {/* STEP 4 — Catering */}
+            {step === 4 && (
               <motion.div key="step3" variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.25 }}>
                 <p className={sectionLabelCls}>Catering</p>
 
@@ -515,10 +530,10 @@ export function Forms() {
               </motion.div>
             )}
 
-            {/* STEP 4 — Financials */}
-            {step === 4 && (
+            {/* STEP 5 — Financials */}
+            {step === 5 && (
               <motion.div
-                key="step4"
+                key="step5-financials"
                 variants={pageVariants}
                 initial="initial"
                 animate="animate"
@@ -578,10 +593,10 @@ export function Forms() {
               </motion.div>
             )}
 
-            {/* STEP 5 — Upgrades */}
-            {step === 5 && (
+            {/* STEP 6 — Upgrades */}
+            {step === 6 && (
               <motion.div
-                key="step5"
+                key="step6-upgrades"
                 variants={pageVariants}
                 initial="initial"
                 animate="animate"
@@ -655,9 +670,9 @@ export function Forms() {
             ) : (
               <span />
             )}
-            {step < 5 ? (
+            {step < 6 ? (
               <button
-                onClick={() => setStep((s) => Math.min(5, s + 1))}
+                onClick={() => setStep((s) => Math.min(6, s + 1))}
                 className="flex items-center gap-2 rounded-full bg-[#2ecc71] px-8 py-3.5 text-[13px] font-bold text-white shadow-sm transition-colors hover:bg-[#27af61]"
               >
                 Next

@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   X, Menu, Play, ChevronUp, ChevronDown, Mail, Phone, FileText, ArrowLeft, Send,
   Search, CircleDollarSign, Anchor, GitBranch, Clock, Tag as TagIcon,
+  Video, Calendar, Linkedin,
 } from 'lucide-react';
 import { NOTE_CATEGORIES, detectTag, loadNotes, addNote, type NoteTag, type LeadNote } from '@/lib/leadNotes';
 import { soundClick } from '@/lib/sounds';
@@ -60,6 +61,23 @@ function gmailDraftUrl(email: string): string {
   return `https://mail.google.com/mail/?view=cm&fs=1&tf=1&to=${encodeURIComponent(email)}`;
 }
 
+/** Starts a fresh Google Meet call, ready to invite the lead into. */
+const GOOGLE_MEET_URL = 'https://meet.google.com/new';
+
+/** Opens a new Google Calendar event, pre-titled and pre-inviting this lead. */
+function googleCalendarUrl(lead: Lead): string {
+  const text = encodeURIComponent(`Call with ${lead.name}`);
+  const details = encodeURIComponent(`Meeting with ${lead.name}${lead.designation ? ` (${lead.designation})` : ''}.`);
+  const add = lead.email && lead.email !== '—' ? `&add=${encodeURIComponent(lead.email)}` : '';
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&details=${details}${add}`;
+}
+
+/** The lead's LinkedIn profile if known, otherwise a name search as a fallback. */
+function linkedinUrl(lead: Lead): string {
+  if (lead.linkedin) return lead.linkedin.startsWith('http') ? lead.linkedin : `https://${lead.linkedin}`;
+  return `https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(lead.name)}`;
+}
+
 /* ─── Contact View ─── */
 function ContactView({ lead, onNotes }: { lead: Lead; onNotes: () => void }) {
   const [imgErr, setImgErr] = useState(false);
@@ -107,7 +125,44 @@ function ContactView({ lead, onNotes }: { lead: Lead; onNotes: () => void }) {
           <p className="mt-3 max-w-[200px] text-[11px] leading-relaxed text-[#1a1a1a]/50">
             {lead.designation} — {lead.sector}.{lead.source ? ` Sourced via ${lead.source}.` : ''}
           </p>
+          {/* Quick-connect row — each brand keeps its own color coding */}
           <div className="mt-5 flex items-center gap-3">
+            <a
+              href={GOOGLE_MEET_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={soundClick}
+              title="Start a Google Meet"
+              className="flex items-center gap-1.5 border px-3 py-1.5 text-[10.5px] font-semibold transition-colors"
+              style={{ borderColor: '#34a85340', color: '#1e8e3e' }}
+            >
+              <Video className="h-3 w-3" /> Meet
+            </a>
+            <a
+              href={googleCalendarUrl(lead)}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={soundClick}
+              title="Add to Google Calendar"
+              className="flex items-center gap-1.5 border px-3 py-1.5 text-[10.5px] font-semibold transition-colors"
+              style={{ borderColor: '#1a73e840', color: '#1a73e8' }}
+            >
+              <Calendar className="h-3 w-3" /> Calendar
+            </a>
+            <a
+              href={linkedinUrl(lead)}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={soundClick}
+              title="View on LinkedIn"
+              className="flex items-center gap-1.5 border px-3 py-1.5 text-[10.5px] font-semibold transition-colors"
+              style={{ borderColor: '#0a66c240', color: '#0a66c2' }}
+            >
+              <Linkedin className="h-3 w-3" /> LinkedIn
+            </a>
+          </div>
+
+          <div className="mt-3 flex items-center gap-3">
             <a
               href={gmailDraftUrl(lead.email)}
               target="_blank"
@@ -117,13 +172,13 @@ function ContactView({ lead, onNotes }: { lead: Lead; onNotes: () => void }) {
             >
               <Mail className="h-3 w-3" /> Email
             </a>
-            <a
-              href={`tel:${lead.phone}`}
+            <button
+              type="button"
               onClick={() => { setShowCall(true); soundClick(); }}
               className="flex items-center gap-1.5 border border-[#1a1a1a]/20 px-4 py-2 text-[11px] font-semibold text-[#1a1a1a] hover:border-[#2ecc71] hover:text-[#2ecc71] transition-colors"
             >
               <Phone className="h-3 w-3" /> Call
-            </a>
+            </button>
             <button
               onClick={() => { onNotes(); soundClick(); }}
               className="flex items-center gap-1.5 border border-[#1a1a1a]/20 px-4 py-2 text-[11px] font-semibold text-[#1a1a1a] hover:border-[#2ecc71] hover:text-[#2ecc71] transition-colors"
