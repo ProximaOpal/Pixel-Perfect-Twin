@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
-import { Users, LayoutDashboard, ClipboardList, GitBranch, CalendarDays, Check, ArrowRight } from 'lucide-react';
+import { Users, LayoutDashboard, ClipboardList, GitBranch, CalendarDays, Grid2x2, FileText, Check, ArrowRight } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 type Tile = {
@@ -41,6 +41,18 @@ const TILES: Tile[] = [
     icon: CalendarDays,
     features: ['Schedule events', 'View bookings', 'Manage availability', 'Track appointments'],
   },
+  {
+    href: '/apps',
+    label: 'Apps',
+    icon: Grid2x2,
+    features: ['Connect Gmail & Drive', 'Message on WhatsApp', 'Launch Slack & LinkedIn', 'Open with lead context'],
+  },
+  {
+    href: '/proposal-doc',
+    label: 'Proposal Doc',
+    icon: FileText,
+    features: ['Browse proposal pages', 'Preview & share drafts', 'Track signed status', 'Publish to clients'],
+  },
 ];
 
 export function Home() {
@@ -50,7 +62,7 @@ export function Home() {
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] w-full items-center justify-center bg-[#2ecc71] px-4 py-10">
-      <div className="w-full max-w-[860px] overflow-hidden rounded-[28px] shadow-2xl">
+      <div className="w-full max-w-[980px] overflow-hidden rounded-[28px] shadow-2xl">
         {/* ── white top section ── */}
         <div className="bg-white px-8 pb-10 pt-9 sm:px-12">
           <div className="text-center">
@@ -60,7 +72,7 @@ export function Home() {
             </h1>
           </div>
 
-          <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-5 sm:gap-5">
+          <div className="mt-8 flex flex-wrap justify-center gap-4 sm:gap-5">
             {TILES.map((tile, i) => {
               const Icon = tile.icon;
               const isActive = i === activeIndex;
@@ -71,7 +83,7 @@ export function Home() {
                   onMouseEnter={() => setActiveIndex(i)}
                   onFocus={() => setActiveIndex(i)}
                   onClick={() => navigate(tile.href)}
-                  className={`group relative flex flex-col items-center gap-3 rounded-[16px] bg-[#f6f7f9] px-3 py-6 text-center shadow-sm transition-all duration-200 ${
+                  className={`group relative flex w-[130px] flex-col items-center gap-3 rounded-[16px] bg-[#f6f7f9] px-3 py-6 text-center shadow-sm transition-all duration-200 sm:w-[150px] ${
                     isActive
                       ? 'bg-white shadow-[0_10px_30px_-8px_rgba(16,60,40,0.25)] ring-2 ring-[#2ecc71]'
                       : 'hover:bg-white hover:shadow-md'

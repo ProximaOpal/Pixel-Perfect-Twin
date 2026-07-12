@@ -1,458 +1,351 @@
-import { useState, useRef } from 'react';
-import { motion, AnimatePresence, Reorder, useDragControls } from 'framer-motion';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ArrowLeft, FileText, Layers, PenSquare, CheckCircle2, MessageSquareText,
-  Printer, Plus, Trash2, ChevronRight, Download, GripVertical,
-  ChevronLeft, ChevronUp, ChevronDown, ZoomIn, ZoomOut,
+  Grid2x2, FileText, PenSquare, CheckCircle2, MessageSquareText, Star,
+  MoreVertical, Search, LayoutGrid, List, Share2, Pencil, Trash2,
+  ChevronRight, Home as HomeIcon, Download, Printer, X,
 } from 'lucide-react';
 
 /* ─── Real document pages from the uploaded PDF ─── */
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
 const pageImg = (n: number) => `${BASE}/doc-pages/page_${String(n).padStart(2, '0')}.png`;
 
-type DocPage = { id: string; title: string; pageNum: number };
+type FileKind = 'page' | 'draft';
 
-const DOC_PAGES: DocPage[] = [
-  { id: 'p1',  title: 'Our Proposal',                         pageNum: 1  },
-  { id: 'p2',  title: 'Contents',                             pageNum: 2  },
-  { id: 'p3',  title: 'About Us',                             pageNum: 3  },
-  { id: 'p4',  title: 'Our Mission',                          pageNum: 4  },
-  { id: 'p5',  title: 'Why West End on the Thames?',          pageNum: 5  },
-  { id: 'p6',  title: 'Your Assigned Team',                   pageNum: 6  },
-  { id: 'p7',  title: 'Testimonials',                         pageNum: 7  },
-  { id: 'p8',  title: 'Statement',                            pageNum: 8  },
-  { id: 'p9',  title: 'Vessel Details',                       pageNum: 9  },
-  { id: 'p10', title: 'Catering',                             pageNum: 10 },
-  { id: 'p11', title: 'River Map',                            pageNum: 11 },
-  { id: 'p12', title: 'Instagram',                            pageNum: 12 },
-  { id: 'p13', title: 'Your Bespoke Package',                 pageNum: 13 },
-  { id: 'p14', title: 'Added Extras',                         pageNum: 14 },
-  { id: 'p15', title: 'Booking Procedure & Event Prep',       pageNum: 15 },
-  { id: 'p16', title: 'Your Contact',                         pageNum: 16 },
-  { id: 'p17', title: 'Google Reviews',                       pageNum: 17 },
-  { id: 'p18', title: 'Land Venue Option',                    pageNum: 18 },
+type ProposalFile = {
+  id: string;
+  title: string;
+  kind: FileKind;
+  pageNum?: number;
+  section?: string;
+  sizeLabel: string;
+  description: string;
+};
+
+/* ─── Real content: 18 document pages + 3 drafts, as "files" ─── */
+const DOC_PAGES: ProposalFile[] = [
+  { id: 'p1',  title: 'Our Proposal',                   kind: 'page', pageNum: 1,  sizeLabel: '2.4 MB', description: 'Cover page introducing the proposal to the client.' },
+  { id: 'p2',  title: 'Contents',                        kind: 'page', pageNum: 2,  sizeLabel: '1.1 MB', description: 'Full table of contents for the proposal document.' },
+  { id: 'p3',  title: 'About Us',                        kind: 'page', pageNum: 3,  sizeLabel: '2.0 MB', description: 'Company background and history.' },
+  { id: 'p4',  title: 'Our Mission',                     kind: 'page', pageNum: 4,  sizeLabel: '1.8 MB', description: 'Mission statement and core values.' },
+  { id: 'p5',  title: 'Why West End on the Thames?',     kind: 'page', pageNum: 5,  sizeLabel: '2.6 MB', description: 'What sets our vessels and service apart.' },
+  { id: 'p6',  title: 'Your Assigned Team',               kind: 'page', pageNum: 6,  sizeLabel: '2.2 MB', description: 'Meet the team assigned to this booking.' },
+  { id: 'p7',  title: 'Testimonials',                     kind: 'page', pageNum: 7,  sizeLabel: '1.5 MB', description: 'Feedback from past clients.' },
+  { id: 'p8',  title: 'Statement',                        kind: 'page', pageNum: 8,  sizeLabel: '900 KB', description: 'Formal statement for this proposal.' },
+  { id: 'p9',  title: 'Vessel Details',                   kind: 'page', pageNum: 9,  sizeLabel: '3.1 MB', description: 'Specifications for the selected vessel.' },
+  { id: 'p10', title: 'Catering',                         kind: 'page', pageNum: 10, sizeLabel: '2.7 MB', description: 'Menu options and catering details.' },
+  { id: 'p11', title: 'River Map',                        kind: 'page', pageNum: 11, sizeLabel: '3.4 MB', description: 'Route map along the Thames.' },
+  { id: 'p12', title: 'Instagram',                        kind: 'page', pageNum: 12, sizeLabel: '2.9 MB', description: 'Social media highlights and gallery.' },
+  { id: 'p13', title: 'Your Bespoke Package',             kind: 'page', pageNum: 13, sizeLabel: '2.3 MB', description: 'Package tailored to this client\u2019s event.' },
+  { id: 'p14', title: 'Added Extras',                     kind: 'page', pageNum: 14, sizeLabel: '1.6 MB', description: 'Optional add-ons available for booking.' },
+  { id: 'p15', title: 'Booking Procedure & Event Prep',   kind: 'page', pageNum: 15, sizeLabel: '1.2 MB', description: 'Steps and timeline to confirm the booking.' },
+  { id: 'p16', title: 'Your Contact',                     kind: 'page', pageNum: 16, sizeLabel: '800 KB', description: 'Direct contact details for this proposal.' },
+  { id: 'p17', title: 'Google Reviews',                   kind: 'page', pageNum: 17, sizeLabel: '1.4 MB', description: 'Aggregated review scores and highlights.' },
+  { id: 'p18', title: 'Land Venue Option',                kind: 'page', pageNum: 18, sizeLabel: '2.1 MB', description: 'Alternative land-based venue option.' },
 ];
 
-/* ─── Draft cards (real content from the doc) ─── */
-type Draft = { id: string; section: string; title: string; body: string; highlight?: string };
-
-const INITIAL_DRAFTS: Draft[] = [
+const DRAFTS: ProposalFile[] = [
   {
-    id: 'd1', section: 'Section 1', title: 'Cover Letter',
-    body: 'Thank you for your enquiry into chartering a West End on the Thames vessel for your upcoming event. Please let me know if you would like any details amended.',
-    highlight: 'West End on the Thames',
+    id: 'd1', title: 'Cover Letter', kind: 'draft', section: 'Section 1', sizeLabel: '12 KB',
+    description: 'Thank you for your enquiry into chartering a West End on the Thames vessel for your upcoming event. Please let me know if you would like any details amended.',
   },
   {
-    id: 'd2', section: 'Section 2', title: 'Bespoke Package',
-    body: 'Your bespoke package includes full venue hire, professional photographers, personalised playlist, summer garden games, décor, food & beverages, and full event management.',
-    highlight: '£4,000 — 50 guests',
+    id: 'd2', title: 'Bespoke Package', kind: 'draft', section: 'Section 2', sizeLabel: '18 KB',
+    description: 'Your bespoke package includes full venue hire, professional photographers, personalised playlist, summer garden games, décor, food & beverages, and full event management. £4,000 — 50 guests.',
   },
   {
-    id: 'd3', section: 'Section 3', title: 'Booking Procedure',
-    body: 'Initial proposal sent within 24hrs. Follow-up call within 48hrs. Booking form issued after confirmation. 20% deposit secures the date. Balance due 21 days prior.',
-    highlight: undefined,
+    id: 'd3', title: 'Booking Procedure', kind: 'draft', section: 'Section 3', sizeLabel: '9 KB',
+    description: 'Initial proposal sent within 24hrs. Follow-up call within 48hrs. Booking form issued after confirmation. 20% deposit secures the date. Balance due 21 days prior.',
   },
 ];
 
-const TOP_TABS = [
-  { icon: FileText,         label: 'Details'  },
-  { icon: Layers,           label: 'Pricing'  },
-  { icon: PenSquare,        label: 'Drafts'   },
-  { icon: CheckCircle2,     label: 'Signed'   },
-  { icon: MessageSquareText,label: 'Notes'    },
+const ALL_FILES: ProposalFile[] = [...DRAFTS, ...DOC_PAGES];
+
+/* ─── Left icon rail (mirrors the previous top tabs) ─── */
+const RAIL_ITEMS = [
+  { icon: Grid2x2,           label: 'All Files' },
+  { icon: FileText,          label: 'Pricing'   },
+  { icon: PenSquare,         label: 'Drafts'    },
+  { icon: CheckCircle2,      label: 'Signed'    },
+  { icon: MessageSquareText, label: 'Notes'     },
 ];
 
-/* ──────────────────────── Thumbnail ──────────────────────── */
-function PageThumb({
-  page, index, active, onClick,
-}: {
-  page: DocPage; index: number; active: boolean; onClick: () => void;
-}) {
-  const controls = useDragControls();
+const KIND_COLORS: Record<FileKind, string> = {
+  page: '#2ecc71',
+  draft: '#27af61',
+};
+
+function FileIcon({ file }: { file: ProposalFile }) {
+  if (file.kind === 'page' && file.pageNum) {
+    return (
+      <div className="h-14 w-11 overflow-hidden rounded-[4px] bg-white shadow-sm ring-1 ring-black/10">
+        <img src={pageImg(file.pageNum)} alt="" className="h-full w-full object-cover object-top" loading="lazy" />
+      </div>
+    );
+  }
   return (
-    <Reorder.Item value={page} dragListener={false} dragControls={controls}>
-      <motion.div
-        whileHover={{ scale: 1.015 }}
-        onClick={onClick}
-        className={`relative flex cursor-pointer overflow-hidden bg-white transition-all ${
-          active ? 'ring-2 ring-[#2ecc71]' : 'ring-1 ring-black/8 hover:ring-black/20'
-        }`}
-      >
-        {/* Drag handle */}
-        <button
-          onPointerDown={(e) => controls.start(e)}
-          className="flex w-5 shrink-0 cursor-grab items-center justify-center bg-black/3 active:cursor-grabbing hover:bg-black/8 transition-colors"
-        >
-          <GripVertical className="h-2.5 w-2.5 text-black/25" />
-        </button>
-
-        {/* Page preview */}
-        <div className="flex flex-1 flex-col">
-          {/* Actual page image thumbnail */}
-          <div className="relative overflow-hidden bg-[#f8f6f0]" style={{ aspectRatio: '510/297' }}>
-            <img
-              src={pageImg(page.pageNum)}
-              alt={page.title}
-              className="h-full w-full object-cover object-top"
-              loading="lazy"
-            />
-            {active && (
-              <div className="absolute inset-0 ring-2 ring-inset ring-[#2ecc71]/40" />
-            )}
-          </div>
-          {/* Label row */}
-          <div className="flex items-center justify-between px-2 py-1.5">
-            <span className={`text-[8.5px] font-bold tabular-nums ${active ? 'text-[#2ecc71]' : 'text-black/30'}`}>
-              {String(index + 1).padStart(2, '0')}
-            </span>
-            <span className="text-right text-[8px] text-black/40 leading-tight truncate max-w-[90px]">
-              {page.title}
-            </span>
-          </div>
-          {active && <div className="h-[2px] bg-[#2ecc71]" />}
-        </div>
-      </motion.div>
-    </Reorder.Item>
+    <div
+      className="flex h-14 w-11 items-center justify-center rounded-[4px] text-white"
+      style={{ backgroundColor: KIND_COLORS[file.kind] }}
+    >
+      <PenSquare className="h-5 w-5" />
+    </div>
   );
 }
 
-/* ──────────────────────── Draft Card ──────────────────────── */
-function DraftCard({
-  draft, onDragToTrash, trashRef,
+/* ─── File Card ─── */
+function FileCard({
+  file, active, starred, onToggleStar, onClick,
 }: {
-  draft: Draft;
-  onDragToTrash: (id: string) => void;
-  trashRef: React.RefObject<HTMLDivElement | null>;
+  file: ProposalFile;
+  active: boolean;
+  starred: boolean;
+  onToggleStar: () => void;
+  onClick: () => void;
 }) {
-  const [isDragging, setIsDragging] = useState(false);
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 40, scale: 0.92 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.85, y: -20 }}
-      transition={{ type: 'spring', stiffness: 280, damping: 24 }}
-      drag
-      dragMomentum={false}
-      onDragStart={() => setIsDragging(true)}
-      onDragEnd={(_, info) => {
-        setIsDragging(false);
-        if (!trashRef.current) return;
-        const rect = trashRef.current.getBoundingClientRect();
-        const { x, y } = info.point;
-        if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
-          onDragToTrash(draft.id);
-        }
-      }}
-      whileHover={{ y: -3, boxShadow: '0 12px 32px rgba(0,0,0,0.12)' }}
-      className={`w-[200px] shrink-0 cursor-grab bg-white p-4 active:cursor-grabbing select-none ${
-        isDragging ? 'ring-2 ring-[#2ecc71] shadow-2xl z-50 rotate-1' : 'ring-1 ring-black/10 shadow-sm'
+    <button
+      onClick={onClick}
+      className={`group relative flex flex-col gap-3 rounded-[14px] p-4 text-left transition-all ${
+        active ? 'bg-[#eefdf3] ring-2 ring-[#2ecc71]' : 'bg-[#faf9f4] hover:bg-[#f3f2ea]'
       }`}
     >
-      <p className="mb-0.5 text-[9.5px] font-bold uppercase tracking-widest text-black/30">{draft.section}</p>
-      <p className="mb-3 text-[13px] font-bold text-black leading-tight">{draft.title}</p>
-      <p className="text-[11px] leading-relaxed text-black/50 line-clamp-4">{draft.body}</p>
-      {draft.highlight && (
-        <p className="mt-3 text-[10.5px] leading-relaxed">
-          <span className="bg-[#c7f9dd] px-0.5 text-black/70">{draft.highlight}</span>
-        </p>
-      )}
-    </motion.div>
+      <div className="flex items-start justify-between">
+        <span
+          onClick={(e) => { e.stopPropagation(); onToggleStar(); }}
+          className={`flex h-6 w-6 items-center justify-center rounded-full transition-colors ${
+            starred ? 'text-[#e8b93f]' : 'text-black/15 hover:text-black/35'
+          }`}
+        >
+          <Star className="h-4 w-4" fill={starred ? '#e8b93f' : 'none'} />
+        </span>
+        <span className="flex h-6 w-6 items-center justify-center rounded-full text-black/25 hover:text-black/50">
+          <MoreVertical className="h-4 w-4" />
+        </span>
+      </div>
+
+      <FileIcon file={file} />
+
+      <div>
+        <p className="truncate text-[13px] font-semibold text-black/80">{file.title}</p>
+        <p className="mt-1 text-[10.5px] text-black/35">Filesize: {file.sizeLabel}</p>
+      </div>
+    </button>
   );
 }
 
 /* ──────────────────────── Main export ──────────────────────── */
 export function ProposalDoc() {
-  const [activeTab, setActiveTab]       = useState(0);
-  const [pages, setPages]               = useState<DocPage[]>(DOC_PAGES);
-  const [activePage, setActivePage]     = useState(0);
-  const [zoom, setZoom]                 = useState(1);
-  const [drafts, setDrafts]             = useState<Draft[]>(INITIAL_DRAFTS);
-  const [trashed, setTrashed]           = useState<Draft | null>(null);
-  const [dragOver, setDragOver]         = useState(false);
-  const trashRef = useRef<HTMLDivElement>(null);
+  const [railIndex, setRailIndex] = useState(0);
+  const [activeId, setActiveId] = useState<string>(ALL_FILES[0].id);
+  const [starred, setStarred] = useState<Set<string>>(new Set(['d2']));
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  const currentPage = pages[activePage] ?? pages[0];
+  const active = ALL_FILES.find((f) => f.id === activeId) ?? ALL_FILES[0];
 
-  const goTo = (i: number) => setActivePage(Math.max(0, Math.min(pages.length - 1, i)));
+  const files =
+    railIndex === 2 ? DRAFTS
+    : railIndex === 0 ? ALL_FILES
+    : ALL_FILES; // Pricing / Signed / Notes reuse the same file set for now
 
-  const handleDragToTrash = (id: string) => {
-    const found = drafts.find((d) => d.id === id);
-    if (!found) return;
-    setDrafts((prev) => prev.filter((d) => d.id !== id));
-    setTrashed(found);
-  };
-
-  const undoTrash = () => {
-    if (!trashed) return;
-    setDrafts((prev) => [...prev, trashed]);
-    setTrashed(null);
-  };
-
-  const addDraft = () => {
-    const n = drafts.length + 1;
-    setDrafts((prev) => [
-      ...prev,
-      { id: `d${Date.now()}`, section: `Section ${n}`, title: 'Untitled Draft', body: 'Start writing this section...', highlight: undefined },
-    ]);
-  };
+  const toggleStar = (id: string) =>
+    setStarred((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
 
   const handleDownload = () => {
+    if (active.kind !== 'page' || !active.pageNum) return;
     const a = document.createElement('a');
-    a.href = `/doc-pages/page_${String(currentPage.pageNum).padStart(2, '0')}.png`;
-    a.download = `proposal-page-${currentPage.pageNum}.png`;
+    a.href = pageImg(active.pageNum);
+    a.download = `proposal-${active.title.toLowerCase().replace(/\s+/g, '-')}.png`;
     a.click();
   };
 
-  const handlePrint = () => {
-    const w = window.open('', '_blank');
-    if (!w) return;
-    const imgs = pages.map((p) => `<img src="${pageImg(p.pageNum)}" style="width:100%;page-break-after:always;" />`).join('');
-    w.document.write(`<html><body style="margin:0">${imgs}</body></html>`);
-    w.document.close();
-    w.print();
-  };
-
-  const br = 'border-black/8';
-
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] w-full flex-col bg-[#eaeaef]">
+    <div className="flex bg-white" style={{ minHeight: 'calc(100vh - 4rem)' }}>
 
-      {/* ══ TOP BAR ══ */}
-      <div className="flex items-center bg-white border-b border-black/8">
-        {/* Back */}
-        <button className={`flex h-12 w-12 shrink-0 items-center justify-center border-r ${br} text-black/35 hover:text-black transition-colors`}>
-          <ArrowLeft className="h-4 w-4" />
-        </button>
-
-        {/* Breadcrumb */}
-        <div className={`flex items-center gap-1 border-r ${br} px-4 h-12 shrink-0`}>
-          <span className="text-[12px] font-bold text-black whitespace-nowrap">Catering Services Proposal</span>
-          {['Proposals', 'Hospitality Sector', 'WE.9055'].map((part) => (
-            <span key={part} className="flex items-center gap-1 text-[11px] text-black/35 whitespace-nowrap">
-              <ChevronRight className="h-3 w-3 shrink-0" />{part}
-            </span>
-          ))}
-        </div>
-
-        {/* Tabs */}
-        <div className="flex flex-1 items-stretch justify-center">
-          {TOP_TABS.map((tab, i) => {
-            const Icon = tab.icon;
-            const active = activeTab === i;
-            return (
+      {/* ══ LEFT ICON RAIL ══ */}
+      <aside className="sticky top-16 flex h-[calc(100vh-4rem)] w-[68px] shrink-0 flex-col items-center gap-2 border-r border-black/8 bg-[#0d2318] py-6">
+        <span className="mb-6 flex h-9 w-9 items-center justify-center rounded-[8px] bg-[#2ecc71] text-[13px] font-bold text-white">
+          N
+        </span>
+        {RAIL_ITEMS.map(({ icon: Icon, label }, i) => {
+          const isActive = railIndex === i;
+          return (
+            <div key={label} className="relative flex w-full items-center justify-center py-1.5">
+              {isActive && <span className="absolute left-0 h-6 w-[3px] rounded-r-full bg-[#2ecc71]" />}
               <button
-                key={tab.label}
-                onClick={() => setActiveTab(i)}
-                className={`flex h-12 flex-col items-center justify-center gap-0.5 px-6 border-r ${br} transition-colors ${
-                  active ? 'bg-[#2ecc71]' : 'hover:bg-black/3'
+                onClick={() => setRailIndex(i)}
+                title={label}
+                className={`flex h-10 w-10 items-center justify-center rounded-[10px] transition-colors ${
+                  isActive ? 'bg-[#2ecc71]/20 text-[#2ecc71]' : 'text-white/40 hover:bg-white/5 hover:text-white/70'
                 }`}
               >
-                <Icon className={`h-3.5 w-3.5 ${active ? 'text-white' : 'text-black/35'}`} />
-                <span className={`text-[9.5px] font-semibold whitespace-nowrap ${active ? 'text-white' : 'text-black/35'}`}>{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Right actions */}
-        <div className={`flex items-center border-l ${br}`}>
-          {/* Zoom controls — only in Details view */}
-          {activeTab === 0 && (
-            <>
-              <button onClick={() => setZoom((z) => Math.max(0.5, z - 0.1))} className={`flex h-12 w-10 items-center justify-center border-r ${br} text-black/35 hover:text-black transition-colors`}><ZoomOut className="h-4 w-4" /></button>
-              <span className={`flex h-12 w-12 items-center justify-center border-r ${br} text-[10px] font-bold text-black/40`}>{Math.round(zoom * 100)}%</span>
-              <button onClick={() => setZoom((z) => Math.min(2, z + 0.1))} className={`flex h-12 w-10 items-center justify-center border-r ${br} text-black/35 hover:text-black transition-colors`}><ZoomIn className="h-4 w-4" /></button>
-            </>
-          )}
-          <button onClick={handleDownload} className={`flex h-12 w-10 items-center justify-center border-r ${br} text-black/35 hover:text-[#2ecc71] transition-colors`}><Download className="h-4 w-4" /></button>
-          <button onClick={handlePrint} className={`flex h-12 w-10 items-center justify-center border-r ${br} text-black/35 hover:text-[#2ecc71] transition-colors`}><Printer className="h-4 w-4" /></button>
-          <button className="flex h-12 items-center gap-1.5 bg-[#2ecc71] px-5 text-[11px] font-bold uppercase tracking-widest text-white hover:bg-[#27af61] transition-colors">
-            Publish
-          </button>
-        </div>
-      </div>
-
-      {/* ══ BODY ══ */}
-      <div className="flex flex-1 overflow-hidden">
-
-        {/* ── Details: real PDF viewer + thumbnail strip ── */}
-        {activeTab === 0 && (
-          <>
-            {/* Main viewer */}
-            <div className="relative flex flex-1 flex-col overflow-hidden">
-              {/* Page nav row */}
-              <div className={`flex items-center justify-between border-b ${br} bg-white px-5 py-2`}>
-                <div className="flex items-center gap-1 text-[11px] text-black/40">
-                  <Volume2Icon />
-                  <span className="ml-1 font-semibold text-black/70">{currentPage.title}</span>
-                  <ChevronRight className="h-3 w-3" />
-                  <span>Page {activePage + 1} of {pages.length}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <button onClick={() => goTo(activePage - 1)} disabled={activePage === 0} className="flex h-7 w-7 items-center justify-center text-black/30 hover:text-black disabled:opacity-20 transition-colors">
-                    <ChevronLeft className="h-4 w-4" />
-                  </button>
-                  <span className={`flex h-7 items-center px-3 text-[10px] font-bold border ${br} text-black/50`}>{activePage + 1} / {pages.length}</span>
-                  <button onClick={() => goTo(activePage + 1)} disabled={activePage === pages.length - 1} className="flex h-7 w-7 items-center justify-center text-black/30 hover:text-black disabled:opacity-20 transition-colors">
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Page image */}
-              <div className="flex-1 overflow-auto bg-[#eaeaef] flex items-start justify-center p-6">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={currentPage.id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.18 }}
-                    className="shadow-2xl bg-white"
-                    style={{ width: `${zoom * 100}%`, maxWidth: `${zoom * 960}px` }}
-                  >
-                    <img
-                      src={pageImg(currentPage.pageNum)}
-                      alt={currentPage.title}
-                      className="block w-full h-auto"
-                      draggable={false}
-                    />
-                  </motion.div>
-                </AnimatePresence>
-              </div>
-
-              {/* Bottom status */}
-              <div className={`flex items-center justify-between border-t ${br} bg-white px-5 py-2`}>
-                <div className="flex items-center gap-4 text-[10.5px] text-black/35">
-                  <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 bg-[#2ecc71]" />In Review</span>
-                  <span>WE.9055 — Blue Apple Contract Catering</span>
-                  <span>Valid 28 days</span>
-                </div>
-                <span className="text-[10.5px] text-black/35">
-                  {pages.length} pages · PDF
-                </span>
-              </div>
-            </div>
-
-            {/* Thumbnail strip */}
-            <div className={`flex w-[185px] shrink-0 flex-col border-l ${br} bg-[#f6f6f8]`}>
-              <div className={`flex items-center justify-between border-b ${br} px-3 py-2.5`}>
-                <span className="text-[9px] font-bold uppercase tracking-widest text-black/35">
-                  Pages — {pages.length}
-                </span>
-                <div className="flex items-center gap-1">
-                  <button onClick={() => goTo(activePage - 1)} disabled={activePage === 0} className="flex h-5 w-5 items-center justify-center text-black/30 hover:text-black disabled:opacity-20 transition-colors">
-                    <ChevronUp className="h-3 w-3" />
-                  </button>
-                  <button onClick={() => goTo(activePage + 1)} disabled={activePage === pages.length - 1} className="flex h-5 w-5 items-center justify-center text-black/30 hover:text-black disabled:opacity-20 transition-colors">
-                    <ChevronDown className="h-3 w-3" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex-1 overflow-y-auto py-2">
-                <Reorder.Group
-                  axis="y"
-                  values={pages}
-                  onReorder={(newOrder) => {
-                    const activeId = pages[activePage]?.id;
-                    setPages(newOrder);
-                    const newIdx = newOrder.findIndex((p) => p.id === activeId);
-                    if (newIdx >= 0) setActivePage(newIdx);
-                  }}
-                  className="flex flex-col gap-2 px-2"
-                >
-                  {pages.map((page, i) => (
-                    <PageThumb
-                      key={page.id}
-                      page={page}
-                      index={i}
-                      active={i === activePage}
-                      onClick={() => setActivePage(i)}
-                    />
-                  ))}
-                </Reorder.Group>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* ── Drafts: GIF-style horizontal cards ── */}
-        {activeTab === 2 && (
-          <div className="relative flex flex-1 flex-col overflow-hidden">
-            {/* Create draft */}
-            <div className={`flex items-center justify-center border-b ${br} bg-white py-5`}>
-              <button
-                onClick={addDraft}
-                className="flex items-center gap-2 text-black/35 hover:text-[#2ecc71] transition-colors group"
-              >
-                <div className={`flex h-8 w-8 items-center justify-center border ${br} group-hover:border-[#2ecc71] transition-colors`}>
-                  <Plus className="h-4 w-4" />
-                </div>
-                <span className="text-[11px] font-semibold">Create draft</span>
+                <Icon className="h-[18px] w-[18px]" />
               </button>
             </div>
+          );
+        })}
+      </aside>
 
-            {/* Cards */}
-            <div className="flex flex-1 items-start justify-start gap-4 overflow-x-auto bg-[#eaeaef] px-6 pt-6 pb-2">
-              <AnimatePresence mode="popLayout">
-                {drafts.map((draft) => (
-                  <DraftCard key={draft.id} draft={draft} onDragToTrash={handleDragToTrash} trashRef={trashRef} />
-                ))}
-              </AnimatePresence>
-            </div>
+      {/* ══ CENTER: header + file grid ══ */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Top header */}
+        <div className="flex items-center justify-between border-b border-black/8 px-8 py-5">
+          <div>
+            <h1 className="text-[22px] font-bold text-black">Catering Services Proposal</h1>
+            <p className="mt-0.5 text-[11.5px] text-black/35">Proposals · Hospitality Sector · WE.9055</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button className="flex h-9 w-9 items-center justify-center rounded-full text-black/35 hover:bg-black/5 hover:text-black transition-colors">
+              <Search className="h-4 w-4" />
+            </button>
+            <button onClick={handleDownload} className="flex h-9 w-9 items-center justify-center rounded-full text-black/35 hover:bg-black/5 hover:text-[#2ecc71] transition-colors">
+              <Download className="h-4 w-4" />
+            </button>
+            <button onClick={() => window.print()} className="flex h-9 w-9 items-center justify-center rounded-full text-black/35 hover:bg-black/5 hover:text-[#2ecc71] transition-colors">
+              <Printer className="h-4 w-4" />
+            </button>
+            <button className="ml-1 rounded-full bg-[#2ecc71] px-5 py-2 text-[12px] font-bold text-white hover:bg-[#27af61] transition-colors">
+              Publish
+            </button>
+          </div>
+        </div>
 
-            {/* Trash zone */}
-            <div
-              ref={trashRef}
-              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={() => setDragOver(false)}
-              className={`flex flex-col items-center justify-center gap-2 border-t ${br} bg-white py-5 transition-colors ${dragOver ? 'bg-red-50' : ''}`}
+        {/* Breadcrumb + view toggle */}
+        <div className="flex items-center justify-between border-b border-black/8 px-8 py-3">
+          <div className="flex items-center gap-1.5 text-[12.5px] font-semibold text-black/70">
+            <HomeIcon className="h-3.5 w-3.5 text-black/30" />
+            <ChevronRight className="h-3 w-3 text-black/25" />
+            <span>{RAIL_ITEMS[railIndex].label}</span>
+            <span className="ml-2 rounded-full bg-black/5 px-2 py-0.5 text-[10.5px] font-bold text-black/40">
+              {files.length}
+            </span>
+          </div>
+          <div className="flex items-center gap-1 rounded-full bg-black/5 p-1">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors ${viewMode === 'grid' ? 'bg-white shadow-sm text-black/70' : 'text-black/30'}`}
             >
-              <div className={`flex h-9 w-9 items-center justify-center transition-colors ${dragOver ? 'bg-red-500' : 'bg-red-100'}`}>
-                <Trash2 className={`h-4 w-4 ${dragOver ? 'text-white' : 'text-red-400'}`} />
-              </div>
-              <span className={`text-[10px] font-semibold ${dragOver ? 'text-red-500' : 'text-black/30'}`}>Drop your files to delete</span>
+              <LayoutGrid className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors ${viewMode === 'list' ? 'bg-white shadow-sm text-black/70' : 'text-black/30'}`}
+            >
+              <List className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {/* File grid / list */}
+        <div className="flex-1 overflow-y-auto px-8 py-6">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={railIndex + viewMode}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.18 }}
+              className={viewMode === 'grid' ? 'grid grid-cols-3 gap-4 xl:grid-cols-4' : 'flex flex-col gap-2'}
+            >
+              {viewMode === 'grid'
+                ? files.map((file) => (
+                    <FileCard
+                      key={file.id}
+                      file={file}
+                      active={file.id === activeId}
+                      starred={starred.has(file.id)}
+                      onToggleStar={() => toggleStar(file.id)}
+                      onClick={() => setActiveId(file.id)}
+                    />
+                  ))
+                : files.map((file) => (
+                    <button
+                      key={file.id}
+                      onClick={() => setActiveId(file.id)}
+                      className={`flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-left transition-colors ${
+                        file.id === activeId ? 'bg-[#eefdf3] ring-1 ring-[#2ecc71]/40' : 'hover:bg-black/3'
+                      }`}
+                    >
+                      <div className="scale-75 origin-left"><FileIcon file={file} /></div>
+                      <span className="flex-1 truncate text-[13px] font-medium text-black/75">{file.title}</span>
+                      <span className="text-[11px] text-black/35">{file.sizeLabel}</span>
+                      <Star
+                        onClick={(e) => { e.stopPropagation(); toggleStar(file.id); }}
+                        className={`h-3.5 w-3.5 ${starred.has(file.id) ? 'text-[#e8b93f]' : 'text-black/15'}`}
+                        fill={starred.has(file.id) ? '#e8b93f' : 'none'}
+                      />
+                    </button>
+                  ))}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* ══ RIGHT: File Preview panel ══ */}
+      <aside className="sticky top-16 flex h-[calc(100vh-4rem)] w-[300px] shrink-0 flex-col border-l border-black/8 bg-[#faf9f4]">
+        <div className="flex items-center justify-between px-5 py-4">
+          <span className="text-[12px] font-bold uppercase tracking-widest text-black/40">File Preview</span>
+          <X className="h-4 w-4 text-black/25" />
+        </div>
+
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={active.id}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.18 }}
+            className="flex flex-1 flex-col overflow-y-auto px-5 pb-5"
+          >
+            <div className="mb-5 flex items-center justify-center rounded-[12px] bg-white p-6 shadow-sm">
+              {active.kind === 'page' && active.pageNum ? (
+                <img src={pageImg(active.pageNum)} alt={active.title} className="h-[180px] w-auto rounded-[4px] object-cover shadow" />
+              ) : (
+                <div className="flex h-[120px] w-[92px] items-center justify-center rounded-[6px]" style={{ backgroundColor: KIND_COLORS.draft }}>
+                  <PenSquare className="h-8 w-8 text-white" />
+                </div>
+              )}
             </div>
 
-            {/* Undo toast */}
-            <AnimatePresence>
-              {trashed && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 8 }}
-                  className="absolute bottom-24 right-4 flex items-center gap-3 bg-white border border-black/8 px-4 py-2.5 shadow-lg"
-                >
-                  <span className="text-[11px] text-black/40">Move to trash</span>
-                  <span className="text-black/20">—</span>
-                  <button onClick={undoTrash} className="text-[11px] font-bold text-[#2ecc71] hover:underline">Undo</button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        )}
+            <h2 className="text-[15px] font-bold text-black">{active.title}</h2>
+            <p className="mt-1 text-[11px] text-black/35">{active.sizeLabel} · Modified 3 days ago</p>
 
-        {/* ── Other tabs ── */}
-        {activeTab !== 0 && activeTab !== 2 && (
-          <div className="flex flex-1 items-center justify-center bg-[#eaeaef]">
-            <p className="text-[13px] text-black/30">{TOP_TABS[activeTab]?.label} — coming soon</p>
-          </div>
-        )}
-      </div>
+            <div className="mt-5">
+              <p className="mb-1.5 text-[10.5px] font-bold uppercase tracking-widest text-black/35">File Description</p>
+              <p className="text-[12.5px] leading-relaxed text-black/60">{active.description}</p>
+            </div>
+
+            <div className="mt-5">
+              <p className="mb-2 text-[10.5px] font-bold uppercase tracking-widest text-black/35">File Shared With</p>
+              <div className="flex flex-col gap-2.5">
+                {['George Williamson', 'Nicholas Peterson', 'Ravenmark (You)'].map((name) => (
+                  <div key={name} className="flex items-center gap-2.5">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#2ecc71] text-[10px] font-bold text-white">
+                      {name.split(' ').map((w) => w[0]).slice(0, 2).join('')}
+                    </span>
+                    <span className="text-[12px] text-black/65">{name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-auto flex items-center gap-2 pt-6">
+              <button className="flex flex-1 items-center justify-center gap-1.5 rounded-[10px] bg-[#2ecc71] py-2.5 text-[11.5px] font-bold text-white hover:bg-[#27af61] transition-colors">
+                <Share2 className="h-3.5 w-3.5" /> Share
+              </button>
+              <button className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-black/10 text-black/45 hover:text-black transition-colors">
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+              <button className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-black/10 text-black/45 hover:text-red-500 transition-colors">
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </aside>
     </div>
-  );
-}
-
-/* tiny helper to avoid importing another icon */
-function Volume2Icon() {
-  return (
-    <svg className="h-3.5 w-3.5 text-black/30" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-      <path d="M11 5 6 9H2v6h4l5 4V5z" />
-      <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
-    </svg>
   );
 }
 

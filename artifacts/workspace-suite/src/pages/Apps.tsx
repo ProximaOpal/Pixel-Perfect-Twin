@@ -28,6 +28,19 @@ const APP_TILES: AppTile[] = [
     getUrl: () => 'https://www.dropbox.com/home',
   },
   {
+    name:   'Google Drive',
+    domain: 'drive.google.com',
+    color:  '#0F9D58',
+    getUrl: () => 'https://drive.google.com/drive/my-drive',
+  },
+  {
+    name:   'WhatsApp',
+    domain: 'whatsapp.com',
+    color:  '#25D366',
+    getUrl: ({ name }) =>
+      `https://web.whatsapp.com/send?text=${encodeURIComponent(name ? `Hi ${name},` : '')}`,
+  },
+  {
     name:   'Viva',
     domain: 'microsoft.com',
     color:  '#0078D4',
@@ -113,7 +126,7 @@ export function Apps() {
       )}
 
       {/* App grid */}
-      <div className="grid grid-cols-5 gap-5 max-w-[900px]">
+      <div className="mx-auto grid max-w-[900px] grid-cols-5 place-items-center gap-5">
         {APP_TILES.map(app => {
           const url = app.getUrl(leadCtx);
           return (

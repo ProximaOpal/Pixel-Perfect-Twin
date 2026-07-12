@@ -25,9 +25,10 @@ A business/workspace management suite (Dashboard, Calendar, Employee Dashboard, 
 
 ## Where things live
 
-- `artifacts/workspace-suite/src/pages/Home.tsx` — landing page ("/"), cloned from a reference mockup: a white card with 5 square icon tiles (Employees, Dashboard, Setup, Timeline, Calendar) and a green bottom panel showing a feature checklist for the highlighted tile; clicking/opening a tile navigates to that page
-- `artifacts/workspace-suite/src/pages/` — other top-level pages: `Dashboard.tsx` (now at `/dashboard`), `Calendar.tsx`, `EmployeeDashboard.tsx`, `ProcessTimeline.tsx`, `SetupWizard.tsx`
-- `artifacts/workspace-suite/src/pages/SetupWizard.tsx` — 5-step account setup wizard; every field/tab is fully interactive (dropdowns, toggles, editable tables, file upload, permission matrix) with local component state, no backend wiring yet
+- `artifacts/workspace-suite/src/pages/Home.tsx` — landing page ("/"), a white card with icon tiles (Leads, Tasks, Forms, Timeline, Calendar, Apps, Proposal Doc — all pages except Settings) and a green bottom panel showing a feature checklist for the highlighted tile; clicking/opening a tile navigates to that page
+- `artifacts/workspace-suite/src/pages/Apps.tsx` — connected-apps grid (Gmail, Google Sheets, Dropbox, Google Drive, WhatsApp, Viva, Slack, Scribe, LinkedIn, Instagram, Google Reviews, Chatbot Form), centered, icons via Google's favicon service
+- `artifacts/workspace-suite/src/pages/Forms.tsx` — 5-step proposal wizard (Event Core, Itinerary, Catering, Financials, Upgrades), redesigned to clone a DNB-style account-creation wizard layout: mint-green left sidebar with logo + numbered step list, white content panel with uppercase section labels and pill-shaped inputs, pill "Next" button bottom-right. All original dropdown options/content preserved verbatim.
+- `artifacts/workspace-suite/src/pages/ProposalDoc.tsx` — redesigned to clone a Dropbox-style file browser: dark icon rail on the left (mirrors the old Details/Pricing/Drafts/Signed/Notes tabs), centered file grid (18 real proposal doc pages + 3 draft sections as "files"), right-hand File Preview panel (description, shared-with, share/edit/delete actions). Replaced the previous PDF-viewer/tabs UI entirely.
 - `artifacts/api-server` — Express API scaffold, not yet connected to the frontend
 - `lib/db`, `lib/api-spec`, `lib/api-zod`, `lib/api-client-react` — shared DB schema, OpenAPI spec, and generated client packages, currently unused by the frontend
 
@@ -35,7 +36,7 @@ A business/workspace management suite (Dashboard, Calendar, Employee Dashboard, 
 
 - The project was imported with the frontend (`workspace-suite`) and backend (`api-server`) scaffolded as separate, currently-disconnected packages — the frontend uses no live data yet.
 - Only one workflow (`artifacts/workspace-suite: web`) is currently configured; the API server has no workflow of its own.
-- Global color scheme is a single bright green (`#2ecc71`) + white/dark-navy, taken from a user-provided reference mockup for the Home page. `SetupWizard.tsx` previously used an unrelated blue palette (`#3b3be8` etc.) — it was recolored to match the same green tokens so the whole app is visually consistent.
+- Global color scheme is a single bright green (`#2ecc71`) + white/dark-navy. All redesigned pages (Home, Apps, Forms, Proposal Doc) reuse this same palette even when cloning reference layouts from other brands (DNB teal → app green, Dropbox blue → app green) — layout/structure is cloned, brand color is not.
 
 ## Product
 
