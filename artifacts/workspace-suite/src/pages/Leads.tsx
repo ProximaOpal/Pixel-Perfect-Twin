@@ -121,11 +121,11 @@ export function Leads() {
       <div className="flex flex-1 flex-col overflow-hidden">
 
         {/* ── Combined header bar ── */}
-        <div className="flex items-center gap-4 border-b border-black/8 bg-white px-6 py-3 shrink-0">
+        <div className="flex items-center gap-3 border-b border-black/8 bg-white px-8 py-3 shrink-0">
 
           {/* Search */}
-          <div className="flex items-center gap-2 border border-black/12 px-3 py-2 w-[240px] focus-within:border-[#2ecc71] transition-colors">
-            <Search className="h-[15px] w-[15px] shrink-0 text-black/30" />
+          <div className="flex items-center gap-2 border border-black/12 px-3 py-2 w-[200px] shrink-0 focus-within:border-[#2ecc71] transition-colors">
+            <Search className="h-[14px] w-[14px] shrink-0 text-black/30" />
             <input
               ref={searchRef}
               value={query}
@@ -141,51 +141,57 @@ export function Leads() {
           </div>
 
           {/* Title + count */}
-          <h1 className="text-[20px] font-bold text-black tracking-tight whitespace-nowrap">
+          <h1 className="text-[19px] font-bold text-black tracking-tight whitespace-nowrap">
             Leads Database
             {status === 'ok' && leads.length > 0 && (
-              <span className="ml-2 text-[13px] font-normal text-black/30">{leads.length}</span>
+              <span className="ml-2 text-[12px] font-normal text-black/30">{leads.length}</span>
             )}
           </h1>
 
           <div className="flex-1" />
 
-          {/* Refresh */}
-          <button
-            onClick={load}
-            disabled={status === 'loading'}
-            className="flex items-center justify-center h-8 w-8 border border-black/10 text-black/35 hover:border-[#2ecc71] hover:text-[#2ecc71] disabled:opacity-40 transition-colors"
-            title="Refresh"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${status === 'loading' ? 'animate-spin' : ''}`} />
-          </button>
+          {/* Right-side controls — grouped with consistent spacing */}
+          <div className="flex items-center gap-3 shrink-0">
+            {/* Refresh */}
+            <button
+              onClick={load}
+              disabled={status === 'loading'}
+              className="flex items-center justify-center h-8 w-8 border border-black/10 text-black/35 hover:border-[#2ecc71] hover:text-[#2ecc71] disabled:opacity-40 transition-colors"
+              title="Refresh"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${status === 'loading' ? 'animate-spin' : ''}`} />
+            </button>
 
-          {/* Add Lead */}
-          <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            className="flex items-center gap-1.5 bg-[#2ecc71] hover:bg-[#27af61] text-white text-[13px] font-semibold px-4 py-2 transition-colors whitespace-nowrap"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Add Lead
-          </motion.button>
+            {/* Add Lead */}
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              className="flex items-center gap-1.5 bg-[#2ecc71] hover:bg-[#27af61] text-white text-[13px] font-semibold px-4 py-2 transition-colors whitespace-nowrap"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add Lead
+            </motion.button>
 
-          {/* Bell */}
-          <div className="relative">
-            <Bell className="h-[18px] w-[18px] text-black/35" />
-            <span className="absolute -top-0.5 -right-0.5 h-[6px] w-[6px] bg-[#2ecc71]" />
-          </div>
+            {/* Divider */}
+            <div className="h-5 w-px bg-black/10" />
 
-          {/* Avatar */}
-          <div className="flex items-center gap-2 cursor-pointer">
-            <div className="h-8 w-8 bg-[#2ecc71] flex items-center justify-center text-white text-[11px] font-bold">AV</div>
-            <span className="text-[13px] font-medium text-black/70">Alief Vinicius</span>
-            <ChevronDown className="h-3.5 w-3.5 text-black/30" />
+            {/* Bell */}
+            <div className="relative">
+              <Bell className="h-[17px] w-[17px] text-black/35" />
+              <span className="absolute -top-0.5 -right-0.5 h-[6px] w-[6px] bg-[#2ecc71]" />
+            </div>
+
+            {/* Avatar */}
+            <div className="flex items-center gap-2 cursor-pointer">
+              <div className="h-8 w-8 bg-[#2ecc71] flex items-center justify-center text-white text-[11px] font-bold shrink-0">AV</div>
+              <span className="text-[13px] font-medium text-black/70 whitespace-nowrap">Alief Vinicius</span>
+              <ChevronDown className="h-3.5 w-3.5 text-black/30" />
+            </div>
           </div>
         </div>
 
         {/* ── Tabs ── */}
-        <div className="flex border-b border-black/8 bg-white px-6 shrink-0">
+        <div className="flex border-b border-black/8 bg-white px-8 shrink-0">
           {TABS.map((tab, i) => (
             <button
               key={tab}
@@ -260,7 +266,7 @@ export function Leads() {
           {status === 'ok' && (
             <>
               {/* Column headers */}
-              <div className="grid grid-cols-[40px_1fr_140px_180px_150px_140px_40px] px-6 py-3 border-b border-black/8 sticky top-0 bg-white z-10">
+              <div className="grid grid-cols-[28px_1fr_116px_1fr_128px_104px_40px] px-8 py-3 border-b border-black/8 sticky top-0 bg-white z-10">
                 <div />
                 <span className="text-[11.5px] font-medium text-black/35">Basic Info</span>
                 <span className="text-[11.5px] font-medium text-black/35">Reference</span>
@@ -285,13 +291,13 @@ export function Leads() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: Math.min(idx * 0.025, 0.4), duration: 0.18 }}
                   onClick={() => setPanelLead(lead)}
-                  className={`grid grid-cols-[40px_1fr_140px_180px_150px_140px_40px] px-6 py-[13px] border-b border-black/5 last:border-0 cursor-pointer transition-colors ${
+                  className={`grid grid-cols-[28px_1fr_116px_1fr_128px_104px_40px] px-8 py-[13px] border-b border-black/5 last:border-0 cursor-pointer transition-colors ${
                     panelLead?.id === lead.id ? 'bg-[#2ecc71]/6' : 'hover:bg-black/[0.02]'
                   }`}
                 >
                   <span className="text-[12px] text-black/25 self-center">{idx + 1}</span>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <div className="h-9 w-9 bg-[#2ecc71] flex items-center justify-center text-white text-[11px] font-bold shrink-0">
                       {lead.initials}
                     </div>
@@ -301,14 +307,14 @@ export function Leads() {
                     </div>
                   </div>
 
-                  <span className="text-[12px] text-black/45 self-center font-mono">{lead.code}</span>
-                  <span className="text-[13px] font-medium text-black/70 self-center truncate pr-2">{lead.designation}</span>
-                  <span className="text-[13px] text-black/50 self-center">{lead.phone}</span>
+                  <span className="text-[12px] text-black/45 self-center font-mono truncate">{lead.code}</span>
+                  <span className="text-[13px] font-medium text-black/70 self-center truncate pr-3 min-w-0">{lead.designation}</span>
+                  <span className="text-[13px] text-black/50 self-center truncate">{lead.phone}</span>
                   <span className="text-[13px] text-black/50 self-center">{lead.joined}</span>
 
                   <button
                     onClick={(e) => e.stopPropagation()}
-                    className="self-center text-black/20 hover:text-black/50 transition-colors"
+                    className="self-center flex items-center justify-center text-black/20 hover:text-black/50 transition-colors"
                   >
                     <MoreVertical className="h-4 w-4" />
                   </button>
