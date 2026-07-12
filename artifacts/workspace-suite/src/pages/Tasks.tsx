@@ -13,6 +13,16 @@ const CRR_REPS: Lead[] = [
   { id: 9005, name: 'Natasha',    initials: 'NA', email: '', code: 'CRR-5', designation: 'Client Relationship Rep', phone: '', joined: '', color: '#2ecc71', sector: '', referenceNumber: '', source: '', company: '' },
 ];
 
+// ── Email accounts (column L) ─────────────────────────────────────────────────
+const EMAIL_ACCOUNTS = [
+  'WEOTT Info',
+  'WEOTT Sales',
+  'WEOTT Sapphire',
+  'WEOTT Katherine',
+  'WEOTT Elizabeth',
+  'WEOTT Lily',
+];
+
 // ── Default task types (users can add their own) ──────────────────────────────
 const DEFAULT_TASK_TYPES = [
   'Follow Up',
@@ -31,12 +41,13 @@ const DEFAULT_TASK_TYPES = [
 type TaskList = 'today' | 'upcoming';
 
 type TaskItem = {
-  id:       string;
-  text:     string;
-  done:     boolean;
-  tagged:   Lead[];
-  list:     TaskList;
-  taskType: string;
+  id:           string;
+  text:         string;
+  done:         boolean;
+  tagged:       Lead[];
+  list:         TaskList;
+  taskType:     string;
+  emailAccount: string;
 };
 
 type RepTasks = Record<string, TaskItem[]>;
@@ -72,6 +83,11 @@ function TaskRow({
         {task.taskType && (
           <span className="ml-2 inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium bg-black/5 text-black/40 align-middle">
             {task.taskType}
+          </span>
+        )}
+        {task.emailAccount && (
+          <span className="ml-1 inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium bg-blue-50 text-blue-400 align-middle">
+            {task.emailAccount}
           </span>
         )}
       </div>
@@ -228,6 +244,73 @@ function TypePicker({
   );
 }
 
+// ── EmailPicker ───────────────────────────────────────────────────────────────
+function EmailPicker({ value, onSelect }: { value: string; onSelect: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const h = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+
+  return (
+    <div className="relative shrink-0" ref={ref}>
+      <button
+        type="button"
+        onClick={() => { setOpen(v => !v); soundClick(); }}
+        className={`flex items-center gap-1.5 border px-2.5 py-2 text-[11px] font-medium transition-colors whitespace-nowrap ${
+          value
+            ? 'border-blue-200 bg-blue-50 text-blue-500'
+            : 'border-black/12 text-black/35 hover:border-black/25'
+        }`}
+        title="Email account used"
+      >
+        <span>✉</span>
+        <span className="max-w-[90px] truncate">{value || 'Email'}</span>
+        <ChevronDown className="h-2.5 w-2.5 shrink-0" />
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{    opacity: 0, y: -4, scale: 0.97 }}
+            transition={{ duration: 0.1 }}
+            className="absolute bottom-full left-0 mb-1.5 w-[200px] bg-white border border-black/10 shadow-xl z-50 py-1"
+          >
+            <p className="px-3 pt-2 pb-1.5 text-[10.5px] font-semibold text-black/35 uppercase tracking-wider">
+              Email account used
+            </p>
+            {value && (
+              <button
+                onClick={() => { onSelect(''); setOpen(false); soundClick(); }}
+                className="flex w-full items-center px-3 py-2 text-[12px] text-black/35 hover:bg-black/[0.03] italic"
+              >
+                Clear
+              </button>
+            )}
+            {EMAIL_ACCOUNTS.map(acct => (
+              <button
+                key={acct}
+                onClick={() => { onSelect(acct); setOpen(false); soundClick(); }}
+                className="flex w-full items-center justify-between px-3 py-2 text-[12px] text-black/70 hover:bg-black/[0.03] transition-colors"
+              >
+                {acct}
+                {value === acct && <Check className="h-3 w-3 text-[#2ecc71] shrink-0" />}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 export function Tasks() {
   // Active rep
@@ -246,10 +329,11 @@ export function Tasks() {
   const [taskTypes, setTaskTypes] = useState<string[]>(DEFAULT_TASK_TYPES);
 
   // New task form
-  const [newText,      setNewText]      = useState('');
-  const [newList,      setNewList]      = useState<TaskList>('today');
-  const [newTaskType,  setNewTaskType]  = useState('');
-  const [tagged,       setTagged]       = useState<Lead[]>([]);
+  const [newText,         setNewText]         = useState('');
+  const [newList,         setNewList]         = useState<TaskList>('today');
+  const [newTaskType,     setNewTaskType]      = useState('');
+  const [newEmailAccount, setNewEmailAccount]  = useState('');
+  const [tagged,          setTagged]          = useState<Lead[]>([]);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [showTagDrop,  setShowTagDrop]  = useState(false);
 
@@ -324,12 +408,13 @@ export function Tasks() {
   const addTask = useCallback(() => {
     if (!newText.trim()) return;
     const task: TaskItem = {
-      id:       `task-${Date.now()}`,
-      text:     newText.trim(),
-      done:     false,
+      id:           `task-${Date.now()}`,
+      text:         newText.trim(),
+      done:         false,
       tagged,
-      list:     newList,
-      taskType: newTaskType,
+      list:         newList,
+      taskType:     newTaskType,
+      emailAccount: newEmailAccount,
     };
     setTasksByRep(prev => ({
       ...prev,
@@ -610,6 +695,9 @@ export function Tasks() {
                 onSelect={setNewTaskType}
                 onAddNew={t => setTaskTypes(prev => [...prev, t])}
               />
+
+              {/* Email account picker */}
+              <EmailPicker value={newEmailAccount} onSelect={setNewEmailAccount} />
 
               {/* Text input + @ mention dropdown */}
               <div className="relative flex-1">

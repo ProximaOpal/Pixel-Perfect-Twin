@@ -8,6 +8,7 @@ import {
   GitBranch,
   CalendarDays,
   Settings,
+  Grid2x2,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -18,6 +19,7 @@ const NAV_ITEMS = [
   { href: '/proposal-doc', label: 'Proposal Doc', icon: FileText       },
   { href: '/timeline',     label: 'Timeline',     icon: GitBranch      },
   { href: '/calendar',     label: 'Calendar',     icon: CalendarDays   },
+  { href: '/apps',         label: 'Apps',         icon: Grid2x2        },
 ] as const;
 
 export function AppNav() {

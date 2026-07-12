@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { soundClick, soundOpen, soundClose, soundTab, soundRefresh } from '@/lib/sounds';
 import { Search, Bell, ChevronDown, MoreVertical, Plus, X, RefreshCw, AlertCircle } from 'lucide-react';
 import { LeadPanel, type Lead } from '@/components/LeadPanel';
+import { useActiveLead } from '@/context/ActiveLeadContext';
 
 // ── Webhook ──────────────────────────────────────────────────────────────────
 const WEBHOOK_URL = 'https://ravenmark.app.n8n.cloud/webhook/LeadDataFetch';
@@ -66,6 +67,7 @@ const TABS = ['Live', 'Booked', 'Dead', 'Blacklisted'] as const;
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export function Leads() {
+  const { setActiveLead } = useActiveLead();
   const [activeTab, setActiveTab] = useState(0);
   const [leads, setLeads]         = useState<Lead[]>([]);
   const [status, setStatus]       = useState<'loading' | 'ok' | 'error'>('loading');
@@ -278,7 +280,7 @@ export function Leads() {
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: Math.min(idx * 0.025, 0.4), duration: 0.18 }}
-                  onClick={() => { setPanelLead(lead); soundOpen(); }}
+                  onClick={() => { setPanelLead(lead); setActiveLead(lead); soundOpen(); }}
                   className={`grid grid-cols-[28px_1fr_116px_1fr_128px_104px_40px] px-8 py-[13px] border-b border-black/5 last:border-0 cursor-pointer transition-colors ${
                     panelLead?.id === lead.id ? 'bg-[#2ecc71]/6' : 'hover:bg-black/[0.02]'
                   }`}
