@@ -5,7 +5,7 @@ import { LeadPanel, type Lead } from '@/components/LeadPanel';
 import { soundClick, soundOpen, soundClose, soundTab, soundToggle } from '@/lib/sounds';
 import { loadRepTasks, saveRepTasks } from '@/lib/taskStore';
 import { Avatar } from '@/components/Avatar';
-import { personAvatarUrl, personAvatarFallbackUrl } from '@/lib/avatar';
+import { personAvatarUrl } from '@/lib/avatar';
 
 function todayIso() {
   const d = new Date();
@@ -115,7 +115,6 @@ function TaskRow({
             >
               <Avatar
                 src={personAvatarUrl(rep)}
-                fallbackSrc={personAvatarFallbackUrl(rep)}
                 alt={rep.name}
                 fallbackText={rep.initials}
                 className="h-full w-full text-[9px]"
@@ -531,7 +530,6 @@ export function Tasks() {
                 }`}>
                   <Avatar
                     src={personAvatarUrl(rep)}
-                    fallbackSrc={personAvatarFallbackUrl(rep)}
                     alt={rep.name}
                     fallbackText={rep.initials}
                     className={`h-full w-full text-[15px] ${isActive ? 'bg-white text-[#2ecc71]' : 'bg-black/5 text-black/50'}`}
@@ -596,7 +594,6 @@ export function Tasks() {
                       >
                         <Avatar
                           src={personAvatarUrl(rep)}
-                          fallbackSrc={personAvatarFallbackUrl(rep)}
                           alt={rep.name}
                           fallbackText={rep.initials}
                           className="h-full w-full text-[10px]"
@@ -644,7 +641,6 @@ export function Tasks() {
                           >
                             <Avatar
                               src={personAvatarUrl(rep)}
-                              fallbackSrc={personAvatarFallbackUrl(rep)}
                               alt={rep.name}
                               fallbackText={rep.initials}
                               className="h-7 w-7 text-[10px] shrink-0"
@@ -686,7 +682,6 @@ export function Tasks() {
                     >
                       <Avatar
                         src={personAvatarUrl(rep)}
-                        fallbackSrc={personAvatarFallbackUrl(rep)}
                         alt={rep.name}
                         fallbackText={rep.initials}
                         className="h-4 w-4 text-[8px] shrink-0"
@@ -769,7 +764,6 @@ export function Tasks() {
                         >
                           <Avatar
                             src={personAvatarUrl(rep)}
-                            fallbackSrc={personAvatarFallbackUrl(rep)}
                             alt={rep.name}
                             fallbackText={rep.initials}
                             className="h-7 w-7 text-[10px] shrink-0"
