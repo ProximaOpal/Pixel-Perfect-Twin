@@ -36,6 +36,29 @@ const EVENT_TYPES = [
   'Client & Prospects Networking Cruise',
 ];
 
+const SOURCE_TYPES = [
+  'Build your event form',
+  'Chatbot Form',
+  'Form Submit (Sales)',
+  'Emailed Us (Info)',
+  'Emailed Us (Sales)',
+  'Called Us',
+  'Repeat Client',
+  'Chat Service',
+  'DMN',
+  'Responded to Remarketing',
+  'TagVenue',
+  'TagVenue Outreach',
+  'HireSpace',
+  'HeadBox',
+  'Booker Venue',
+  'Event Agency',
+  'Event Listing Platform',
+  'Recommendation/referral',
+  'Other',
+  'Wedding Planner/Agent',
+];
+
 const MENU_TYPES = ['Summer Barbecue', 'Street Food', 'Canapés', '2-Course Seated Dinner'];
 
 const UPGRADES = [
@@ -61,6 +84,7 @@ function getStoredPreview(field: string | null): string | null {
 type FormData = {
   vesselType: string;
   eventType: string;
+  source: string;
   guestCount: string;
   embarkation: string;
   departure: string;
@@ -75,6 +99,7 @@ type FormData = {
 const INIT: FormData = {
   vesselType: '',
   eventType: '',
+  source: '',
   guestCount: '',
   embarkation: '10:00',
   departure: '12:00',
@@ -261,6 +286,16 @@ export function Forms() {
                     onChange={(v) => set('eventType', v)}
                     onHoverField={setHoverField}
                   />
+                  <div className="col-span-2">
+                    <FormSelect
+                      label="Source"
+                      field="source"
+                      options={SOURCE_TYPES}
+                      value={data.source}
+                      onChange={(v) => set('source', v)}
+                      onHoverField={setHoverField}
+                    />
+                  </div>
                 </div>
               </motion.div>
             )}
