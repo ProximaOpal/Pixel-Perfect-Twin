@@ -1,6 +1,6 @@
 import { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, Check, X, ChevronDown, Tag } from 'lucide-react';
+import { Search, Plus, Check, X, ChevronDown, Tag, Trash2 } from 'lucide-react';
 import { LeadPanel, type Lead } from '@/components/LeadPanel';
 import { soundClick, soundOpen, soundClose, soundTab, soundToggle } from '@/lib/sounds';
 import { loadRepTasks, saveRepTasks } from '@/lib/taskStore';
@@ -65,10 +65,12 @@ function TaskRow({
   task,
   onToggle,
   onOpenRep,
+  onDelete,
 }: {
   task:      TaskItem;
   onToggle:  () => void;
   onOpenRep: (rep: Lead) => void;
+  onDelete:  () => void;
 }) {
   return (
     <div className="flex items-center gap-3 py-2.5 group">
@@ -119,6 +121,14 @@ function TaskRow({
           )}
         </div>
       )}
+
+      <button
+        onClick={() => { onDelete(); soundClick(); }}
+        title="Delete task"
+        className="shrink-0 flex h-6 w-6 items-center justify-center text-black/20 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-colors"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </button>
     </div>
   );
 }
@@ -189,11 +199,11 @@ function TypePicker({
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: -4, scale: 0.97 }}
+            initial={{ opacity: 0, y: 4, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{    opacity: 0, y: -4, scale: 0.97 }}
+            exit={{    opacity: 0, y: 4, scale: 0.97 }}
             transition={{ duration: 0.1 }}
-            className="absolute bottom-full left-0 mb-1.5 w-[220px] bg-white border border-black/10 shadow-xl z-50 pb-1"
+            className="absolute top-full left-0 mt-1.5 w-[220px] bg-white border border-black/10 shadow-xl z-50 pb-1"
           >
             {/* Search / create input */}
             <div className="flex items-center gap-2 border-b border-black/8 px-3 py-2">
@@ -285,11 +295,11 @@ function EmailPicker({ value, onSelect }: { value: string; onSelect: (v: string)
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: -4, scale: 0.97 }}
+            initial={{ opacity: 0, y: 4, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{    opacity: 0, y: -4, scale: 0.97 }}
+            exit={{    opacity: 0, y: 4, scale: 0.97 }}
             transition={{ duration: 0.1 }}
-            className="absolute bottom-full left-0 mb-1.5 w-[200px] bg-white border border-black/10 shadow-xl z-50 py-1"
+            className="absolute top-full left-0 mt-1.5 w-[200px] bg-white border border-black/10 shadow-xl z-50 py-1"
           >
             <p className="px-3 pt-2 pb-1.5 text-[10.5px] font-semibold text-black/35 uppercase tracking-wider">
               Email account used
@@ -446,6 +456,13 @@ export function Tasks() {
       [activeKey]: (prev[activeKey] ?? []).map(t =>
         t.id === taskId ? { ...t, done: !t.done } : t,
       ),
+    }));
+  }, [activeKey]);
+
+  const deleteTask = useCallback((taskId: string) => {
+    setTasksByRep(prev => ({
+      ...prev,
+      [activeKey]: (prev[activeKey] ?? []).filter(t => t.id !== taskId),
     }));
   }, [activeKey]);
 
@@ -762,6 +779,7 @@ export function Tasks() {
                   task={task}
                   onToggle={() => toggleTask(task.id)}
                   onOpenRep={rep => { setPanelRep(rep); soundOpen(); }}
+                  onDelete={() => deleteTask(task.id)}
                 />
               ))}
             </div>
@@ -778,6 +796,7 @@ export function Tasks() {
                   task={task}
                   onToggle={() => toggleTask(task.id)}
                   onOpenRep={rep => { setPanelRep(rep); soundOpen(); }}
+                  onDelete={() => deleteTask(task.id)}
                 />
               ))}
             </div>
