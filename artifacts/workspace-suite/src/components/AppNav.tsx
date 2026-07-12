@@ -13,24 +13,19 @@ const navItems = [
 
 export function AppNav() {
   const [location] = useLocation();
-  const isHome = location === '/';
 
   return (
-    <header
-      className={`sticky top-0 z-50 border-b backdrop-blur-md transition-colors ${
-        isHome ? 'border-emerald-100 bg-white/80' : 'border-white/10 bg-[#0a0a0a]/95'
-      }`}
-    >
+    <header className="sticky top-0 z-50 border-b border-black/8 bg-white">
       <div className="relative flex h-16 items-center px-6">
+        {/* Logo */}
         <div className="flex items-center gap-2 shrink-0">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 text-sm font-bold text-white shadow-md shadow-emerald-500/30">
+          <span className="flex h-8 w-8 items-center justify-center bg-[#2ecc71] text-sm font-bold text-white">
             N
           </span>
-          <span className={`text-[15px] font-semibold ${isHome ? 'text-gray-900' : 'text-white'}`}>
-            Nexus
-          </span>
+          <span className="text-[15px] font-semibold text-gray-900">Nexus</span>
         </div>
 
+        {/* Nav */}
         <nav className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1">
           {navItems.map((item) => {
             const isActive = location === item.href;
@@ -39,12 +34,10 @@ export function AppNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-[13px] font-medium transition-colors ${
+                className={`flex items-center gap-2 whitespace-nowrap px-4 py-2 text-[13px] font-medium transition-colors ${
                   isActive
-                    ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-sm shadow-emerald-500/30'
-                    : isHome
-                    ? 'text-emerald-800/70 hover:text-emerald-900'
-                    : 'text-white/60 hover:text-white'
+                    ? 'bg-[#2ecc71] text-white'
+                    : 'text-black/50 hover:text-black hover:bg-black/4'
                 }`}
               >
                 <Icon className="h-3.5 w-3.5 shrink-0" />
