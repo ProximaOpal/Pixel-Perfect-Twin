@@ -13,7 +13,7 @@ const EMPLOYEES: Lead[] = [
 
 const TABS = ['All Enquiries', 'Sectors', 'Sources'];
 
-export function EmployeeDashboard() {
+export function Leads() {
   const [activeTab, setActiveTab]   = useState(0);
   const [leads, setLeads]           = useState<Lead[]>(EMPLOYEES);
   const [panelLead, setPanelLead]   = useState<Lead | null>(null);
@@ -202,4 +202,4 @@ export function EmployeeDashboard() {
   );
 }
 
-export default EmployeeDashboard;
+export default Leads;

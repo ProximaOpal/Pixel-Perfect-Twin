@@ -122,7 +122,7 @@ function TimelineTrack({ activeStep }: { activeStep: number }) {
   );
 }
 
-export function ProcessTimeline() {
+export function Timeline() {
   const [email, setEmail] = useState('');
 
   return (
@@ -165,4 +165,4 @@ export function ProcessTimeline() {
   );
 }
 
-export default ProcessTimeline;
+export default Timeline;

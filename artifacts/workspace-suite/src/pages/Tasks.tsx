@@ -125,7 +125,7 @@ function TaskRow({ task, onToggle }: { task: Task; onToggle: (id: string) => voi
   );
 }
 
-export function Dashboard() {
+export function Tasks() {
   const [projects, setProjects] = useState<Project[]>(PROJECTS);
   const [activeId, setActiveId] = useState('cyber-punk');
   const [query, setQuery] = useState('');
@@ -325,4 +325,4 @@ export function Dashboard() {
   );
 }
 
-export default Dashboard;
+export default Tasks;

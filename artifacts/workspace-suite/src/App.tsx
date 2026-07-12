@@ -1,17 +1,16 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import NotFound from '@/pages/not-found';
 import { Route, Switch, Router as WouterRouter } from 'wouter';
 import { AppNav } from '@/components/AppNav';
 import { Home } from '@/pages/Home';
-import { Dashboard } from '@/pages/Dashboard';
-import { CalendarPage } from '@/pages/Calendar';
-import { SetupWizard } from '@/pages/SetupWizard';
-import { EmployeeDashboard } from '@/pages/EmployeeDashboard';
-import { ProposalDoc } from '@/pages/ProposalDoc';
-import { ProcessTimeline } from '@/pages/ProcessTimeline';
+import { Leads } from '@/pages/Leads';
+import { Tasks } from '@/pages/Tasks';
 import { Forms } from '@/pages/Forms';
+import { ProposalDoc } from '@/pages/ProposalDoc';
+import { Timeline } from '@/pages/Timeline';
+import { Calendar } from '@/pages/Calendar';
+import NotFound from '@/pages/NotFound';
 
 const queryClient = new QueryClient();
 
@@ -21,13 +20,12 @@ function Router() {
       <AppNav />
       <Switch>
         <Route path="/" component={Home} />
-        <Route path="/dashboard" component={Dashboard} />
-        <Route path="/calendar" component={CalendarPage} />
-        <Route path="/setup" component={SetupWizard} />
-        <Route path="/employees" component={EmployeeDashboard} />
-        <Route path="/proposal-doc" component={ProposalDoc} />
-        <Route path="/timeline" component={ProcessTimeline} />
+        <Route path="/leads" component={Leads} />
+        <Route path="/tasks" component={Tasks} />
         <Route path="/forms" component={Forms} />
+        <Route path="/proposal-doc" component={ProposalDoc} />
+        <Route path="/timeline" component={Timeline} />
+        <Route path="/calendar" component={Calendar} />
         <Route component={NotFound} />
       </Switch>
     </>

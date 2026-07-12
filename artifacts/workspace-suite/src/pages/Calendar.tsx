@@ -42,7 +42,7 @@ function dayOfWeekLabel(day: number) {
   return dayNames[2];
 }
 
-export function CalendarPage() {
+export function Calendar() {
   const [selected, setSelected] = useState(15);
   const events = eventsByDay[selected] ?? [];
 
@@ -145,4 +145,4 @@ export function CalendarPage() {
   );
 }
 
-export default CalendarPage;
+export default Calendar;

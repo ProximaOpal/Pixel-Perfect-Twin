@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
-import { Users, LayoutDashboard, Settings2, GitBranch, CalendarDays, Check, ArrowRight } from 'lucide-react';
+import { Users, LayoutDashboard, ClipboardList, GitBranch, CalendarDays, Check, ArrowRight } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 type Tile = {
@@ -12,13 +12,13 @@ type Tile = {
 
 const TILES: Tile[] = [
   {
-    href: '/employees',
+    href: '/leads',
     label: 'Leads',
     icon: Users,
     features: ['View team roster', 'Track attendance', 'Manage roles', 'Contact staff'],
   },
   {
-    href: '/dashboard',
+    href: '/tasks',
     label: 'Tasks',
     icon: LayoutDashboard,
     features: ['Track tasks', 'Manage projects', 'View progress', 'Quick search'],
@@ -26,7 +26,7 @@ const TILES: Tile[] = [
   {
     href: '/forms',
     label: 'Forms',
-    icon: Settings2,
+    icon: ClipboardList,
     features: ['Configure business info', 'Set modules & permissions', 'Import / export data', 'Map categories'],
   },
   {
@@ -121,7 +121,7 @@ export function Home() {
               <br />
               {active.label}
             </span>
-            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#2ecc71] shadow-md transition-transform group-hover:scale-105 hover:scale-105">
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#2ecc71] shadow-md transition-transform hover:scale-105">
               <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
             </span>
           </button>
