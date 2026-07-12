@@ -1,179 +1,293 @@
-import { useMemo, useState } from 'react';
-import { Search, MoreHorizontal, Plus, Check, X } from 'lucide-react';
-import { ProfileModal } from '@/components/ProfileModal';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, Plus, Check, X, ChevronDown } from 'lucide-react';
+import { LeadPanel, type Lead } from '@/components/LeadPanel';
 import { soundClick, soundOpen, soundClose, soundTab, soundToggle } from '@/lib/sounds';
 
-type Status = 'Approved' | 'In Progress' | 'In Review' | 'Waiting';
+// ── Webhook (same as Leads page) ──────────────────────────────────────────────
+const WEBHOOK_URL = 'https://ravenmark.app.n8n.cloud/webhook/LeadDataFetch';
 
-type Task = { id: string; label: string; status: Status; done: boolean };
+interface RawLead {
+  row_number: number;
+  'Name': string;
+  'Main Contact - Job Role': string;
+  'Company Name': string;
+  'Company Sector (If Applicable)': string;
+  'Main Contact - Email': string;
+  'Main Contact - Number': string;
+  'Client Reference Number': string;
+  'Source': string;
+  'Enquiry Date': string;
+}
 
-type Project = {
-  id: string;
-  initials: string;
-  label: string;
-  badge?: boolean;
-  isCount?: boolean;
-  description: string;
-  today: Task[];
-  upcoming: Task[];
+function toInitials(name: string): string {
+  return name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
+}
+
+function mapRaw(raw: RawLead, i: number): Lead {
+  return {
+    id:              raw.row_number ?? i + 1,
+    name:            raw['Name'] ?? '—',
+    email:           raw['Main Contact - Email'] ?? '—',
+    code:            raw['Client Reference Number'] ?? `#${i + 1}`,
+    designation:     raw['Main Contact - Job Role'] ?? '—',
+    phone:           raw['Main Contact - Number'] ?? '—',
+    joined:          raw['Enquiry Date'] ?? '—',
+    color:           '#2ecc71',
+    initials:        toInitials(raw['Name'] ?? '?'),
+    sector:          raw['Company Sector (If Applicable)'] ?? '—',
+    referenceNumber: raw['Client Reference Number'] ?? '—',
+    source:          raw['Source'] ?? '—',
+    company:         raw['Company Name'] ?? '—',
+  };
+}
+
+async function fetchLeads(): Promise<Lead[]> {
+  const res = await fetch(WEBHOOK_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+  if (!res.ok) throw new Error(`Webhook responded ${res.status}`);
+  const data = await res.json();
+  const rows: RawLead[] = Array.isArray(data?.leads) ? data.leads : [];
+  return rows.map(mapRaw);
+}
+
+// ── Task model ────────────────────────────────────────────────────────────────
+type TaskList = 'today' | 'upcoming';
+
+type TaskItem = {
+  id:     string;
+  text:   string;
+  done:   boolean;
+  tagged: Lead[];
+  list:   TaskList;
 };
 
-const PROJECTS: Project[] = [
-  {
-    id: 'green-house',
-    initials: 'GH',
-    label: 'Green House',
-    description: 'Sustainable co-working space fit-out, phase 2 of the build-out plan.',
-    today: [
-      { id: 'gh1', label: 'Review contractor quotes for fit-out', status: 'In Review', done: false },
-      { id: 'gh2', label: 'Confirm plant delivery schedule', status: 'Approved', done: true },
-    ],
-    upcoming: [{ id: 'gh3', label: 'Sign off on floor plan revisions', status: 'Waiting', done: false }],
-  },
-  {
-    id: 'cyber-punk',
-    initials: 'CP',
-    label: 'Cyber Punk',
-    badge: true,
-    description: 'Brand identity refresh — typography, color system and component library.',
-    today: [
-      { id: 't1', label: 'Create initial layout for homepage', status: 'Approved', done: true },
-      { id: 't2', label: 'Fixing icons with transparent background', status: 'In Progress', done: true },
-      { id: 't3', label: 'Fixing icons with transparent background', status: 'In Progress', done: true },
-      { id: 't4', label: 'Create initial layout for homepage', status: 'In Progress', done: true },
-      { id: 't5', label: 'Discussions regarding workflow improvement', status: 'In Review', done: false },
-      { id: 't6', label: 'Create quotation for app redesign project', status: 'Waiting', done: false },
-    ],
-    upcoming: [
-      { id: 'u1', label: 'Create initial layout for homepage', status: 'Waiting', done: false },
-      { id: 'u2', label: 'Discussions regarding workflow improvement', status: 'Waiting', done: false },
-      { id: 'u3', label: 'Fixing icons with transparent background', status: 'Waiting', done: false },
-    ],
-  },
-  {
-    id: 'easy-crypto',
-    initials: 'EC',
-    label: 'Easy Crypto',
-    description: 'Wallet onboarding flow redesign and exchange rate widget.',
-    today: [
-      { id: 'ec1', label: 'Wire up live exchange rate widget', status: 'In Progress', done: false },
-      { id: 'ec2', label: 'QA the KYC upload flow', status: 'Waiting', done: false },
-    ],
-    upcoming: [{ id: 'ec3', label: 'Prepare release notes for v2.3', status: 'Waiting', done: false }],
-  },
-  {
-    id: 'travel-app',
-    initials: 'TA',
-    label: 'Travel App',
-    description: 'Itinerary builder and offline map caching for the mobile app.',
-    today: [
-      { id: 'ta1', label: 'Fix offline map cache invalidation bug', status: 'In Progress', done: false },
-      { id: 'ta2', label: 'Design empty state for itinerary builder', status: 'Approved', done: true },
-    ],
-    upcoming: [{ id: 'ta3', label: 'User test the booking checkout flow', status: 'Waiting', done: false }],
-  },
-  {
-    id: 'landing-page',
-    initials: 'LP',
-    label: 'Landing Page',
-    badge: true,
-    description: 'New marketing site launch, pricing section and testimonials.',
-    today: [
-      { id: 'lp1', label: 'Finalize pricing table copy', status: 'In Review', done: false },
-      { id: 'lp2', label: 'Add customer testimonial carousel', status: 'In Progress', done: false },
-    ],
-    upcoming: [{ id: 'lp3', label: 'Set up analytics conversion events', status: 'Waiting', done: false }],
-  },
-  {
-    id: 'more',
-    initials: '8+',
-    label: '',
-    isCount: true,
-    description: 'Eight more active projects across the workspace.',
-    today: [],
-    upcoming: [],
-  },
-];
+type LeadTasks = Record<string, TaskItem[]>;
 
-const statusStyles: Record<Status, string> = {
-  Approved:     'bg-[#2ecc71]/15 text-[#219251]',
-  'In Progress':'bg-[#2ecc71]/25 text-[#19703e]',
-  'In Review':  'bg-[#2ecc71]/8  text-[#27af61]',
-  Waiting:      'bg-black/6 text-black/40',
-};
-
-function TaskRow({ task, onToggle }: { task: Task; onToggle: (id: string) => void }) {
+// ── TaskRow ───────────────────────────────────────────────────────────────────
+function TaskRow({
+  task,
+  onToggle,
+  onOpenLead,
+}: {
+  task:       TaskItem;
+  onToggle:   () => void;
+  onOpenLead: (lead: Lead) => void;
+}) {
   return (
-    <div className="flex items-center justify-between py-2.5">
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => { onToggle(task.id); soundToggle(); }}
-          className={`flex h-5 w-5 shrink-0 items-center justify-center border transition-colors ${
-            task.done ? 'border-[#2ecc71] bg-[#2ecc71]' : 'border-black/20 bg-white hover:border-[#2ecc71]'
-          }`}
-          aria-label={task.done ? 'Mark undone' : 'Mark done'}
-        >
-          {task.done && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
-        </button>
-        <span className={`text-[13px] ${task.done ? 'text-black/30 line-through' : 'text-black/70'}`}>
-          {task.label}
-        </span>
-      </div>
-      <span className={`px-3 py-1 text-[11px] font-medium ${statusStyles[task.status]}`}>
-        {task.status}
+    <div className="flex items-center gap-3 py-2.5 group">
+      {/* Checkbox */}
+      <button
+        onClick={() => { onToggle(); soundToggle(); }}
+        className={`flex h-5 w-5 shrink-0 items-center justify-center border transition-colors ${
+          task.done
+            ? 'border-[#2ecc71] bg-[#2ecc71]'
+            : 'border-black/20 bg-white hover:border-[#2ecc71]'
+        }`}
+        aria-label={task.done ? 'Mark undone' : 'Mark done'}
+      >
+        {task.done && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
+      </button>
+
+      {/* Text */}
+      <span className={`flex-1 text-[13px] leading-snug ${
+        task.done ? 'text-black/30 line-through' : 'text-black/70'
+      }`}>
+        {task.text}
       </span>
+
+      {/* Tagged avatars — visible on hover */}
+      {task.tagged.length > 0 && (
+        <div className="flex -space-x-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+          {task.tagged.slice(0, 3).map(lead => (
+            <button
+              key={lead.id}
+              onClick={() => onOpenLead(lead)}
+              title={lead.name}
+              className="h-6 w-6 rounded-full bg-[#2ecc71] border-2 border-white flex items-center justify-center text-white text-[9px] font-bold hover:z-10 hover:scale-110 transition-transform"
+            >
+              {lead.initials}
+            </button>
+          ))}
+          {task.tagged.length > 3 && (
+            <div className="h-6 w-6 rounded-full bg-black/10 border-2 border-white flex items-center justify-center text-[9px] font-semibold text-black/50">
+              +{task.tagged.length - 3}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
+// ── Main component ─────────────────────────────────────────────────────────────
 export function Tasks() {
-  const [projects, setProjects] = useState<Project[]>(PROJECTS);
-  const [activeId, setActiveId] = useState('cyber-punk');
+  // Leads data
+  const [leads,       setLeads]       = useState<Lead[]>([]);
+  const [fetchStatus, setFetchStatus] = useState<'loading' | 'ok' | 'error'>('loading');
+  const [activeLeadId, setActiveLeadId] = useState<string | null>(null);
+
+  // Tasks per lead
+  const [tasksByLead, setTasksByLead] = useState<LeadTasks>({});
+
+  // Lead panel (reuse the existing LeadPanel component)
+  const [panelLead, setPanelLead] = useState<Lead | null>(null);
+
+  // Left-panel search
   const [query, setQuery] = useState('');
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [profileIndex, setProfileIndex] = useState(0);
 
-  const active = projects.find((p) => p.id === activeId) ?? projects[0];
+  // New task form
+  const [newText,     setNewText]     = useState('');
+  const [newList,     setNewList]     = useState<TaskList>('today');
+  const [tagged,      setTagged]      = useState<Lead[]>([]);
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [showTagDrop,  setShowTagDrop]  = useState(false);
 
-  const toggleTask = (listKey: 'today' | 'upcoming', taskId: string) => {
-    setProjects((prev) =>
-      prev.map((p) =>
-        p.id !== activeId ? p : { ...p, [listKey]: p[listKey].map((t) => (t.id === taskId ? { ...t, done: !t.done } : t)) },
-      ),
+  const inputRef   = useRef<HTMLInputElement>(null);
+  const tagDropRef = useRef<HTMLDivElement>(null);
+
+  // ── Fetch ──
+  useEffect(() => {
+    setFetchStatus('loading');
+    fetchLeads()
+      .then(data => {
+        setLeads(data);
+        setActiveLeadId(data[0] ? String(data[0].id) : null);
+        setFetchStatus('ok');
+      })
+      .catch(() => setFetchStatus('error'));
+  }, []);
+
+  // ── Close tag dropdown on outside click ──
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (tagDropRef.current && !tagDropRef.current.contains(e.target as Node)) {
+        setShowTagDrop(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  // ── Derived ──
+  const activeLead  = leads.find(l => String(l.id) === activeLeadId) ?? null;
+  const activeKey   = activeLeadId ?? '';
+  const activeTasks = tasksByLead[activeKey] ?? [];
+  const todayTasks    = activeTasks.filter(t => t.list === 'today');
+  const upcomingTasks = activeTasks.filter(t => t.list === 'upcoming');
+
+  // Unique leads tagged across ALL tasks for the active lead
+  const allTagged = useMemo(() => {
+    const seen = new Set<string>();
+    const result: Lead[] = [];
+    activeTasks.forEach(t =>
+      t.tagged.forEach(l => {
+        const k = String(l.id);
+        if (!seen.has(k)) { seen.add(k); result.push(l); }
+      }),
     );
+    return result;
+  }, [activeTasks]);
+
+  // Filtered leads for the left panel
+  const filteredLeads = query.trim()
+    ? leads.filter(l =>
+        [l.name, l.email, l.company, l.designation]
+          .some(v => v.toLowerCase().includes(query.toLowerCase())),
+      )
+    : leads;
+
+  // @ mention candidates
+  const mentionResults = mentionQuery !== null
+    ? leads
+        .filter(l =>
+          l.name.toLowerCase().includes(mentionQuery) &&
+          !tagged.find(t => t.id === l.id),
+        )
+        .slice(0, 6)
+    : [];
+
+  // ── Handlers ──
+  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setNewText(val);
+    const lastAt = val.lastIndexOf('@');
+    if (lastAt !== -1) {
+      const after = val.slice(lastAt + 1);
+      if (!after.includes(' ')) { setMentionQuery(after.toLowerCase()); return; }
+    }
+    setMentionQuery(null);
   };
 
-  const searchResults = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return null;
-    const matchedProjects = projects.filter((p) => p.label.toLowerCase().includes(q));
-    const matchedTasks: { project: Project; task: Task }[] = [];
-    projects.forEach((p) => {
-      [...p.today, ...p.upcoming].forEach((t) => {
-        if (t.label.toLowerCase().includes(q)) matchedTasks.push({ project: p, task: t });
-      });
+  const selectMention = useCallback((lead: Lead) => {
+    setNewText(prev => {
+      const lastAt = prev.lastIndexOf('@');
+      return prev.slice(0, lastAt) + `@${lead.name} `;
     });
-    return { matchedProjects, matchedTasks };
-  }, [projects, query]);
+    setMentionQuery(null);
+    setTagged(prev => prev.find(t => t.id === lead.id) ? prev : [...prev, lead]);
+    soundClick();
+    setTimeout(() => inputRef.current?.focus(), 0);
+  }, []);
 
+  const addTask = useCallback(() => {
+    if (!newText.trim() || !activeLeadId) return;
+    const task: TaskItem = {
+      id:     `task-${Date.now()}`,
+      text:   newText.trim(),
+      done:   false,
+      tagged,
+      list:   newList,
+    };
+    setTasksByLead(prev => ({
+      ...prev,
+      [activeKey]: [...(prev[activeKey] ?? []), task],
+    }));
+    setNewText('');
+    setTagged([]);
+    setMentionQuery(null);
+    soundClick();
+  }, [newText, activeLeadId, activeKey, tagged, newList]);
+
+  const toggleTask = useCallback((taskId: string) => {
+    setTasksByLead(prev => ({
+      ...prev,
+      [activeKey]: (prev[activeKey] ?? []).map(t =>
+        t.id === taskId ? { ...t, done: !t.done } : t,
+      ),
+    }));
+  }, [activeKey]);
+
+  const removeTagged = (leadId: number | string) =>
+    setTagged(prev => prev.filter(t => t.id !== leadId));
+
+  const toggleTagInDrop = (lead: Lead) => {
+    const isIn = tagged.find(t => t.id === lead.id);
+    if (isIn) { removeTagged(lead.id); }
+    else       { setTagged(prev => [...prev, lead]); soundClick(); }
+  };
+
+  // ── Render ──
   return (
     <div className="relative flex min-h-[calc(100vh-4rem)] w-full overflow-hidden bg-white">
-      {/* ── Left panel: green ── */}
-      <div className="relative w-[380px] shrink-0 overflow-hidden bg-[#2ecc71] p-8">
+
+      {/* ── Left panel (green) ── */}
+      <div className="flex w-[340px] shrink-0 flex-col overflow-hidden bg-[#2ecc71] p-8">
         <div className="mt-4">
           <h1 className="text-[26px] font-semibold leading-tight text-[#0d2318]">Hi Samantha</h1>
-          <p className="mt-1 text-[13px] text-[#0d2318]/55">
-            Welcome back to the workspace, we missed you!
-          </p>
+          <p className="mt-1 text-[13px] text-[#0d2318]/55">Welcome back to the workspace!</p>
         </div>
 
         {/* Search */}
-        <div className="mt-6 flex items-center gap-2 bg-white/30 px-4 py-2.5 focus-within:bg-white/40 transition-colors">
+        <div className="mt-6 flex items-center gap-2 bg-white/30 px-4 py-2.5 focus-within:bg-white/40 transition-colors shrink-0">
           <Search className="h-4 w-4 shrink-0 text-[#0d2318]/50" />
           <input
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search task or project…"
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Search leads…"
             className="w-full bg-transparent text-[13px] text-[#0d2318] placeholder-[#0d2318]/45 outline-none"
           />
           {query && (
@@ -183,148 +297,306 @@ export function Tasks() {
           )}
         </div>
 
-        {/* Search results */}
-        {searchResults ? (
-          <div className="mt-5 max-h-[400px] space-y-4 overflow-y-auto">
-            {searchResults.matchedProjects.length === 0 && searchResults.matchedTasks.length === 0 && (
-              <p className="text-[12.5px] text-[#0d2318]/50">No matches for "{query}".</p>
-            )}
-            {searchResults.matchedProjects.length > 0 && (
-              <div>
-                <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-[#0d2318]/50">Projects</p>
-                <div className="space-y-1.5">
-                  {searchResults.matchedProjects.map((p) => (
-                    <button
-                      key={p.id}
-                      onClick={() => { setActiveId(p.id); setQuery(''); }}
-                      className="flex w-full items-center gap-2.5 px-2 py-1.5 text-left text-[13px] text-[#0d2318]/80 hover:bg-white/20 transition-colors"
-                    >
-                      <span className="flex h-7 w-7 items-center justify-center bg-white text-[10px] font-bold text-[#2ecc71]">
-                        {p.initials}
-                      </span>
-                      {p.label}
-                    </button>
-                  ))}
+        {/* Lead grid */}
+        <div className="mt-6 flex-1 overflow-y-auto">
+          {fetchStatus === 'loading' && (
+            <div className="grid grid-cols-3 gap-x-4 gap-y-5">
+              {Array.from({ length: 9 }).map((_, i) => (
+                <div key={i} className="flex flex-col items-center gap-2">
+                  <div className="h-16 w-16 rounded-full bg-white/20 animate-pulse" />
+                  <div className="h-2 w-10 bg-white/20 animate-pulse" />
                 </div>
-              </div>
-            )}
-            {searchResults.matchedTasks.length > 0 && (
-              <div>
-                <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-[#0d2318]/50">Tasks</p>
-                <div className="space-y-1.5">
-                  {searchResults.matchedTasks.map(({ project, task }) => (
+              ))}
+            </div>
+          )}
+
+          {fetchStatus === 'ok' && (
+            <>
+              <p className="mb-4 text-[12px] font-medium text-[#0d2318]/60">
+                Leads <span className="text-[#0d2318]/35">({filteredLeads.length})</span>
+              </p>
+              <div className="grid grid-cols-3 gap-x-4 gap-y-5">
+                {filteredLeads.map(lead => {
+                  const isActive  = String(lead.id) === activeLeadId;
+                  const taskCount = (tasksByLead[String(lead.id)] ?? []).length;
+                  return (
                     <button
-                      key={task.id}
-                      onClick={() => { setActiveId(project.id); setQuery(''); }}
-                      className="flex w-full flex-col items-start px-2 py-1.5 text-left hover:bg-white/20 transition-colors"
+                      key={lead.id}
+                      onClick={() => { setActiveLeadId(String(lead.id)); soundTab(); }}
+                      className="flex flex-col items-center gap-2 text-center"
                     >
-                      <span className="text-[13px] text-[#0d2318]/80">{task.label}</span>
-                      <span className="text-[11px] text-[#0d2318]/45">{project.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="mt-8">
-            <p className="text-[13px] font-medium text-[#0d2318]/70">
-              Projects <span className="text-[#0d2318]/40">(13)</span>
-            </p>
-            <div className="mt-4 grid grid-cols-3 gap-4">
-              {projects.map((project) => {
-                const isActive = project.id === activeId;
-                return (
-                  <button
-                    key={project.id}
-                    onClick={() => { setActiveId(project.id); soundTab(); }}
-                    className="flex flex-col items-start gap-2 text-left"
-                  >
-                    {project.isCount ? (
-                      <div className="flex h-16 w-16 items-center justify-center bg-white/20 text-[15px] font-semibold text-[#0d2318]">
-                        8+
-                      </div>
-                    ) : (
-                      <div
-                        className={`relative flex h-16 w-16 items-center justify-center bg-white text-[15px] font-bold text-[#2ecc71] transition-transform ${
-                          isActive ? 'scale-105 ring-2 ring-[#0d2318]/30 ring-offset-2 ring-offset-[#2ecc71]' : 'hover:scale-105'
-                        }`}
-                      >
-                        {project.initials}
-                        {project.badge && (
-                          <span className="absolute -right-1 -top-1 h-3 w-3 border-2 border-[#2ecc71] bg-[#0d2318]" />
+                      <div className={`relative h-16 w-16 rounded-full bg-white flex items-center justify-center text-[14px] font-bold text-[#2ecc71] transition-transform ${
+                        isActive
+                          ? 'scale-105 ring-2 ring-[#0d2318]/25 ring-offset-2 ring-offset-[#2ecc71]'
+                          : 'hover:scale-105'
+                      }`}>
+                        {lead.initials}
+                        {taskCount > 0 && (
+                          <span className="absolute -right-0.5 -top-0.5 h-[18px] w-[18px] rounded-full bg-[#0d2318] border-2 border-[#2ecc71] flex items-center justify-center text-[9px] font-bold text-white leading-none">
+                            {taskCount}
+                          </span>
                         )}
                       </div>
-                    )}
-                    {project.label && (
-                      <span className={`text-[11px] ${isActive ? 'text-[#0d2318]' : 'text-[#0d2318]/55'}`}>
-                        {project.label}
+                      <span className={`w-full truncate text-[10px] leading-tight px-1 ${
+                        isActive ? 'text-[#0d2318] font-semibold' : 'text-[#0d2318]/55'
+                      }`}>
+                        {lead.name.split(' ')[0]}
                       </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {fetchStatus === 'error' && (
+            <p className="text-[13px] text-[#0d2318]/60">Could not load leads.</p>
+          )}
+        </div>
+      </div>
+
+      {/* ── Right panel (white) ── */}
+      <div className="relative flex flex-1 flex-col overflow-hidden border-l border-black/8 bg-white">
+        {!activeLead ? (
+          <div className="flex flex-1 items-center justify-center text-[13px] text-black/25">
+            {fetchStatus === 'loading' ? 'Loading…' : 'Select a lead from the left panel'}
           </div>
+        ) : (
+          <>
+            {/* Header */}
+            <div className="flex items-start justify-between border-b border-black/8 px-8 py-5 shrink-0">
+              <div>
+                <h2 className="text-[22px] font-semibold text-black">{activeLead.name}</h2>
+                <p className="mt-0.5 text-[12px] text-black/40">
+                  {activeLead.designation}
+                  {activeLead.company && activeLead.company !== '—' && ` · ${activeLead.company}`}
+                </p>
+              </div>
+
+              {/* Tagged profiles (top-right) */}
+              <div className="flex items-center gap-1.5">
+                <AnimatePresence>
+                  {allTagged.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="flex -space-x-2"
+                    >
+                      {allTagged.slice(0, 5).map(lead => (
+                        <motion.button
+                          key={lead.id}
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          onClick={() => { setPanelLead(lead); soundOpen(); }}
+                          title={lead.name}
+                          className="h-8 w-8 rounded-full border-2 border-white bg-[#2ecc71] flex items-center justify-center text-[10px] font-bold text-white hover:z-10 hover:scale-110 transition-transform"
+                        >
+                          {lead.initials}
+                        </motion.button>
+                      ))}
+                      {allTagged.length > 5 && (
+                        <div className="h-8 w-8 rounded-full border-2 border-white bg-black/8 flex items-center justify-center text-[10px] font-semibold text-black/50">
+                          +{allTagged.length - 5}
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* + dropdown to tag from all leads */}
+                <div className="relative" ref={tagDropRef}>
+                  <button
+                    onClick={() => { setShowTagDrop(v => !v); soundClick(); }}
+                    className="ml-1 flex h-8 w-8 rounded-full items-center justify-center border border-dashed border-[#2ecc71] text-[#2ecc71] hover:bg-[#2ecc71]/8 transition-colors"
+                    title="Tag a lead"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </button>
+
+                  <AnimatePresence>
+                    {showTagDrop && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                        animate={{ opacity: 1, y: 0,  scale: 1 }}
+                        exit={{    opacity: 0, y: -6, scale: 0.97 }}
+                        transition={{ duration: 0.12 }}
+                        className="absolute right-0 top-full mt-2 w-[230px] bg-white border border-black/10 shadow-xl z-50 py-1 max-h-[280px] overflow-y-auto"
+                      >
+                        <p className="px-3 pt-2 pb-1.5 text-[10.5px] font-semibold text-black/35 uppercase tracking-wider">
+                          Tag a lead
+                        </p>
+                        {leads.map(lead => {
+                          const isIn = !!tagged.find(t => t.id === lead.id);
+                          return (
+                            <button
+                              key={lead.id}
+                              onClick={() => toggleTagInDrop(lead)}
+                              className="flex w-full items-center gap-2.5 px-3 py-2 hover:bg-black/[0.03] transition-colors"
+                            >
+                              <div className="h-7 w-7 rounded-full bg-[#2ecc71] flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+                                {lead.initials}
+                              </div>
+                              <div className="flex-1 text-left min-w-0">
+                                <p className="text-[13px] font-medium text-black/80 truncate">{lead.name}</p>
+                                <p className="text-[11px] text-black/35 truncate">{lead.designation}</p>
+                              </div>
+                              {isIn && <Check className="h-3.5 w-3.5 text-[#2ecc71] shrink-0" />}
+                            </button>
+                          );
+                        })}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </div>
+
+            {/* Task list */}
+            <div className="flex-1 overflow-y-auto px-8 pt-6 pb-2">
+              {/* Today */}
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-black/35">Today</p>
+              <div className="divide-y divide-black/5 mb-6">
+                {todayTasks.length === 0 && (
+                  <p className="py-3 text-[12.5px] text-black/20">No tasks for today — add one below.</p>
+                )}
+                {todayTasks.map(task => (
+                  <TaskRow
+                    key={task.id}
+                    task={task}
+                    onToggle={() => toggleTask(task.id)}
+                    onOpenLead={lead => { setPanelLead(lead); soundOpen(); }}
+                  />
+                ))}
+              </div>
+
+              {/* Upcoming */}
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-black/35">Upcoming</p>
+              <div className="divide-y divide-black/5">
+                {upcomingTasks.length === 0 && (
+                  <p className="py-3 text-[12.5px] text-black/20">Nothing upcoming.</p>
+                )}
+                {upcomingTasks.map(task => (
+                  <TaskRow
+                    key={task.id}
+                    task={task}
+                    onToggle={() => toggleTask(task.id)}
+                    onOpenLead={lead => { setPanelLead(lead); soundOpen(); }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* ── Add task form ── */}
+            <div className="border-t border-black/8 px-8 py-4 shrink-0 bg-white">
+
+              {/* Tagged pills */}
+              <AnimatePresence>
+                {tagged.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{    opacity: 0, height: 0 }}
+                    className="flex flex-wrap gap-1.5 mb-3 overflow-hidden"
+                  >
+                    {tagged.map(lead => (
+                      <motion.span
+                        key={lead.id}
+                        initial={{ opacity: 0, scale: 0.85 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{    opacity: 0, scale: 0.85 }}
+                        className="flex items-center gap-1.5 bg-[#2ecc71]/10 border border-[#2ecc71]/20 px-2 py-1 text-[12px] text-[#1a7a40] font-medium"
+                      >
+                        <div className="h-4 w-4 rounded-full bg-[#2ecc71] flex items-center justify-center text-white text-[8px] font-bold shrink-0">
+                          {lead.initials}
+                        </div>
+                        @{lead.name.split(' ')[0]}
+                        <button
+                          onClick={() => removeTagged(lead.id)}
+                          className="text-[#2ecc71]/50 hover:text-[#2ecc71] transition-colors ml-0.5"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </motion.span>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <div className="flex items-center gap-2">
+                {/* Today / Upcoming toggle */}
+                <button
+                  onClick={() => { setNewList(v => v === 'today' ? 'upcoming' : 'today'); soundTab(); }}
+                  className="shrink-0 flex items-center gap-1 text-[11px] font-semibold text-[#2ecc71] border border-[#2ecc71]/30 px-2.5 py-2 hover:bg-[#2ecc71]/8 transition-colors whitespace-nowrap"
+                >
+                  {newList === 'today' ? 'Today' : 'Upcoming'}
+                  <ChevronDown className="h-3 w-3" />
+                </button>
+
+                {/* Text input + @ mention dropdown */}
+                <div className="relative flex-1">
+                  <input
+                    ref={inputRef}
+                    value={newText}
+                    onChange={handleTextChange}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && !mentionQuery) addTask();
+                      if (e.key === 'Escape') { setMentionQuery(null); setShowTagDrop(false); }
+                    }}
+                    placeholder="Add a task… type @ to tag a lead"
+                    className="w-full border border-black/12 px-3 py-2 text-[13px] text-black/70 placeholder-black/25 outline-none focus:border-[#2ecc71] transition-colors"
+                  />
+
+                  {/* @ mention dropdown */}
+                  <AnimatePresence>
+                    {mentionQuery !== null && mentionResults.length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{    opacity: 0, y: 6 }}
+                        transition={{ duration: 0.1 }}
+                        className="absolute bottom-full left-0 mb-1.5 w-[240px] bg-white border border-black/10 shadow-xl z-50 py-1 max-h-[220px] overflow-y-auto"
+                      >
+                        <p className="px-3 pt-2 pb-1 text-[10.5px] font-semibold text-black/35 uppercase tracking-wider">
+                          Tag a lead
+                        </p>
+                        {mentionResults.map(lead => (
+                          <button
+                            key={lead.id}
+                            // use onMouseDown so the input doesn't blur before the click fires
+                            onMouseDown={e => { e.preventDefault(); selectMention(lead); }}
+                            className="flex w-full items-center gap-2.5 px-3 py-2 hover:bg-[#2ecc71]/8 transition-colors"
+                          >
+                            <div className="h-7 w-7 rounded-full bg-[#2ecc71] flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+                              {lead.initials}
+                            </div>
+                            <div className="text-left min-w-0">
+                              <p className="text-[13px] font-medium text-black/80 truncate">{lead.name}</p>
+                              <p className="text-[11px] text-black/35 truncate">{lead.designation}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Submit */}
+                <button
+                  onClick={addTask}
+                  disabled={!newText.trim()}
+                  className="shrink-0 flex items-center gap-1.5 bg-[#2ecc71] hover:bg-[#27af61] disabled:opacity-35 text-white text-[13px] font-semibold px-4 py-2 transition-colors whitespace-nowrap"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add
+                </button>
+              </div>
+            </div>
+          </>
         )}
       </div>
 
-      {/* ── Right panel: white ── */}
-      <div className="relative flex flex-1 flex-col overflow-y-auto border-l border-black/8 bg-white p-8">
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="text-[22px] font-semibold text-black">{active.label || 'Project'}</h2>
-            <p className="mt-1 max-w-[280px] text-[12px] leading-relaxed text-black/40">{active.description}</p>
-          </div>
-          <div className="flex items-center">
-            <div className="flex -space-x-2">
-              {[0, 1, 2].map((i) => (
-                <button
-                  key={i}
-                  onClick={() => { setProfileIndex(i); setProfileOpen(true); soundOpen(); }}
-                  className="h-8 w-8 rounded-full border-2 border-white bg-[#2ecc71] transition-transform hover:z-10 hover:scale-110 flex items-center justify-center text-[10px] font-bold text-white"
-                  aria-label={`Open profile ${i + 1}`}
-                />
-              ))}
-            </div>
-            <button
-              onClick={soundClick}
-              className="ml-2 flex h-8 w-8 rounded-full items-center justify-center border border-dashed border-[#2ecc71] text-[#2ecc71]"
-            >
-              <Plus className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-6 flex items-center justify-between">
-          <h3 className="text-[14px] font-semibold text-black/70">Today</h3>
-          <MoreHorizontal className="h-4 w-4 text-black/20" />
-        </div>
-        <div className="mt-1 divide-y divide-black/5">
-          {active.today.length === 0 && <p className="py-3 text-[12.5px] text-black/30">No tasks for today.</p>}
-          {active.today.map((task) => (
-            <TaskRow key={task.id} task={task} onToggle={(id) => toggleTask('today', id)} />
-          ))}
-        </div>
-
-        <div className="mt-6 flex items-center justify-between">
-          <h3 className="text-[14px] font-semibold text-black/70">Upcoming</h3>
-          <MoreHorizontal className="h-4 w-4 text-black/20" />
-        </div>
-        <div className="mt-1 divide-y divide-black/5">
-          {active.upcoming.length === 0 && <p className="py-3 text-[12.5px] text-black/30">Nothing upcoming.</p>}
-          {active.upcoming.map((task) => (
-            <TaskRow key={task.id} task={task} onToggle={(id) => toggleTask('upcoming', id)} />
-          ))}
-        </div>
-
-        {/* FAB */}
-        <button className="absolute bottom-6 right-6 flex h-12 w-12 items-center justify-center bg-[#2ecc71] text-white shadow-lg transition-transform hover:scale-105">
-          <Plus className="h-5 w-5" />
-        </button>
-      </div>
-
-      <ProfileModal open={profileOpen} index={profileIndex} onClose={() => { setProfileOpen(false); soundClose(); }} />
+      {/* LeadPanel reused for tagged-lead click-throughs */}
+      <LeadPanel lead={panelLead} onClose={() => { setPanelLead(null); soundClose(); }} />
     </div>
   );
 }
