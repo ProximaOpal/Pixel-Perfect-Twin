@@ -102,7 +102,7 @@ function calcFinancials(data: FormData) {
 
 /* DNB-style pill input: rounded, soft border, teal focus ring */
 const inputCls =
-  'w-full rounded-[10px] border border-[#e3e6e4] bg-white px-4 py-3.5 text-[13.5px] text-gray-800 placeholder-gray-400 outline-none focus:border-[#2ecc71] focus:ring-4 focus:ring-[#2ecc71]/12 transition-all appearance-none';
+  'w-full rounded-[10px] border border-[#e3e6e4] bg-white px-4 py-3.5 text-[13.5px] text-gray-800 placeholder-gray-400 outline-none focus:border-[#FF5A45] focus:ring-4 focus:ring-[#FF5A45]/12 transition-all appearance-none';
 const sectionLabelCls = 'mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-[#7c8a82]';
 const fieldLabelCls = 'mb-1.5 flex items-center gap-1.5 text-[12.5px] font-semibold text-gray-700';
 
@@ -187,7 +187,7 @@ function FormSelect({
                 className="flex cursor-pointer items-center justify-between px-4 py-3 text-[13px] text-gray-700 transition-colors"
               >
                 {opt}
-                {value === opt && <Check className="h-3.5 w-3.5 text-[#2ecc71]" />}
+                {value === opt && <Check className="h-3.5 w-3.5 text-[#FF5A45]" />}
               </motion.li>
             ))}
           </motion.ul>
@@ -329,9 +329,9 @@ export function Forms() {
     <div className="flex bg-white" style={{ minHeight: 'calc(100vh - 4rem)' }}>
 
       {/* ── Left: mint sidebar — logo, heading, numbered steps (DNB layout) ── */}
-      <aside className="sticky top-16 flex h-[calc(100vh-4rem)] w-[300px] shrink-0 flex-col bg-[#eefdf3] px-9 py-10">
+      <aside className="sticky top-16 flex h-[calc(100vh-4rem)] w-[300px] shrink-0 flex-col bg-[#FFF1F0] px-9 py-10">
         <div className="mb-10 flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-[6px] bg-[#2ecc71] text-[13px] font-bold text-white">
+          <span className="flex h-7 w-7 items-center justify-center rounded-[6px] bg-[#FF5A45] text-[13px] font-bold text-white">
             N
           </span>
           <span className="text-[15px] font-bold tracking-tight text-[#101a15]">Nexus</span>
@@ -352,9 +352,9 @@ export function Forms() {
                 <span
                   className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition-colors ${
                     active
-                      ? 'bg-[#2ecc71] text-white'
+                      ? 'bg-[#FF5A45] text-white'
                       : done
-                      ? 'bg-[#2ecc71] text-white'
+                      ? 'bg-[#FF5A45] text-white'
                       : 'border-2 border-[#c3d9cb] text-[#8fa89a]'
                   }`}
                 >
@@ -362,7 +362,7 @@ export function Forms() {
                 </span>
                 <span
                   className={`text-[14px] transition-colors ${
-                    active ? 'font-bold text-[#101a15]' : done ? 'font-medium text-[#219251]' : 'text-[#8fa89a]'
+                    active ? 'font-bold text-[#101a15]' : done ? 'font-medium text-[#E22A12]' : 'text-[#8fa89a]'
                   }`}
                 >
                   {label}
@@ -511,16 +511,16 @@ export function Forms() {
                     animate={{ opacity: 1, y: 0 }}
                     className="mt-7 grid grid-cols-2 gap-4"
                   >
-                    <div className="rounded-[10px] border border-[#e3e6e4] bg-[#eefdf3] p-5">
+                    <div className="rounded-[10px] border border-[#e3e6e4] bg-[#FFF1F0] p-5">
                       <p className={sectionLabelCls}>Catering Assistants</p>
-                      <p className="text-[28px] font-black text-[#219251]">
+                      <p className="text-[28px] font-black text-[#E22A12]">
                         {Math.ceil((parseInt(data.guestCount) || 50) / 20)}
                       </p>
                       <p className="mt-1 text-[11px] text-gray-400">1 per 20 guests</p>
                     </div>
-                    <div className="rounded-[10px] border border-[#e3e6e4] bg-[#eefdf3] p-5">
+                    <div className="rounded-[10px] border border-[#e3e6e4] bg-[#FFF1F0] p-5">
                       <p className={sectionLabelCls}>Event Staff</p>
-                      <p className="text-[28px] font-black text-[#219251]">
+                      <p className="text-[28px] font-black text-[#E22A12]">
                         {Math.ceil((parseInt(data.guestCount) || 50) / 25)}
                       </p>
                       <p className="mt-1 text-[11px] text-gray-400">1 per 25 guests</p>
@@ -549,7 +549,7 @@ export function Forms() {
                   <button
                     type="button"
                     onClick={() => set('repeatClient', !data.repeatClient)}
-                    className={`relative h-7 w-14 rounded-full transition-colors ${data.repeatClient ? 'bg-[#2ecc71]' : 'bg-gray-200'}`}
+                    className={`relative h-7 w-14 rounded-full transition-colors ${data.repeatClient ? 'bg-[#FF5A45]' : 'bg-gray-200'}`}
                   >
                     <motion.div
                       animate={{ x: data.repeatClient ? 28 : 2 }}
@@ -584,7 +584,7 @@ export function Forms() {
                         <span className="font-semibold">{val}</span>
                       </div>
                     ))}
-                    <div className="flex items-center justify-between bg-[#2ecc71] px-5 py-4 text-[14px] font-black text-white">
+                    <div className="flex items-center justify-between bg-[#FF5A45] px-5 py-4 text-[14px] font-black text-white">
                       <span>Grand Total</span>
                       <span>£{fin.grand.toFixed(2)}</span>
                     </div>
@@ -616,21 +616,21 @@ export function Forms() {
                         onClick={() => toggleUpgrade(label)}
                         className={`flex items-center justify-between rounded-[10px] border px-5 py-4 text-left transition-colors ${
                           selected
-                            ? 'border-[#2ecc71] bg-[#eefdf3]'
+                            ? 'border-[#FF5A45] bg-[#FFF1F0]'
                             : 'border-[#e3e6e4] bg-white hover:border-gray-300'
                         }`}
                       >
                         <div className="flex items-center gap-3">
                           <div
                             className={`flex h-5 w-5 items-center justify-center rounded-[6px] transition-colors ${
-                              selected ? 'bg-[#2ecc71]' : 'border border-[#d0d0d0]'
+                              selected ? 'bg-[#FF5A45]' : 'border border-[#d0d0d0]'
                             }`}
                           >
                             {selected && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
                           </div>
                           <span className="text-[13px] font-semibold text-gray-800">{label}</span>
                         </div>
-                        <span className={`text-[13px] font-bold ${selected ? 'text-[#219251]' : 'text-gray-400'}`}>
+                        <span className={`text-[13px] font-bold ${selected ? 'text-[#E22A12]' : 'text-gray-400'}`}>
                           £{price.toLocaleString()}
                         </span>
                       </motion.button>
@@ -642,12 +642,12 @@ export function Forms() {
                   <motion.div
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mt-6 flex items-center justify-between rounded-[10px] border border-[#2ecc71] bg-[#eefdf3] px-5 py-4"
+                    className="mt-6 flex items-center justify-between rounded-[10px] border border-[#FF5A45] bg-[#FFF1F0] px-5 py-4"
                   >
-                    <span className="text-[12px] font-semibold text-[#219251]">
+                    <span className="text-[12px] font-semibold text-[#E22A12]">
                       {data.selectedUpgrades.length} upgrade{data.selectedUpgrades.length > 1 ? 's' : ''} selected
                     </span>
-                    <span className="text-[14px] font-black text-[#219251]">
+                    <span className="text-[14px] font-black text-[#E22A12]">
                       +£{UPGRADES.filter((u) => data.selectedUpgrades.includes(u.label))
                         .reduce((s, u) => s + u.price, 0)
                         .toLocaleString()}
@@ -673,14 +673,14 @@ export function Forms() {
             {step < 6 ? (
               <button
                 onClick={() => setStep((s) => Math.min(6, s + 1))}
-                className="flex items-center gap-2 rounded-full bg-[#2ecc71] px-8 py-3.5 text-[13px] font-bold text-white shadow-sm transition-colors hover:bg-[#27af61]"
+                className="flex items-center gap-2 rounded-full bg-[#FF5A45] px-8 py-3.5 text-[13px] font-bold text-white shadow-sm transition-colors hover:bg-[#F4412A]"
               >
                 Next
               </button>
             ) : (
               <button
                 onClick={handleGenerate}
-                className="flex items-center gap-2 rounded-full bg-[#2ecc71] px-8 py-3.5 text-[13px] font-bold text-white shadow-sm transition-colors hover:bg-[#27af61]"
+                className="flex items-center gap-2 rounded-full bg-[#FF5A45] px-8 py-3.5 text-[13px] font-bold text-white shadow-sm transition-colors hover:bg-[#F4412A]"
               >
                 Generate Proposal
                 <ArrowRight className="h-3.5 w-3.5" />
@@ -782,7 +782,7 @@ export function Forms() {
                   </button>
                   <button
                     onClick={handleGenerate}
-                    className="rounded-full bg-[#2ecc71] px-5 py-2 text-[12.5px] font-bold text-white transition-colors hover:bg-[#27af61]"
+                    className="rounded-full bg-[#FF5A45] px-5 py-2 text-[12.5px] font-bold text-white transition-colors hover:bg-[#F4412A]"
                   >
                     Retry
                   </button>

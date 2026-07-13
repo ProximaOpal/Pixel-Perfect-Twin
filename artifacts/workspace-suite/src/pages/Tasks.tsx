@@ -14,12 +14,14 @@ function todayIso() {
 
 // ── Client Relationship Representatives ───────────────────────────────────────
 // Exported so other pages (e.g. Calendar) can resolve a task's repId to a name.
+const CRR_COMPANY = 'West End on the Thames';
+
 export const CRR_REPS: Lead[] = [
-  { id: 9001, name: 'Katherine',  initials: 'KA', email: '', code: 'CRR-1', designation: 'Client Relationship Rep', phone: '', joined: '', color: '#2ecc71', sector: '', referenceNumber: '', source: '', company: '' },
-  { id: 9002, name: 'Sapphire',   initials: 'SA', email: '', code: 'CRR-2', designation: 'Client Relationship Rep', phone: '', joined: '', color: '#2ecc71', sector: '', referenceNumber: '', source: '', company: '' },
-  { id: 9003, name: 'Elizabeth',  initials: 'EL', email: '', code: 'CRR-3', designation: 'Client Relationship Rep', phone: '', joined: '', color: '#2ecc71', sector: '', referenceNumber: '', source: '', company: '' },
-  { id: 9004, name: 'Lily-May',   initials: 'LM', email: '', code: 'CRR-4', designation: 'Client Relationship Rep', phone: '', joined: '', color: '#2ecc71', sector: '', referenceNumber: '', source: '', company: '' },
-  { id: 9005, name: 'Natasha',    initials: 'NA', email: '', code: 'CRR-5', designation: 'Client Relationship Rep', phone: '', joined: '', color: '#2ecc71', sector: '', referenceNumber: '', source: '', company: '' },
+  { id: 9001, name: 'Katherine',  initials: 'KA', email: '', code: 'CRR-1', designation: 'Client Relationship Rep', phone: '', joined: '', color: '#FF5A45', sector: '', referenceNumber: '', source: '', company: CRR_COMPANY },
+  { id: 9002, name: 'Sapphire',   initials: 'SA', email: '', code: 'CRR-2', designation: 'Client Relationship Rep', phone: '', joined: '', color: '#FF5A45', sector: '', referenceNumber: '', source: '', company: CRR_COMPANY },
+  { id: 9003, name: 'Elizabeth',  initials: 'EL', email: '', code: 'CRR-3', designation: 'Client Relationship Rep', phone: '', joined: '', color: '#FF5A45', sector: '', referenceNumber: '', source: '', company: CRR_COMPANY },
+  { id: 9004, name: 'Lily-May',   initials: 'LM', email: '', code: 'CRR-4', designation: 'Client Relationship Rep', phone: '', joined: '', color: '#FF5A45', sector: '', referenceNumber: '', source: '', company: CRR_COMPANY },
+  { id: 9005, name: 'Natasha',    initials: 'NA', email: '', code: 'CRR-5', designation: 'Client Relationship Rep', phone: '', joined: '', color: '#FF5A45', sector: '', referenceNumber: '', source: '', company: CRR_COMPANY },
 ];
 
 // ── Email accounts (column L) ─────────────────────────────────────────────────
@@ -193,7 +195,7 @@ function TypePicker({
         onClick={() => { setOpen(v => !v); soundClick(); }}
         className={`flex items-center gap-1.5 border px-2.5 py-2 text-[11px] font-medium transition-colors whitespace-nowrap ${
           value
-            ? 'border-[#2ecc71]/40 bg-[#2ecc71]/8 text-[#1a7a40]'
+            ? 'border-[#FF5A45]/40 bg-[#FF5A45]/8 text-[#AE2513]'
             : 'border-black/12 text-black/35 hover:border-black/25'
         }`}
         title="Set task type"
@@ -244,14 +246,14 @@ function TypePicker({
                   className="flex w-full items-center justify-between gap-2 px-3 py-2 text-[12px] text-black/70 hover:bg-black/[0.03] transition-colors"
                 >
                   {t}
-                  {value === t && <Check className="h-3 w-3 text-[#2ecc71] shrink-0" />}
+                  {value === t && <Check className="h-3 w-3 text-[#FF5A45] shrink-0" />}
                 </button>
               ))}
 
               {canCreate && (
                 <button
                   onClick={handleCreate}
-                  className="flex w-full items-center gap-2 px-3 py-2.5 text-[12px] text-[#2ecc71] font-medium hover:bg-[#2ecc71]/8 transition-colors border-t border-black/5 mt-0.5"
+                  className="flex w-full items-center gap-2 px-3 py-2.5 text-[12px] text-[#FF5A45] font-medium hover:bg-[#FF5A45]/8 transition-colors border-t border-black/5 mt-0.5"
                 >
                   <Plus className="h-3.5 w-3.5 shrink-0" />
                   Add "{q.trim()}"
@@ -326,7 +328,7 @@ function EmailPicker({ value, onSelect }: { value: string; onSelect: (v: string)
                 className="flex w-full items-center justify-between px-3 py-2 text-[12px] text-black/70 hover:bg-black/[0.03] transition-colors"
               >
                 {acct}
-                {value === acct && <Check className="h-3 w-3 text-[#2ecc71] shrink-0" />}
+                {value === acct && <Check className="h-3 w-3 text-[#FF5A45] shrink-0" />}
               </button>
             ))}
           </motion.div>
@@ -521,7 +523,7 @@ export function Tasks() {
                 onClick={() => { setActiveRepId(String(rep.id)); soundTab(); }}
                 className={`flex items-center gap-3 px-4 py-3.5 text-left transition-colors ${
                   isActive
-                    ? 'bg-[#2ecc71]'
+                    ? 'bg-[#FF5A45]'
                     : 'hover:bg-black/5'
                 }`}
               >
@@ -532,11 +534,11 @@ export function Tasks() {
                     src={personAvatarUrl(rep)}
                     alt={rep.name}
                     fallbackText={rep.initials}
-                    className={`h-full w-full text-[15px] ${isActive ? 'bg-white text-[#2ecc71]' : 'bg-black/5 text-black/50'}`}
+                    className={`h-full w-full text-[15px] ${isActive ? 'bg-white text-[#FF5A45]' : 'bg-black/5 text-black/50'}`}
                   />
                   {taskCount > 0 && (
                     <span className={`absolute -right-0.5 -top-0.5 h-[18px] min-w-[18px] px-[3px] rounded-full bg-[#0d2318] border-2 flex items-center justify-center text-[9px] font-bold text-white leading-none ${
-                      isActive ? 'border-[#2ecc71]' : 'border-white'
+                      isActive ? 'border-[#FF5A45]' : 'border-white'
                     }`}>
                       {taskCount}
                     </span>
@@ -613,7 +615,7 @@ export function Tasks() {
               <div className="relative" ref={tagDropRef}>
                 <button
                   onClick={() => { setShowTagDrop(v => !v); soundClick(); }}
-                  className="ml-1 flex h-8 w-8 rounded-full items-center justify-center border border-dashed border-[#2ecc71] text-[#2ecc71] hover:bg-[#2ecc71]/8 transition-colors"
+                  className="ml-1 flex h-8 w-8 rounded-full items-center justify-center border border-dashed border-[#FF5A45] text-[#FF5A45] hover:bg-[#FF5A45]/8 transition-colors"
                   title="Tag a representative"
                 >
                   <Plus className="h-3.5 w-3.5" />
@@ -649,7 +651,7 @@ export function Tasks() {
                               <p className="text-[13px] font-medium text-black/80 truncate">{rep.name}</p>
                               <p className="text-[11px] text-black/35 truncate">{rep.designation}</p>
                             </div>
-                            {isIn && <Check className="h-3.5 w-3.5 text-[#2ecc71] shrink-0" />}
+                            {isIn && <Check className="h-3.5 w-3.5 text-[#FF5A45] shrink-0" />}
                           </button>
                         );
                       })}
@@ -678,7 +680,7 @@ export function Tasks() {
                       initial={{ opacity: 0, scale: 0.85 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{    opacity: 0, scale: 0.85 }}
-                      className="flex items-center gap-1.5 bg-[#2ecc71]/10 border border-[#2ecc71]/20 px-2 py-1 text-[12px] text-[#1a7a40] font-medium"
+                      className="flex items-center gap-1.5 bg-[#FF5A45]/10 border border-[#FF5A45]/20 px-2 py-1 text-[12px] text-[#AE2513] font-medium"
                     >
                       <Avatar
                         src={personAvatarUrl(rep)}
@@ -689,7 +691,7 @@ export function Tasks() {
                       @{rep.name.split(' ')[0]}
                       <button
                         onClick={() => removeTagged(rep.id)}
-                        className="text-[#2ecc71]/50 hover:text-[#2ecc71] transition-colors ml-0.5"
+                        className="text-[#FF5A45]/50 hover:text-[#FF5A45] transition-colors ml-0.5"
                       >
                         <X className="h-3 w-3" />
                       </button>
@@ -703,7 +705,7 @@ export function Tasks() {
               {/* Today / Upcoming toggle */}
               <button
                 onClick={() => { setNewList(v => v === 'today' ? 'upcoming' : 'today'); soundTab(); }}
-                className="shrink-0 flex items-center gap-1 text-[11px] font-semibold text-[#2ecc71] border border-[#2ecc71]/30 px-2.5 py-2 hover:bg-[#2ecc71]/8 transition-colors whitespace-nowrap"
+                className="shrink-0 flex items-center gap-1 text-[11px] font-semibold text-[#FF5A45] border border-[#FF5A45]/30 px-2.5 py-2 hover:bg-[#FF5A45]/8 transition-colors whitespace-nowrap"
               >
                 {newList === 'today' ? 'Today' : 'Upcoming'}
                 <ChevronDown className="h-3 w-3" />
@@ -726,7 +728,7 @@ export function Tasks() {
                 value={newDate}
                 onChange={e => setNewDate(e.target.value)}
                 title="Date this task is scheduled for"
-                className="shrink-0 border border-black/12 px-2.5 py-2 text-[11px] font-medium text-black/60 outline-none focus:border-[#2ecc71] transition-colors"
+                className="shrink-0 border border-black/12 px-2.5 py-2 text-[11px] font-medium text-black/60 outline-none focus:border-[#FF5A45] transition-colors"
               />
 
               {/* Text input + @ mention dropdown */}
@@ -740,7 +742,7 @@ export function Tasks() {
                     if (e.key === 'Escape') { setMentionQuery(null); setShowTagDrop(false); }
                   }}
                   placeholder="Add a task… type @ to tag a representative"
-                  className="w-full border border-black/12 px-3 py-2 text-[13px] text-black/70 placeholder-black/25 outline-none focus:border-[#2ecc71] transition-colors"
+                  className="w-full border border-black/12 px-3 py-2 text-[13px] text-black/70 placeholder-black/25 outline-none focus:border-[#FF5A45] transition-colors"
                 />
 
                 {/* @ mention dropdown */}
@@ -760,7 +762,7 @@ export function Tasks() {
                         <button
                           key={rep.id}
                           onMouseDown={e => { e.preventDefault(); selectMention(rep); }}
-                          className="flex w-full items-center gap-2.5 px-3 py-2 hover:bg-[#2ecc71]/8 transition-colors"
+                          className="flex w-full items-center gap-2.5 px-3 py-2 hover:bg-[#FF5A45]/8 transition-colors"
                         >
                           <Avatar
                             src={personAvatarUrl(rep)}
@@ -783,7 +785,7 @@ export function Tasks() {
               <button
                 onClick={addTask}
                 disabled={!newText.trim()}
-                className="shrink-0 flex items-center gap-1.5 bg-[#2ecc71] hover:bg-[#27af61] disabled:opacity-35 text-white text-[13px] font-semibold px-4 py-2 transition-colors whitespace-nowrap"
+                className="shrink-0 flex items-center gap-1.5 bg-[#FF5A45] hover:bg-[#F4412A] disabled:opacity-35 text-white text-[13px] font-semibold px-4 py-2 transition-colors whitespace-nowrap"
               >
                 <Plus className="h-3.5 w-3.5" />
                 Add

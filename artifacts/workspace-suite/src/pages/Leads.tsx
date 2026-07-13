@@ -42,7 +42,7 @@ function mapRaw(raw: RawLead, index: number): Lead {
     designation: raw['Main Contact - Job Role'] ?? '—',
     phone: raw['Main Contact - Number'] ?? '—',
     joined: raw['Enquiry Date'] ?? '—',
-    color: '#2ecc71',
+    color: '#FF5A45',
     initials: toInitials(raw['Name'] ?? '?'),
     sector: raw['Company Sector (If Applicable)'] ?? '—',
     referenceNumber: raw['Client Reference Number'] ?? '—',
@@ -113,7 +113,7 @@ export function Leads() {
         <div className="flex items-center gap-3 border-b border-black/8 bg-white px-8 py-3 shrink-0">
 
           {/* Search */}
-          <div className="flex items-center gap-2 border border-black/12 px-3 py-2 w-[200px] shrink-0 focus-within:border-[#2ecc71] transition-colors">
+          <div className="flex items-center gap-2 border border-black/12 px-3 py-2 w-[200px] shrink-0 focus-within:border-[#FF5A45] transition-colors">
             <Search className="h-[14px] w-[14px] shrink-0 text-black/30" />
             <input
               ref={searchRef}
@@ -144,7 +144,7 @@ export function Leads() {
             <button
               onClick={() => { load(); soundRefresh(); }}
               disabled={status === 'loading'}
-              className="flex items-center justify-center h-8 w-8 border border-black/10 text-black/35 hover:border-[#2ecc71] hover:text-[#2ecc71] disabled:opacity-40 transition-colors"
+              className="flex items-center justify-center h-8 w-8 border border-black/10 text-black/35 hover:border-[#FF5A45] hover:text-[#FF5A45] disabled:opacity-40 transition-colors"
               title="Refresh"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${status === 'loading' ? 'animate-spin' : ''}`} />
@@ -154,7 +154,7 @@ export function Leads() {
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               onClick={soundClick}
-              className="flex items-center gap-1.5 bg-[#2ecc71] hover:bg-[#27af61] text-white text-[13px] font-semibold px-4 py-2 transition-colors whitespace-nowrap"
+              className="flex items-center gap-1.5 bg-[#FF5A45] hover:bg-[#F4412A] text-white text-[13px] font-semibold px-4 py-2 transition-colors whitespace-nowrap"
             >
               <Plus className="h-3.5 w-3.5" />
               Add Lead
@@ -164,7 +164,7 @@ export function Leads() {
 
             <div className="relative">
               <Bell className="h-[17px] w-[17px] text-black/35" />
-              <span className="absolute -top-0.5 -right-0.5 h-[6px] w-[6px] bg-[#2ecc71]" />
+              <span className="absolute -top-0.5 -right-0.5 h-[6px] w-[6px] bg-[#FF5A45]" />
             </div>
 
             <div className="flex items-center gap-2 cursor-pointer">
@@ -195,7 +195,7 @@ export function Leads() {
                 {tab}
                 {status === 'ok' && count > 0 && (
                   <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-sm ${
-                    activeTab === i ? 'bg-[#2ecc71]/15 text-[#219251]' : 'bg-black/6 text-black/30'
+                    activeTab === i ? 'bg-[#FF5A45]/15 text-[#E22A12]' : 'bg-black/6 text-black/30'
                   }`}>
                     {count}
                   </span>
@@ -203,7 +203,7 @@ export function Leads() {
                 {activeTab === i && (
                   <motion.span
                     layoutId="leads-tab-line"
-                    className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-[#2ecc71]"
+                    className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-[#FF5A45]"
                     transition={{ type: 'spring', stiffness: 500, damping: 36 }}
                   />
                 )}
@@ -252,7 +252,7 @@ export function Leads() {
               <p className="text-[12px] text-black/30">Check your connection and try again.</p>
               <button
                 onClick={load}
-                className="mt-1 bg-[#2ecc71] px-4 py-2 text-[12px] font-semibold text-white hover:bg-[#27af61] transition-colors"
+                className="mt-1 bg-[#FF5A45] px-4 py-2 text-[12px] font-semibold text-white hover:bg-[#F4412A] transition-colors"
               >
                 Retry
               </button>
@@ -289,7 +289,7 @@ export function Leads() {
                   transition={{ delay: Math.min(idx * 0.025, 0.4), duration: 0.18 }}
                   onClick={() => { setPanelLead(lead); setActiveLead(lead); soundOpen(); }}
                   className={`grid grid-cols-[28px_1fr_116px_1fr_128px_104px_40px] px-8 py-[13px] border-b border-black/5 last:border-0 cursor-pointer transition-colors ${
-                    panelLead?.id === lead.id ? 'bg-[#2ecc71]/6' : 'hover:bg-black/[0.02]'
+                    panelLead?.id === lead.id ? 'bg-[#FF5A45]/6' : 'hover:bg-black/[0.02]'
                   }`}
                 >
                   <span className="text-[12px] text-black/25 self-center">{idx + 1}</span>

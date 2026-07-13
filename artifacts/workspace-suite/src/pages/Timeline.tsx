@@ -44,7 +44,7 @@ function HouseIcon({ color = 'currentColor' }: { color?: string }) {
   return (
     <svg width="42" height="42" viewBox="0 0 48 48" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M6 24L24 8l18 16" /><path d="M10 20v20h10V30h8v10h10V20" />
-      <circle cx="38" cy="16" r="3" fill={color === '#2ecc71' ? '#2ecc71' : 'none'} />
+      <circle cx="38" cy="16" r="3" fill={color === '#FF5A45' ? '#FF5A45' : 'none'} />
     </svg>
   );
 }
@@ -77,13 +77,13 @@ function TimelineTrack({ activeStep }: { activeStep: number }) {
                 className="absolute h-[2px]"
                 style={{
                   right: '50%', width: '100%', top: `${LINE_TOP}px`,
-                  backgroundColor: i <= activeStep ? '#2ecc71' : '#d1d5db', zIndex: 0,
+                  backgroundColor: i <= activeStep ? '#FF5A45' : '#d1d5db', zIndex: 0,
                 }}
               />
             )}
             {/* icon */}
             <div style={{ width: ICON_SIZE, height: ICON_SIZE, marginBottom: ICON_MARGIN }} className="relative z-10">
-              <step.Icon color={done ? '#d1d5db' : active ? '#2ecc71' : '#9ca3af'} />
+              <step.Icon color={done ? '#d1d5db' : active ? '#FF5A45' : '#9ca3af'} />
             </div>
             {/* node */}
             <div className="relative z-10 flex items-center justify-center" style={{ width: NODE_SIZE, height: NODE_SIZE }}>
@@ -97,11 +97,11 @@ function TimelineTrack({ activeStep }: { activeStep: number }) {
                 </motion.div>
               ) : active ? (
                 <div className="relative flex items-center justify-center" style={{ width: NODE_SIZE, height: NODE_SIZE }}>
-                  <div className="absolute border-[2.5px] border-[#2ecc71] bg-white" style={{ width: NODE_SIZE, height: NODE_SIZE }} />
+                  <div className="absolute border-[2.5px] border-[#FF5A45] bg-white" style={{ width: NODE_SIZE, height: NODE_SIZE }} />
                   <motion.div
                     animate={{ scale: [0.7, 1, 0.7] }}
                     transition={{ repeat: Infinity, duration: 1.8, ease: 'easeInOut' }}
-                    className="bg-[#2ecc71]"
+                    className="bg-[#FF5A45]"
                     style={{ width: NODE_SIZE * 0.38, height: NODE_SIZE * 0.38 }}
                   />
                 </div>
@@ -112,7 +112,7 @@ function TimelineTrack({ activeStep }: { activeStep: number }) {
                 />
               )}
             </div>
-            <span className={`mt-3 font-medium text-[13px] text-center whitespace-nowrap ${active ? 'text-[#2ecc71]' : 'text-black/40'}`}>
+            <span className={`mt-3 font-medium text-[13px] text-center whitespace-nowrap ${active ? 'text-[#FF5A45]' : 'text-black/40'}`}>
               {step.label}
             </span>
           </div>
@@ -154,7 +154,7 @@ export function Timeline() {
             <motion.button
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
-              className="bg-[#2ecc71] hover:bg-[#27af61] text-white text-[13px] font-semibold px-5 py-2.5 transition-colors"
+              className="bg-[#FF5A45] hover:bg-[#F4412A] text-white text-[13px] font-semibold px-5 py-2.5 transition-colors"
             >
               Get Notifications
             </motion.button>

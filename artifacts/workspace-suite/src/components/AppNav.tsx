@@ -30,7 +30,7 @@ export function AppNav() {
       <div className="relative flex h-16 items-center px-6">
         {/* Logo */}
         <div className="flex items-center gap-2 shrink-0">
-          <span className="flex h-8 w-8 items-center justify-center bg-[#2ecc71] text-sm font-bold text-white">
+          <span className="flex h-8 w-8 items-center justify-center bg-[#FF5A45] text-sm font-bold text-white">
             N
           </span>
           <span className="text-[15px] font-semibold text-gray-900">Nexus</span>
@@ -46,7 +46,7 @@ export function AppNav() {
                 href={href}
                 className={`flex items-center gap-2 whitespace-nowrap px-4 py-2 text-[13px] font-medium transition-colors ${
                   isActive
-                    ? 'bg-[#2ecc71] text-white'
+                    ? 'bg-[#FF5A45] text-white'
                     : 'text-black/50 hover:text-black hover:bg-black/4'
                 }`}
               >
@@ -63,7 +63,7 @@ export function AppNav() {
             href="/settings"
             className={`flex h-8 w-8 items-center justify-center transition-colors ${
               location === '/settings'
-                ? 'bg-[#2ecc71] text-white'
+                ? 'bg-[#FF5A45] text-white'
                 : 'text-black/35 hover:text-black hover:bg-black/4'
             }`}
             title="Settings"

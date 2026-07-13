@@ -134,7 +134,7 @@ function FileCard({
     <button
       onClick={onClick}
       className={`group relative flex flex-col gap-3 rounded-[14px] p-4 text-left transition-all ${
-        active ? 'bg-[#eefdf3] ring-2 ring-[#2ecc71]' : 'bg-[#faf9f4] hover:bg-[#f3f2ea]'
+        active ? 'bg-[#FFF1F0] ring-2 ring-[#FF5A45]' : 'bg-[#faf9f4] hover:bg-[#f3f2ea]'
       }`}
     >
       <div className="flex items-start justify-between">
@@ -231,8 +231,8 @@ export function ProposalDoc() {
     <div className="flex bg-white" style={{ minHeight: 'calc(100vh - 4rem)' }}>
 
       {/* ══ LEFT ICON RAIL ══ */}
-      <aside className="sticky top-16 flex h-[calc(100vh-4rem)] w-[68px] shrink-0 flex-col items-center gap-2 border-r border-black/8 bg-[#219251] py-6">
-        <span className="mb-6 flex h-9 w-9 items-center justify-center rounded-[8px] bg-white text-[13px] font-bold text-[#219251]">
+      <aside className="sticky top-16 flex h-[calc(100vh-4rem)] w-[68px] shrink-0 flex-col items-center gap-2 border-r border-black/8 bg-[#E22A12] py-6">
+        <span className="mb-6 flex h-9 w-9 items-center justify-center rounded-[8px] bg-white text-[13px] font-bold text-[#E22A12]">
           N
         </span>
         {RAIL_ITEMS.map(({ icon: Icon, label }, i) => {
@@ -266,13 +266,13 @@ export function ProposalDoc() {
             <button className="flex h-9 w-9 items-center justify-center rounded-full text-black/35 hover:bg-black/5 hover:text-black transition-colors">
               <Search className="h-4 w-4" />
             </button>
-            <button onClick={handleDownload} className="flex h-9 w-9 items-center justify-center rounded-full text-black/35 hover:bg-black/5 hover:text-[#2ecc71] transition-colors">
+            <button onClick={handleDownload} className="flex h-9 w-9 items-center justify-center rounded-full text-black/35 hover:bg-black/5 hover:text-[#FF5A45] transition-colors">
               <Download className="h-4 w-4" />
             </button>
-            <button onClick={() => window.print()} className="flex h-9 w-9 items-center justify-center rounded-full text-black/35 hover:bg-black/5 hover:text-[#2ecc71] transition-colors">
+            <button onClick={() => window.print()} className="flex h-9 w-9 items-center justify-center rounded-full text-black/35 hover:bg-black/5 hover:text-[#FF5A45] transition-colors">
               <Printer className="h-4 w-4" />
             </button>
-            <button className="ml-1 rounded-full bg-[#2ecc71] px-5 py-2 text-[12px] font-bold text-white hover:bg-[#27af61] transition-colors">
+            <button className="ml-1 rounded-full bg-[#FF5A45] px-5 py-2 text-[12px] font-bold text-white hover:bg-[#F4412A] transition-colors">
               Publish
             </button>
           </div>
@@ -371,7 +371,7 @@ export function ProposalDoc() {
                           key={file.id}
                           onClick={() => setActiveId(file.id)}
                           className={`flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-left transition-colors ${
-                            file.id === activeId ? 'bg-[#eefdf3] ring-1 ring-[#2ecc71]/40' : 'hover:bg-black/3'
+                            file.id === activeId ? 'bg-[#FFF1F0] ring-1 ring-[#FF5A45]/40' : 'hover:bg-black/3'
                           }`}
                         >
                           <div className="scale-75 origin-left"><FileIcon file={file} /></div>
@@ -392,14 +392,14 @@ export function ProposalDoc() {
             <div className="absolute right-1 top-1/2 flex -translate-y-1/2 flex-col gap-1.5">
               <button
                 onClick={() => scrollGrid(-1)}
-                className="flex h-7 w-7 items-center justify-center rounded-full bg-black/5 text-black/40 transition-colors hover:bg-[#2ecc71]/15 hover:text-[#2ecc71]"
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-black/5 text-black/40 transition-colors hover:bg-[#FF5A45]/15 hover:text-[#FF5A45]"
                 aria-label="Scroll up"
               >
                 <ChevronUp className="h-3.5 w-3.5" />
               </button>
               <button
                 onClick={() => scrollGrid(1)}
-                className="flex h-7 w-7 items-center justify-center rounded-full bg-black/5 text-black/40 transition-colors hover:bg-[#2ecc71]/15 hover:text-[#2ecc71]"
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-black/5 text-black/40 transition-colors hover:bg-[#FF5A45]/15 hover:text-[#FF5A45]"
                 aria-label="Scroll down"
               >
                 <ChevronDown className="h-3.5 w-3.5" />
@@ -473,7 +473,7 @@ export function ProposalDoc() {
                 <div className="flex flex-col gap-2.5">
                   {['George Williamson', 'Nicholas Peterson', 'Ravenmark (You)'].map((name) => (
                     <div key={name} className="flex items-center gap-2.5">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#2ecc71] text-[10px] font-bold text-white">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#FF5A45] text-[10px] font-bold text-white">
                         {name.split(' ').map((w) => w[0]).slice(0, 2).join('')}
                       </span>
                       <span className="text-[12px] text-black/65">{name}</span>
@@ -483,7 +483,7 @@ export function ProposalDoc() {
               </div>
 
               <div className="mt-auto flex items-center gap-2 pt-6">
-                <button className="flex flex-1 items-center justify-center gap-1.5 rounded-[10px] bg-[#2ecc71] py-2.5 text-[11.5px] font-bold text-white hover:bg-[#27af61] transition-colors">
+                <button className="flex flex-1 items-center justify-center gap-1.5 rounded-[10px] bg-[#FF5A45] py-2.5 text-[11.5px] font-bold text-white hover:bg-[#F4412A] transition-colors">
                   <Share2 className="h-3.5 w-3.5" /> Share
                 </button>
                 <button className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-black/10 text-black/45 hover:text-black transition-colors">

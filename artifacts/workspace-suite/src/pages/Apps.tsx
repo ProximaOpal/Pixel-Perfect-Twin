@@ -113,7 +113,7 @@ export function Apps() {
 
       {/* Active lead badge */}
       {activeLead && (
-        <div className="mb-8 inline-flex items-center gap-3 border border-[#2ecc71]/30 bg-[#f0fdf5] px-4 py-2.5">
+        <div className="mb-8 inline-flex items-center gap-3 border border-[#FF5A45]/30 bg-[#f0fdf5] px-4 py-2.5">
           <Avatar
             src={personAvatarUrl(activeLead)}
             alt={activeLead.name}
@@ -126,7 +126,7 @@ export function Apps() {
               <p className="text-[11px] text-black/45">{activeLead.company}</p>
             )}
           </div>
-          <span className="ml-2 text-[11px] text-[#2ecc71] font-medium">Active lead</span>
+          <span className="ml-2 text-[11px] text-[#FF5A45] font-medium">Active lead</span>
         </div>
       )}
 
@@ -177,7 +177,7 @@ export function Apps() {
 
       {!activeLead && (
         <p className="mt-8 text-[13px] text-black/30">
-          Go to <a href="/leads" className="text-[#2ecc71] hover:underline">Leads</a> and click a lead row to sync their data here.
+          Go to <a href="/leads" className="text-[#FF5A45] hover:underline">Leads</a> and click a lead row to sync their data here.
         </p>
       )}
     </div>

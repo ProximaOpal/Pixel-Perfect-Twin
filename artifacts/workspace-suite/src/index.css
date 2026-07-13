@@ -29,20 +29,21 @@
   display: none;
 }
 
-/* Brand green — every "emerald" utility in the app (bg-emerald-500, text-emerald-700, etc.)
-   is repointed to this single hue so the whole app matches the Home page tile color (#2ecc71). */
+/* Brand coral — West End on the Thames identity. Every "coral" utility in the
+   app (bg-coral-500, text-coral-700, etc.) is repointed to this single hue
+   so the whole app matches the public site's accent (#FF5A45). */
 @theme {
-  --color-emerald-50: #f3fcf7;
-  --color-emerald-100: #daf7e6;
-  --color-emerald-200: #b8efcf;
-  --color-emerald-300: #8fe6b4;
-  --color-emerald-400: #61db95;
-  --color-emerald-500: #2ecc71;
-  --color-emerald-600: #27af61;
-  --color-emerald-700: #219251;
-  --color-emerald-800: #19703e;
-  --color-emerald-900: #13532e;
-  --color-emerald-950: #0a2e19;
+  --color-coral-50: #fff1f0;
+  --color-coral-100: #ffe4e0;
+  --color-coral-200: #ffc4bd;
+  --color-coral-300: #ff9b8f;
+  --color-coral-400: #ff7766;
+  --color-coral-500: #ff5a45;
+  --color-coral-600: #f4412a;
+  --color-coral-700: #e22a12;
+  --color-coral-800: #ae2513;
+  --color-coral-900: #862013;
+  --color-coral-950: #4e150e;
 }
 
 @theme inline {
@@ -119,71 +120,71 @@
   --elevate-1: rgba(0, 0, 0, 0.03);
   --elevate-2: rgba(0, 0, 0, 0.08);
 
-  --background: 0 0% 100%;
+  --background: 240 9% 4%;
 
-  --foreground: 145 35% 11%;
+  --foreground: 0 0% 98%;
 
-  --border: 145 20% 90%;
+  --border: 240 8% 16%;
 
-  --card: 0 0% 100%;
+  --card: 240 9% 6%;
 
-  --card-foreground: 145 35% 11%;
+  --card-foreground: 0 0% 98%;
 
-  --card-border: 145 20% 90%;
+  --card-border: 240 8% 16%;
 
-  --sidebar: 145 63% 13%;
+  --sidebar: 240 9% 6%;
 
   --sidebar-foreground: 0 0% 100%;
 
-  --sidebar-border: 145 45% 22%;
+  --sidebar-border: 240 8% 18%;
 
-  --sidebar-primary: 145 63% 49%;
+  --sidebar-primary: 6.8 100% 63.5%;
 
   --sidebar-primary-foreground: 0 0% 100%;
 
-  --sidebar-accent: 145 50% 22%;
+  --sidebar-accent: 240 8% 16%;
 
   --sidebar-accent-foreground: 0 0% 100%;
 
-  --sidebar-ring: 145 63% 49%;
+  --sidebar-ring: 6.8 100% 63.5%;
 
-  --popover: 0 0% 100%;
+  --popover: 240 9% 6%;
 
-  --popover-foreground: 145 45% 11%;
+  --popover-foreground: 0 0% 98%;
 
-  --popover-border: 145 25% 90%;
+  --popover-border: 240 8% 16%;
 
-  --primary: 145 63% 49%;
+  --primary: 6.8 100% 63.5%;
 
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 145 30% 95%;
+  --secondary: 240 8% 12%;
 
-  --secondary-foreground: 145 45% 15%;
+  --secondary-foreground: 0 0% 92%;
 
-  --muted: 145 30% 96%;
+  --muted: 240 8% 12%;
 
-  --muted-foreground: 145 10% 45%;
+  --muted-foreground: 240 5% 65%;
 
-  --accent: 145 63% 93%;
+  --accent: 6.8 100% 94%;
 
-  --accent-foreground: 145 63% 22%;
+  --accent-foreground: 6.8 85% 30%;
 
   --destructive: 4 78% 55%;
 
   --destructive-foreground: 0 0% 100%;
 
-  --input: 145 25% 88%;
-  --ring: 145 63% 49%;
-  --chart-1: 145 63% 40%;
+  --input: 240 8% 16%;
+  --ring: 6.8 100% 63.5%;
+  --chart-1: 6.8 100% 63.5%;
   --chart-2: 145 60% 55%;
-  --chart-3: 145 55% 30%;
-  --chart-4: 145 40% 65%;
-  --chart-5: 145 30% 75%;
+  --chart-3: 6.8 85% 48%;
+  --chart-4: 240 5% 65%;
+  --chart-5: 240 8% 40%;
 
   --app-font-sans: 'Inter', sans-serif;
   --app-font-serif: Georgia, serif;
-  --app-font-mono: Menlo, monospace;
+  --app-font-mono: 'Space Mono', monospace;
   --radius: 0.5rem; /* 8px */
   --shadow-2xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0); /*replace with H S L */
   --shadow-xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0); /*replace with H S L */
@@ -268,68 +269,68 @@
   --elevate-1: rgba(255, 255, 255, 0.04);
   --elevate-2: rgba(255, 255, 255, 0.09);
 
-  --background: 145 35% 6%;
+  --background: 240 9% 4%;
 
   --foreground: 0 0% 98%;
 
-  --border: 145 25% 18%;
+  --border: 240 8% 18%;
 
-  --card: 145 30% 9%;
+  --card: 240 9% 7%;
 
   --card-foreground: 0 0% 98%;
 
-  --card-border: 145 25% 18%;
+  --card-border: 240 8% 18%;
 
-  --sidebar: 145 40% 8%;
+  --sidebar: 240 9% 5%;
 
   --sidebar-foreground: 0 0% 98%;
 
-  --sidebar-border: 145 25% 18%;
+  --sidebar-border: 240 8% 18%;
 
-  --sidebar-primary: 145 63% 55%;
+  --sidebar-primary: 6.8 100% 63.5%;
 
   --sidebar-primary-foreground: 0 0% 100%;
 
-  --sidebar-accent: 145 30% 16%;
+  --sidebar-accent: 240 8% 16%;
 
   --sidebar-accent-foreground: 0 0% 98%;
 
-  --sidebar-ring: 145 63% 55%;
+  --sidebar-ring: 6.8 100% 63.5%;
 
-  --popover: 145 30% 9%;
+  --popover: 240 9% 7%;
 
   --popover-foreground: 0 0% 98%;
 
-  --popover-border: 145 25% 18%;
+  --popover-border: 240 8% 18%;
 
-  --primary: 145 63% 55%;
+  --primary: 6.8 100% 63.5%;
 
   --primary-foreground: 0 0% 8%;
 
-  --secondary: 145 25% 14%;
+  --secondary: 240 8% 14%;
 
   --secondary-foreground: 0 0% 98%;
 
-  --muted: 145 25% 14%;
+  --muted: 240 8% 14%;
 
-  --muted-foreground: 145 10% 65%;
+  --muted-foreground: 240 5% 65%;
 
-  --accent: 145 40% 18%;
+  --accent: 6.8 85% 18%;
 
-  --accent-foreground: 145 60% 85%;
+  --accent-foreground: 6.8 100% 85%;
 
   --destructive: 4 70% 55%;
 
   --destructive-foreground: 0 0% 100%;
 
   /* Used as the border around inputs. Dark mode: Should be a border that is light enough to have high contrast when rendered on a --card background. More contrast than standard --border */
-  --input: 145 25% 20%;
-  --ring: 145 63% 55%;
-  --chart-1: 145 63% 48%;
+  --input: 240 8% 20%;
+  --ring: 6.8 100% 63.5%;
+  --chart-1: 6.8 100% 63.5%;
   --chart-2: 145 55% 60%;
-  --chart-3: 145 50% 35%;
-  --chart-4: 145 40% 65%;
-  --chart-5: 145 30% 75%;
+  --chart-3: 6.8 85% 48%;
+  --chart-4: 240 5% 65%;
+  --chart-5: 240 8% 40%;
 
   --shadow-2xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0);
   --shadow-xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0);

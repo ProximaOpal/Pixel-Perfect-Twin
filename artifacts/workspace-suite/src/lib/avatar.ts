@@ -8,6 +8,7 @@
  */
 
 import katherineBulaonAvatar from '@/assets/avatars/katherine-bulaon.png';
+import westEndOnTheThamesLogo from '@/assets/company/west-end-on-the-thames.png';
 
 function slugifyCompany(company: string): string {
   return company.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 30);
@@ -25,6 +26,14 @@ function normalizeName(name: string): string {
 const PERSON_AVATAR_OVERRIDES: Record<string, string> = {
   'katherine bulaon': katherineBulaonAvatar,
   'katherine': katherineBulaonAvatar,
+};
+
+/**
+ * Manually-supplied real logos for specific companies, keyed by normalized
+ * company name. Checked before any external lookup (LinkedIn/Clearbit).
+ */
+const COMPANY_AVATAR_OVERRIDES: Record<string, string> = {
+  'west end on the thames': westEndOnTheThamesLogo,
 };
 
 /**
@@ -66,6 +75,8 @@ export function personAvatarUrl(person: { email?: string; name: string; photoUrl
  * page), then falls back to a Clearbit domain guess, then a name badge.
  */
 export function companyAvatarUrl(entity: { company: string; linkedin?: string; companyLogo?: string }): string {
+  const override = COMPANY_AVATAR_OVERRIDES[normalizeName(entity.company)];
+  if (override) return override;
   if (entity.companyLogo) return entity.companyLogo;
   const bg = colorForName(entity.company);
   const nameBadge = `https://ui-avatars.com/api/?name=${encodeURIComponent(entity.company)}&background=${bg}&color=ffffff&size=256&bold=true`;

@@ -136,7 +136,7 @@ export function Settings() {
                       />
                       <button
                         onClick={() => inputRefs.current[key]?.click()}
-                        className="flex items-center gap-1.5 border border-black/15 px-3 py-1.5 text-[11px] font-semibold text-black/60 hover:border-[#2ecc71] hover:text-[#2ecc71] transition-colors"
+                        className="flex items-center gap-1.5 border border-black/15 px-3 py-1.5 text-[11px] font-semibold text-black/60 hover:border-[#FF5A45] hover:text-[#FF5A45] transition-colors"
                       >
                         <Upload className="h-3 w-3" />
                         {photo ? 'Replace' : 'Upload'}

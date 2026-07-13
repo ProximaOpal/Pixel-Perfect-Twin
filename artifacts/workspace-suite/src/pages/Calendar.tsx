@@ -118,7 +118,7 @@ export function Calendar() {
               return (
                 <div key={`${wi}-${di}`} className="flex flex-col items-center justify-center gap-1 py-1.5">
                   {isSelected ? (
-                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#2ecc71] text-[13px] font-semibold text-white">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#FF5A45] text-[13px] font-semibold text-white">
                       {cell.date.getDate()}
                     </span>
                   ) : (
@@ -128,8 +128,8 @@ export function Calendar() {
                         !cell.inMonth
                           ? 'text-black/20 hover:text-black/40'
                           : isToday
-                          ? 'font-semibold text-[#2ecc71] ring-1 ring-[#2ecc71]/40'
-                          : 'text-gray-600 hover:text-[#2ecc71]'
+                          ? 'font-semibold text-[#FF5A45] ring-1 ring-[#FF5A45]/40'
+                          : 'text-gray-600 hover:text-[#FF5A45]'
                       }`}
                     >
                       {cell.date.getDate()}

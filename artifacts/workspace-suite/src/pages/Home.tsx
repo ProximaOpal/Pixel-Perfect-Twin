@@ -67,7 +67,7 @@ export function Home() {
   const active = TILES[activeIndex];
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] w-full items-center justify-center bg-[#2ecc71] px-4 py-10">
+    <div className="flex min-h-[calc(100vh-4rem)] w-full items-center justify-center bg-[#0A0A0C] px-4 py-10">
       <div className="w-full max-w-[980px] overflow-hidden rounded-[28px] shadow-2xl">
         {/* ── white top section ── */}
         <div className="bg-white px-8 pb-10 pt-9 sm:px-12">
@@ -91,7 +91,7 @@ export function Home() {
                   onClick={() => navigate(tile.href)}
                   className={`group relative flex w-[130px] flex-col items-center gap-3 rounded-[16px] bg-[#f6f7f9] px-3 py-6 text-center shadow-sm transition-all duration-200 sm:w-[150px] ${
                     isActive
-                      ? 'bg-white shadow-[0_10px_30px_-8px_rgba(16,60,40,0.25)] ring-2 ring-[#2ecc71]'
+                      ? 'bg-white shadow-[0_10px_30px_-8px_rgba(16,60,40,0.25)] ring-2 ring-[#FF5A45]'
                       : 'hover:bg-white hover:shadow-md'
                   }`}
                 >
@@ -108,7 +108,7 @@ export function Home() {
                   </span>
 
                   {isActive && (
-                    <span className="absolute -bottom-2.5 -right-2.5 flex h-6 w-6 items-center justify-center rounded-full bg-[#2ecc71] shadow-md ring-4 ring-white">
+                    <span className="absolute -bottom-2.5 -right-2.5 flex h-6 w-6 items-center justify-center rounded-full bg-[#FF5A45] shadow-md ring-4 ring-white">
                       <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />
                     </span>
                   )}
@@ -118,8 +118,8 @@ export function Home() {
           </div>
         </div>
 
-        {/* ── green bottom panel ── */}
-        <div className="flex flex-col gap-6 bg-[#2ecc71] px-8 py-7 sm:flex-row sm:items-center sm:justify-between sm:px-12">
+        {/* ── coral bottom panel ── */}
+        <div className="flex flex-col gap-6 bg-[#FF5A45] px-8 py-7 sm:flex-row sm:items-center sm:justify-between sm:px-12">
           <ul className="grid grid-cols-1 gap-x-10 gap-y-1.5 sm:grid-cols-2">
             {active.features.map((feature) => (
               <li key={feature} className="flex items-center gap-2 text-[13px] font-medium text-[#0d2318]">
@@ -139,7 +139,7 @@ export function Home() {
               <br />
               {active.label}
             </span>
-            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#2ecc71] shadow-md transition-transform hover:scale-105">
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#FF5A45] shadow-md transition-transform hover:scale-105">
               <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
             </span>
           </button>
