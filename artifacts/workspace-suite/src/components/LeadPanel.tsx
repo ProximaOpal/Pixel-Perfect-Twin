@@ -349,7 +349,7 @@ function CompanyView({ lead }: { lead: Lead }) {
             <img
               src={companyLogoUrl(lead)}
               alt={lead.company}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain"
               onError={() => setImgErr(true)}
             />
           )}
