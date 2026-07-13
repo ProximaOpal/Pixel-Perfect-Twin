@@ -6,11 +6,9 @@ import { AppNav } from '@/components/AppNav';
 import { ActiveLeadProvider } from '@/context/ActiveLeadContext';
 import { Home } from '@/pages/Home';
 import { Leads } from '@/pages/Leads';
-import { Tasks } from '@/pages/Tasks';
 import { Forms as QuoteBuilder } from '@/pages/Forms';
 import { ProposalDoc } from '@/pages/ProposalDoc';
 import { Timeline } from '@/pages/Timeline';
-import { Calendar } from '@/pages/Calendar';
 import { Settings } from '@/pages/Settings';
 import { Apps } from '@/pages/Apps';
 import NotFound from '@/pages/NotFound';
@@ -24,11 +22,9 @@ function Router() {
       <Switch>
         <Route path="/" component={Home} />
         <Route path="/leads" component={Leads} />
-        <Route path="/tasks" component={Tasks} />
         <Route path="/quote-builder" component={QuoteBuilder} />
         <Route path="/proposal-doc" component={ProposalDoc} />
         <Route path="/timeline" component={Timeline} />
-        <Route path="/calendar" component={Calendar} />
         <Route path="/settings" component={Settings} />
         <Route path="/apps" component={Apps} />
         <Route component={NotFound} />

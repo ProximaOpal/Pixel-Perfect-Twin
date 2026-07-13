@@ -2,11 +2,9 @@ import { Link, useLocation } from 'wouter';
 import {
   Home,
   Users,
-  LayoutDashboard,
   ClipboardList,
   FileText,
   GitBranch,
-  CalendarDays,
   Settings,
   Grid2x2,
 } from 'lucide-react';
@@ -14,11 +12,9 @@ import {
 const NAV_ITEMS = [
   { href: '/',             label: 'Home',         icon: Home           },
   { href: '/leads',        label: 'Leads',        icon: Users          },
-  { href: '/tasks',        label: 'Tasks',        icon: LayoutDashboard },
   { href: '/quote-builder', label: 'Quote Builder', icon: ClipboardList  },
   { href: '/proposal-doc', label: 'Proposal Doc', icon: FileText       },
   { href: '/timeline',     label: 'Timeline',     icon: GitBranch      },
-  { href: '/calendar',     label: 'Calendar',     icon: CalendarDays   },
   { href: '/apps',         label: 'Apps',         icon: Grid2x2        },
 ] as const;
 

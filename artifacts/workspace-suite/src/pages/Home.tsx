@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
-import { Users, LayoutDashboard, ClipboardList, GitBranch, CalendarDays, Grid2x2, FileText, Settings, Check, ArrowRight } from 'lucide-react';
+import { Users, ClipboardList, GitBranch, Grid2x2, FileText, Settings, Check, ArrowRight } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 type Tile = {
@@ -18,12 +18,6 @@ const TILES: Tile[] = [
     features: ['View team roster', 'Track attendance', 'Manage roles', 'Contact staff'],
   },
   {
-    href: '/tasks',
-    label: 'Tasks',
-    icon: LayoutDashboard,
-    features: ['Track tasks', 'Manage projects', 'View progress', 'Quick search'],
-  },
-  {
     href: '/quote-builder',
     label: 'Quote Builder',
     icon: ClipboardList,
@@ -34,12 +28,6 @@ const TILES: Tile[] = [
     label: 'Timeline',
     icon: GitBranch,
     features: ['View process steps', 'Track milestones', 'Monitor progress', 'See completed stages'],
-  },
-  {
-    href: '/calendar',
-    label: 'Calendar',
-    icon: CalendarDays,
-    features: ['Schedule events', 'View bookings', 'Manage availability', 'Track appointments'],
   },
   {
     href: '/apps',

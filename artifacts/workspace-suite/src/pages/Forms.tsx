@@ -465,7 +465,7 @@ export function Forms() {
                 <div>
                   <label className={fieldLabelCls}>
                     Date of Event
-                    <span title="The calendar day this event takes place — used to place it on the Calendar page">
+                    <span title="The calendar day this event takes place">
                       <HelpCircle className="h-3.5 w-3.5 text-[#7c8a82]" />
                     </span>
                   </label>

@@ -1,10 +1,10 @@
 // Lightweight localStorage-backed store bridging the Forms wizard (writer) and
-// the Proposal Doc + Calendar pages (readers) — no backend required.
+// the Proposal Doc page (reader) — no backend required.
 
 export type GeneratedProposal = {
   id: string;
   createdAt: string;
-  eventDate: string; // ISO yyyy-mm-dd — used to place this event on the Calendar
+  eventDate: string; // ISO yyyy-mm-dd — the event date entered in the wizard
   title: string;
   vesselType: string;
   eventType: string;
