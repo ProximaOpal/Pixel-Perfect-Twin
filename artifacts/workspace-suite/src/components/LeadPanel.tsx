@@ -93,31 +93,8 @@ function ContactView({ lead, onNotes }: { lead: Lead; onNotes: () => void }) {
 
   return (
     <div className="relative flex h-full w-full">
-      {/* Left: cream panel */}
-      <div className="relative flex w-1/2 flex-col bg-[#f0ece0] overflow-hidden">
-        {/* Top nav */}
-        <div className="flex items-center justify-between px-6 pt-5">
-          <div className="flex items-baseline gap-0.5">
-            <span className="text-[15px] font-black tracking-tight text-[#1a1a1a]">Trend</span>
-            <span className="text-[15px] font-black text-[#e63946]">.</span>
-          </div>
-          <nav className="flex items-center gap-4">
-            {['Home', 'About', 'Contact'].map((link) => (
-              <span key={link} className="text-[11px] font-medium text-[#1a1a1a]/60 hover:text-[#1a1a1a] cursor-pointer">
-                {link}
-              </span>
-            ))}
-          </nav>
-          <div className="flex h-7 w-7 items-center justify-center bg-[#1a1a1a]">
-            <div className="h-3.5 w-3.5 rounded-full border-2 border-white" />
-          </div>
-        </div>
-
-        {/* Rotated side text */}
-        <div className="absolute left-2 top-1/2 -translate-y-1/2 -rotate-90 text-[9px] font-semibold uppercase tracking-[0.3em] text-[#1a1a1a]/25 whitespace-nowrap select-none">
-          Creativity — Vision — Excellence
-        </div>
-
+      {/* Left: deep white panel */}
+      <div className="relative flex w-1/2 flex-col bg-white overflow-hidden">
         {/* Content */}
         <div className="mt-auto px-10 pb-8 ml-4">
           <h2 className="text-[28px] font-black leading-[1.15] text-[#1a1a1a] tracking-tight">
@@ -189,15 +166,6 @@ function ContactView({ lead, onNotes }: { lead: Lead; onNotes: () => void }) {
             </button>
           </div>
 
-          {/* Share row */}
-          <div className="mt-5 flex items-center gap-2">
-            <span className="text-[9.5px] font-semibold uppercase tracking-widest text-[#1a1a1a]/30">Share With :</span>
-            {['f', 't', 'in'].map((s) => (
-              <span key={s} className="flex h-5 w-5 items-center justify-center border border-[#1a1a1a]/20 text-[9px] font-bold text-[#1a1a1a]/40">
-                {s}
-              </span>
-            ))}
-          </div>
         </div>
       </div>
 
@@ -229,12 +197,6 @@ function ContactView({ lead, onNotes }: { lead: Lead; onNotes: () => void }) {
           {[0, 1, 2, 3].map((i) => (
             <div key={i} className={`h-1.5 w-1.5 ${i === 1 ? 'bg-white' : 'bg-white/25'}`} />
           ))}
-        </div>
-
-        {/* Top-right controls */}
-        <div className="absolute right-10 top-5 flex flex-col gap-1.5">
-          <div className="flex h-5 w-5 items-center justify-center border border-white/20 text-[10px] text-white/40">+</div>
-          <div className="flex h-5 w-5 items-center justify-center border border-white/20 text-[10px] text-white/40">−</div>
         </div>
       </div>
 
@@ -279,8 +241,8 @@ function CompanyView({ lead }: { lead: Lead }) {
 
   return (
     <div className="flex h-full w-full">
-      {/* Left: cream panel */}
-      <div className="relative flex w-1/2 flex-col bg-[#f0ece0] overflow-hidden">
+      {/* Left: deep white panel */}
+      <div className="relative flex w-1/2 flex-col bg-white overflow-hidden">
         {/* Top nav */}
         <div className="flex items-center justify-between px-6 pt-5">
           <div className="flex items-center gap-2">
@@ -292,11 +254,6 @@ function CompanyView({ lead }: { lead: Lead }) {
             </span>
           </div>
           <Menu className="h-4 w-4 text-[#1a1a1a]" />
-        </div>
-
-        {/* Rotated side text */}
-        <div className="absolute left-2 top-1/2 -translate-y-1/2 -rotate-90 text-[9px] font-semibold uppercase tracking-[0.3em] text-[#1a1a1a]/25 whitespace-nowrap select-none">
-          The Start
         </div>
 
         {/* Large watermark */}
@@ -312,7 +269,7 @@ function CompanyView({ lead }: { lead: Lead }) {
           <p className="mt-3 max-w-[200px] text-[11px] leading-relaxed text-[#1a1a1a]/50">
             {lead.company} — {lead.sector}. Reference {lead.referenceNumber}. Joined {lead.joined}.
           </p>
-          {lead.linkedin ? (
+          {lead.linkedin && (
             <a
               href={lead.linkedin}
               target="_blank"
@@ -321,21 +278,7 @@ function CompanyView({ lead }: { lead: Lead }) {
             >
               View on LinkedIn
             </a>
-          ) : (
-            <div className="mt-5 flex items-center gap-2 text-[11px] font-semibold text-[#1a1a1a] underline underline-offset-2 cursor-pointer hover:text-[#FF5A45]">
-              Read More
-            </div>
           )}
-
-          {/* Social links */}
-          <div className="mt-6 flex items-center gap-3 text-[9.5px] text-[#1a1a1a]/40">
-            {['Facebook', 'Twitter', 'Behance'].map((s, i) => (
-              <span key={s} className="flex items-center gap-3">
-                <span className="hover:text-[#1a1a1a] cursor-pointer">{s}</span>
-                {i < 2 && <span className="text-[#1a1a1a]/20">·</span>}
-              </span>
-            ))}
-          </div>
         </div>
       </div>
 
@@ -581,6 +524,18 @@ export function LeadPanel({ lead, onClose }: { lead: Lead | null; onClose: () =>
               )}
             </AnimatePresence>
 
+            {/* Build a Quote — sits directly above the Contact/Company toggle, always available regardless of view */}
+            {view !== 'note' && (
+              <button
+                onClick={handleBuildQuote}
+                title={`Start a quote for ${lead.name}`}
+                className="absolute bottom-16 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 bg-blue-600 px-5 py-3 text-[13px] font-bold text-white shadow-lg shadow-blue-600/40 transition-transform hover:scale-105 hover:bg-blue-700"
+              >
+                <ReceiptText className="h-4 w-4" />
+                Build a Quote
+              </button>
+            )}
+
             {/* Toggle + close */}
             {view !== 'note' && (
               <div className="absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 bg-[#111]/80 px-3 py-1.5 backdrop-blur-sm">
@@ -603,18 +558,6 @@ export function LeadPanel({ lead, onClose }: { lead: Lead | null; onClose: () =>
                   Company
                 </button>
               </div>
-            )}
-
-            {/* Build a Quote — large, blue, square, centered at the top of the panel, always available regardless of view */}
-            {view !== 'note' && (
-              <button
-                onClick={handleBuildQuote}
-                title={`Start a quote for ${lead.name}`}
-                className="absolute left-1/2 top-4 z-10 flex -translate-x-1/2 items-center gap-2 bg-blue-600 px-5 py-3 text-[13px] font-bold text-white shadow-lg shadow-blue-600/40 transition-transform hover:scale-105 hover:bg-blue-700"
-              >
-                <ReceiptText className="h-4 w-4" />
-                Build a Quote
-              </button>
             )}
 
             {/* Close */}
