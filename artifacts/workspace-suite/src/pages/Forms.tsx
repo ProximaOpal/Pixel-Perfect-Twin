@@ -316,7 +316,7 @@ export function Forms() {
         }
       }
 
-      const saved = addProposal({
+      const saved = await addProposal({
         id: `proposal-${Date.now()}`,
         createdAt: new Date().toISOString(),
         eventDate: data.eventDate,

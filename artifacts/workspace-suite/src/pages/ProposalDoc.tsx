@@ -139,10 +139,23 @@ export function ProposalDoc() {
   const [starred, setStarred] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [activeNoteTag, setActiveNoteTag] = useState<string | null>(null);
-  const [generated, setGenerated] = useState<GeneratedProposal[]>(() => loadProposals());
+  const [generated, setGenerated] = useState<GeneratedProposal[]>([]);
   const gridRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => subscribeProposals(() => setGenerated(loadProposals())), []);
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = () => {
+      loadProposals().then((rows) => {
+        if (!cancelled) setGenerated(rows);
+      });
+    };
+    refresh();
+    const unsubscribe = subscribeProposals(refresh);
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, []);
 
   // Auto-select and open the newest generated proposal the moment it lands here
   // (e.g. arriving fresh from the Forms wizard).
