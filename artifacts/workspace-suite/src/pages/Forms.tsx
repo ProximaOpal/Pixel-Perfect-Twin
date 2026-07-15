@@ -56,6 +56,7 @@ const FRUIT_SKEWER_PER_HEAD = 8; // mandatory inclusion for BBQ menus
 const PIMMS_PROSECCO_PER_HEAD = 12; // mandatory inclusion for Summer Events
 const CONTINGENCY_RATE = 0.0225;
 const VAT_RATE = 0.2;
+const PEAK_UPLIFT_RATE = 0.2; // Friday–Sunday bookings cost 20% more than the base rate
 
 /** True when the event date hasn't been confirmed — triggers the vessel
  *  selection protocol (most expensive period used for Base Vessel Hire). */
@@ -63,12 +64,24 @@ function isEventDateTbc(eventDate: string): boolean {
   return !eventDate.trim() || /tbc/i.test(eventDate);
 }
 
+/** True on Friday/Saturday/Sunday, or when the date is TBC (vessel selection
+ *  protocol: an unconfirmed date must resolve to the most expensive period,
+ *  so margins are never quoted below the worst case). */
+function isPeakPeriod(eventDate: string): boolean {
+  if (isEventDateTbc(eventDate)) return true;
+  const parsed = new Date(eventDate);
+  if (Number.isNaN(parsed.getTime())) return false;
+  const day = parsed.getDay(); // 0 = Sunday, 5 = Friday, 6 = Saturday
+  return day === 0 || day === 5 || day === 6;
+}
+
 /** Sums every input that feeds the Base Cost, per the fundamental formula. */
 function calcBaseCostBreakdown(data: FormData) {
   const guests = parseFloat(data.guestCount) || 0;
-  // Vessel selection protocol: an unconfirmed date still resolves to the same
-  // peak-protection rate, so margins are never quoted below the worst case.
-  const vesselHire = isEventDateTbc(data.eventDate) ? VESSEL_HIRE_RATE : VESSEL_HIRE_RATE;
+  const peak = isPeakPeriod(data.eventDate);
+  // No per-vessel rate table is on file yet, so every vessel shares the same
+  // flat rate — with the confirmed Friday–Sunday (or TBC) peak uplift on top.
+  const vesselHire = peak ? VESSEL_HIRE_RATE * (1 + PEAK_UPLIFT_RATE) : VESSEL_HIRE_RATE;
   const menuCost = MENU_COST_PER_HEAD * guests;
   const fixedOps = FIXED_OPS_COST;
 
@@ -82,7 +95,7 @@ function calcBaseCostBreakdown(data: FormData) {
   );
 
   const total = vesselHire + menuCost + fixedOps + cateringInclusions + upgradesTotal;
-  return { vesselHire, menuCost, fixedOps, cateringInclusions, upgradesTotal, total };
+  return { vesselHire, menuCost, fixedOps, cateringInclusions, upgradesTotal, total, peak };
 }
 
 type FormData = {
@@ -750,8 +763,18 @@ export function Forms() {
                 {/* Base Cost formula breakdown — Vessel Hire + Menu Cost + Fixed Ops +
                     catering inclusions + Upgrades, mirroring the n8n Process Financials node. */}
                 <div className="mb-4 overflow-hidden rounded-[10px] border border-[#e3e6e4]">
+                  <div className="flex items-center justify-between border-b border-[#f0f0f0] px-5 py-3 text-[13px] text-gray-600">
+                    <span className="flex items-center gap-2">
+                      Vessel Hire
+                      {baseCostBreakdown.peak && (
+                        <span className="rounded-full bg-[#FFF1F0] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[#E22A12]">
+                          Peak +20%
+                        </span>
+                      )}
+                    </span>
+                    <span className="font-semibold text-blue-600">£{baseCostBreakdown.vesselHire.toFixed(2)}</span>
+                  </div>
                   {[
-                    ['Vessel Hire', baseCostBreakdown.vesselHire],
                     ['Menu Cost', baseCostBreakdown.menuCost],
                     ['Fixed Operational Costs', baseCostBreakdown.fixedOps],
                     ...(baseCostBreakdown.cateringInclusions > 0
@@ -771,6 +794,10 @@ export function Forms() {
                     <span className="text-[14px] font-black text-green-600">£{baseCostBreakdown.total.toFixed(2)}</span>
                   </div>
                 </div>
+                <p className="mb-4 -mt-2 text-[11px] text-gray-400">
+                  Vessel hire is £{VESSEL_HIRE_RATE} flat (no per-vessel rate table on file), +20% on Friday–Sunday
+                  bookings or whenever the date is TBC.
+                </p>
 
                 <div className="mb-7">
                   <div className="mb-1.5 flex items-center justify-between">
