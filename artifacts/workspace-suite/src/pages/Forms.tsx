@@ -32,13 +32,58 @@ const SOURCE_TYPES = [
   'Wedding Planner/Agent',
 ];
 
-const UPGRADES = [
-  { label: 'Live DJ', price: 500 },
-  { label: 'Saxophonist', price: 550 },
-  { label: 'Photo Booth', price: 650 },
-  { label: 'Close-up Magician', price: 700 },
-  { label: 'Branded Vessel Flag', price: 150 },
+// Upgrade matrix: 'flat' items are a single fixed cost; 'perGuest' items are
+// multiplied by guestCount before being added to the Base Cost.
+const UPGRADES: { label: string; price: number; type: 'flat' | 'perGuest' }[] = [
+  { label: 'Live DJ', price: 500, type: 'flat' },
+  { label: 'Saxophonist', price: 550, type: 'flat' },
+  { label: 'Photo Booth', price: 650, type: 'flat' },
+  { label: 'Close-up Magician', price: 700, type: 'flat' },
+  { label: 'Branded Vessel Flag', price: 150, type: 'flat' },
+  { label: 'Unlimited Drinks', price: 35, type: 'perGuest' },
+  { label: 'Drink Tokens', price: 15, type: 'perGuest' },
 ];
+
+// ── Base Cost inputs, mirroring the n8n "Process Financials" node ──────────
+// Internal Costs = Base Vessel Hire + (Menu Cost Per Head * Guests) + Fixed
+// Operational Costs + Upgrades Total.
+const VESSEL_HIRE_RATE = 1500; // flat fallback for baseVesselHire; also used
+// as the "most expensive period" figure when the event date is TBC, per the
+// vessel selection protocol (margin protection during negotiation).
+const MENU_COST_PER_HEAD = 45;
+const FIXED_OPS_COST = 250;
+const FRUIT_SKEWER_PER_HEAD = 8; // mandatory inclusion for BBQ menus
+const PIMMS_PROSECCO_PER_HEAD = 12; // mandatory inclusion for Summer Events
+const CONTINGENCY_RATE = 0.0225;
+const VAT_RATE = 0.2;
+
+/** True when the event date hasn't been confirmed — triggers the vessel
+ *  selection protocol (most expensive period used for Base Vessel Hire). */
+function isEventDateTbc(eventDate: string): boolean {
+  return !eventDate.trim() || /tbc/i.test(eventDate);
+}
+
+/** Sums every input that feeds the Base Cost, per the fundamental formula. */
+function calcBaseCostBreakdown(data: FormData) {
+  const guests = parseFloat(data.guestCount) || 0;
+  // Vessel selection protocol: an unconfirmed date still resolves to the same
+  // peak-protection rate, so margins are never quoted below the worst case.
+  const vesselHire = isEventDateTbc(data.eventDate) ? VESSEL_HIRE_RATE : VESSEL_HIRE_RATE;
+  const menuCost = MENU_COST_PER_HEAD * guests;
+  const fixedOps = FIXED_OPS_COST;
+
+  let cateringInclusions = 0;
+  if (data.menuType === 'Summer Barbecue') cateringInclusions += FRUIT_SKEWER_PER_HEAD * guests;
+  if (data.eventType === 'Summer Event') cateringInclusions += PIMMS_PROSECCO_PER_HEAD * guests;
+
+  const upgradesTotal = UPGRADES.filter((u) => data.selectedUpgrades.includes(u.label)).reduce(
+    (s, u) => s + (u.type === 'perGuest' ? u.price * guests : u.price),
+    0,
+  );
+
+  const total = vesselHire + menuCost + fixedOps + cateringInclusions + upgradesTotal;
+  return { vesselHire, menuCost, fixedOps, cateringInclusions, upgradesTotal, total };
+}
 
 type FormData = {
   vesselType: string;
@@ -139,18 +184,25 @@ const INTEGRITY_STEPS: { key: Exclude<GenerationStage, 'idle' | 'error'>; label:
 ];
 const STAGE_ORDER: Exclude<GenerationStage, 'idle' | 'error'>[] = ['preparing', 'sending', 'generating', 'done'];
 
+/**
+ * Base Cost (the totalCost field, auto-prefilled from calcBaseCostBreakdown
+ * but user-overridable) then flows through: + 2.25% Contingency, then the
+ * Margin (15% repeat / 25% new) to reach the "Cost to Client", then VAT.
+ */
 function calcFinancials(data: FormData) {
-  const base = parseFloat(data.totalCost) || 0;
+  const baseCost = parseFloat(data.totalCost) || 0;
   const upgradeTotal = UPGRADES.filter((u) => data.selectedUpgrades.includes(u.label)).reduce(
-    (s, u) => s + u.price,
+    (s, u) => s + (u.type === 'perGuest' ? u.price * (parseFloat(data.guestCount) || 0) : u.price),
     0,
   );
+  const contingency = baseCost * CONTINGENCY_RATE;
+  const afterContingency = baseCost + contingency;
   const margin = data.repeatClient ? 0.15 : 0.25;
-  const subtotal = (base + upgradeTotal) * (1 + margin);
-  const contingency = subtotal * 0.0225;
-  const vat = (subtotal + contingency) * 0.2;
-  const grand = subtotal + contingency + vat;
-  return { subtotal, contingency, vat, grand, upgradeTotal };
+  const marginAmount = afterContingency * margin;
+  const costToClient = afterContingency + marginAmount;
+  const vat = costToClient * VAT_RATE;
+  const grand = costToClient + vat;
+  return { baseCost, contingency, marginAmount, costToClient, vat, grand, upgradeTotal, margin };
 }
 
 /* DNB-style pill input: rounded, soft border, teal focus ring */
@@ -278,6 +330,10 @@ export function Forms() {
   // The lead this quote is being built for, if any — handed off from the
   // Lead panel's "Build a Quote" button via sessionStorage.
   const [quoteLead] = useState<QuoteLead | null>(() => getQuoteLead());
+  // Base Cost stays auto-prefilled from the vessel/menu/guests/upgrades
+  // formula until the user types their own figure into the field — then it
+  // stops overwriting them until they explicitly ask to resync.
+  const [baseCostAuto, setBaseCostAuto] = useState(true);
 
   const set = (key: keyof FormData, val: unknown) =>
     setData((prev) => ({ ...prev, [key]: val }));
@@ -291,6 +347,25 @@ export function Forms() {
     );
 
   const fin = calcFinancials(data);
+  const baseCostBreakdown = calcBaseCostBreakdown(data);
+
+  // Keep Base Cost synced to the formula while it's in "auto" mode. Guarded
+  // to only run once the relevant inputs actually change, so typing a
+  // manual override (which flips baseCostAuto off) never gets clobbered.
+  useEffect(() => {
+    if (!baseCostAuto) return;
+    setData((prev) => ({ ...prev, totalCost: calcBaseCostBreakdown(prev).total.toFixed(2) }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    baseCostAuto,
+    data.vesselType,
+    data.eventType,
+    data.menuType,
+    data.guestCount,
+    data.eventDate,
+    data.selectedUpgrades,
+  ]);
+
   const handlePreview = (field: string, option: string | null) => {
     setPreviewField(option ? field : null);
     setPreviewOption(option);
@@ -304,8 +379,10 @@ export function Forms() {
     const payload = {
       ...data,
       financials: {
-        subtotal: fin.subtotal,
+        baseCost: fin.baseCost,
         contingency: fin.contingency,
+        marginAmount: fin.marginAmount,
+        costToClient: fin.costToClient,
         vat: fin.vat,
         grandTotal: fin.grand,
         upgradeTotal: fin.upgradeTotal,
@@ -669,30 +746,88 @@ export function Forms() {
                 </div>
 
                 <p className={sectionLabelCls}>Cost Inputs</p>
+
+                {/* Base Cost formula breakdown — Vessel Hire + Menu Cost + Fixed Ops +
+                    catering inclusions + Upgrades, mirroring the n8n Process Financials node. */}
+                <div className="mb-4 overflow-hidden rounded-[10px] border border-[#e3e6e4]">
+                  {[
+                    ['Vessel Hire', baseCostBreakdown.vesselHire],
+                    ['Menu Cost', baseCostBreakdown.menuCost],
+                    ['Fixed Operational Costs', baseCostBreakdown.fixedOps],
+                    ...(baseCostBreakdown.cateringInclusions > 0
+                      ? ([['Catering Inclusions', baseCostBreakdown.cateringInclusions]] as const)
+                      : []),
+                    ...(baseCostBreakdown.upgradesTotal > 0
+                      ? ([['Upgrades Total', baseCostBreakdown.upgradesTotal]] as const)
+                      : []),
+                  ].map(([label, val]) => (
+                    <div key={label} className="flex items-center justify-between border-b border-[#f0f0f0] px-5 py-3 text-[13px] text-gray-600">
+                      <span>{label}</span>
+                      <span className="font-semibold text-blue-600">£{(val as number).toFixed(2)}</span>
+                    </div>
+                  ))}
+                  <div className="flex items-center justify-between bg-[#f0fdf5] px-5 py-3 text-[13px] font-bold text-gray-700">
+                    <span>Base Cost (formula total)</span>
+                    <span className="text-[14px] font-black text-green-600">£{baseCostBreakdown.total.toFixed(2)}</span>
+                  </div>
+                </div>
+
                 <div className="mb-7">
-                  <label className={fieldLabelCls}>Base Cost (£)</label>
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <label className={fieldLabelCls}>Base Cost (£)</label>
+                    {baseCostAuto ? (
+                      <span className="rounded-full bg-[#f0fdf5] px-2.5 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.08em] text-green-600">
+                        Auto-filled
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setBaseCostAuto(true)}
+                        className="text-[11px] font-semibold text-gray-400 underline-offset-2 hover:text-[#FF5A45] hover:underline"
+                      >
+                        Reset to auto
+                      </button>
+                    )}
+                  </div>
                   <input
                     type="number"
                     min={0}
                     value={data.totalCost}
-                    onChange={(e) => set('totalCost', e.target.value)}
+                    onChange={(e) => {
+                      setBaseCostAuto(false);
+                      set('totalCost', e.target.value);
+                    }}
                     placeholder="Enter base event cost"
-                    className={inputCls}
+                    className={`${inputCls} font-semibold text-green-600`}
                   />
+                  <p className="mt-1.5 text-[11.5px] text-gray-400">
+                    Prefilled from the formula above — edit it directly to override.
+                  </p>
                 </div>
 
                 {(parseFloat(data.totalCost) > 0 || data.selectedUpgrades.length > 0) && (
                   <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="overflow-hidden rounded-[10px] border border-[#e3e6e4]">
+                    <div className="flex items-center justify-between border-b border-[#f0f0f0] bg-[#f0fdf5] px-5 py-3 text-[13px] font-bold text-gray-700">
+                      <span>Base Cost</span>
+                      <span className="font-black text-green-600">£{fin.baseCost.toFixed(2)}</span>
+                    </div>
                     {[
-                      ['Subtotal (incl. margin)', `£${fin.subtotal.toFixed(2)}`],
-                      [`Contingency (2.25%)`, `£${fin.contingency.toFixed(2)}`],
-                      [`VAT (20%)`, `£${fin.vat.toFixed(2)}`],
+                      ['Contingency (2.25%)', fin.contingency],
+                      [`Margin (${(fin.margin * 100).toFixed(0)}%)`, fin.marginAmount],
                     ].map(([label, val]) => (
                       <div key={label} className="flex items-center justify-between border-b border-[#f0f0f0] px-5 py-3 text-[13px] text-gray-600">
                         <span>{label}</span>
-                        <span className="font-semibold">{val}</span>
+                        <span className="font-semibold text-blue-600">£{(val as number).toFixed(2)}</span>
                       </div>
                     ))}
+                    <div className="flex items-center justify-between border-b border-[#f0f0f0] bg-[#f0fdf5] px-5 py-3 text-[13px] font-bold text-gray-700">
+                      <span>Cost to Client</span>
+                      <span className="font-black text-green-600">£{fin.costToClient.toFixed(2)}</span>
+                    </div>
+                    <div className="flex items-center justify-between border-b border-[#f0f0f0] px-5 py-3 text-[13px] text-gray-600">
+                      <span>VAT (20%)</span>
+                      <span className="font-semibold text-blue-600">£{fin.vat.toFixed(2)}</span>
+                    </div>
                     <div className="flex items-center justify-between bg-[#FF5A45] px-5 py-4 text-[14px] font-black text-white">
                       <span>Grand Total</span>
                       <span>£{fin.grand.toFixed(2)}</span>
@@ -715,8 +850,10 @@ export function Forms() {
                 <p className={sectionLabelCls}>Optional Add-Ons</p>
 
                 <div className="flex flex-col gap-3">
-                  {UPGRADES.map(({ label, price }) => {
+                  {UPGRADES.map(({ label, price, type }) => {
                     const selected = data.selectedUpgrades.includes(label);
+                    const guests = parseFloat(data.guestCount) || 0;
+                    const lineTotal = type === 'perGuest' ? price * guests : price;
                     return (
                       <motion.button
                         key={label}
@@ -738,9 +875,12 @@ export function Forms() {
                             {selected && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
                           </div>
                           <span className="text-[13px] font-semibold text-gray-800">{label}</span>
+                          {type === 'perGuest' && (
+                            <span className="text-[10.5px] text-gray-400">(£{price}/guest)</span>
+                          )}
                         </div>
-                        <span className={`text-[13px] font-bold ${selected ? 'text-[#E22A12]' : 'text-gray-400'}`}>
-                          £{price.toLocaleString()}
+                        <span className={`text-[13px] font-bold ${selected ? 'text-blue-600' : 'text-gray-400'}`}>
+                          £{lineTotal.toLocaleString()}
                         </span>
                       </motion.button>
                     );
@@ -756,10 +896,8 @@ export function Forms() {
                     <span className="text-[12px] font-semibold text-[#E22A12]">
                       {data.selectedUpgrades.length} upgrade{data.selectedUpgrades.length > 1 ? 's' : ''} selected
                     </span>
-                    <span className="text-[14px] font-black text-[#E22A12]">
-                      +£{UPGRADES.filter((u) => data.selectedUpgrades.includes(u.label))
-                        .reduce((s, u) => s + u.price, 0)
-                        .toLocaleString()}
+                    <span className="text-[14px] font-black text-green-600">
+                      +£{baseCostBreakdown.upgradesTotal.toLocaleString()}
                     </span>
                   </motion.div>
                 )}
@@ -978,6 +1116,10 @@ export function Forms() {
                       <div className="flex items-center justify-between">
                         <span className="text-gray-400">Guests</span>
                         <span className="font-semibold text-gray-700">{data.guestCount || '—'}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-400">Base Cost</span>
+                        <span className="font-semibold text-green-600">£{fin.baseCost.toFixed(2)}</span>
                       </div>
                       <div className="mt-1.5 flex items-center justify-between border-t border-gray-100 pt-1.5">
                         <span className="text-gray-500">Grand Total</span>
