@@ -49,6 +49,17 @@ export type Lead = {
   companyLogo?: string;
   photoUrl?: string;
   status?: string;
+  // Extended event / enquiry fields from the LeadDataFetch webhook
+  market?: string;
+  eventType?: string;
+  yearOfEvent?: string;
+  fullEventDate?: string;
+  eventDateFlexible?: string;
+  requestedEventTimes?: string;
+  groupSize?: string;
+  budget?: string;
+  bestTimeToCall?: string;
+  howHeard?: string;
 };
 
 /* ─── helpers ───

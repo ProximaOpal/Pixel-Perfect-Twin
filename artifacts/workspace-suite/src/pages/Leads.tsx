@@ -10,18 +10,29 @@ import { personAvatarUrl } from '@/lib/avatar';
 // ── Webhook ──────────────────────────────────────────────────────────────────
 const WEBHOOK_URL = 'https://meeraworkflows.app.n8n.cloud/webhook/LeadDataFetch';
 
+// Clean keys as of the updated LeadDataFetch webhook response.
+// Every value is a string; empty fields are "" not null.
 interface RawLead {
-  row_number: number;
-  'Live/Dead/Blacklisted/Booked': string;
-  'Enquiry Date': string;
-  Name: string;
-  'Main Contact - Job Role': string;
-  'Company Name': string;
-  'Company Sector (If Applicable)': string;
-  'Main Contact - Email': string;
-  'Main Contact - Number': string;
-  'Client Reference Number': string;
-  Source: string;
+  enquiryDate:          string;
+  name:                 string;
+  jobRole:              string;
+  companyName:          string;
+  companySector:        string;
+  email:                string;
+  phone:                string;
+  referenceNumber:      string;
+  source:               string;
+  bestTimeToCall:       string;
+  market:               string;
+  eventType:            string;
+  yearOfEvent:          string;
+  fullEventDate:        string;
+  eventDateFlexible:    string;
+  requestedEventTimes:  string;
+  groupSize:            string;
+  budget:               string;
+  howHeard:             string;
+  status:               string; // "LIVE" | "DEAD" | "BOOKED" | "BLACKLISTED"
 }
 
 function toInitials(name: string): string {
@@ -34,21 +45,33 @@ function toInitials(name: string): string {
 }
 
 function mapRaw(raw: RawLead, index: number): Lead {
+  const name = raw.name || '—';
   return {
-    id: raw.row_number ?? index + 1,
-    name: raw['Name'] ?? '—',
-    email: raw['Main Contact - Email'] ?? '—',
-    code: raw['Client Reference Number'] ?? `#${index + 1}`,
-    designation: raw['Main Contact - Job Role'] ?? '—',
-    phone: raw['Main Contact - Number'] ?? '—',
-    joined: raw['Enquiry Date'] ?? '—',
-    color: '#FF5A45',
-    initials: toInitials(raw['Name'] ?? '?'),
-    sector: raw['Company Sector (If Applicable)'] ?? '—',
-    referenceNumber: raw['Client Reference Number'] ?? '—',
-    source: raw['Source'] ?? '—',
-    company: raw['Company Name'] ?? '—',
-    status: (raw['Live/Dead/Blacklisted/Booked'] ?? '').toLowerCase().trim(),
+    id: index + 1,
+    name,
+    email:           raw.email           || '—',
+    code:            raw.referenceNumber || `#${index + 1}`,
+    designation:     raw.jobRole         || '—',
+    phone:           raw.phone           || '—',
+    joined:          raw.enquiryDate     || '—',
+    color:           '#FF5A45',
+    initials:        toInitials(name),
+    sector:          raw.companySector   || '—',
+    referenceNumber: raw.referenceNumber || '—',
+    source:          raw.source          || '—',
+    company:         raw.companyName     || '—',
+    status:          raw.status.toLowerCase().trim(),
+    // Extended event fields
+    market:               raw.market              || '',
+    eventType:            raw.eventType           || '',
+    yearOfEvent:          raw.yearOfEvent         || '',
+    fullEventDate:        raw.fullEventDate       || '',
+    eventDateFlexible:    raw.eventDateFlexible   || '',
+    requestedEventTimes:  raw.requestedEventTimes || '',
+    groupSize:            raw.groupSize           || '',
+    budget:               raw.budget              || '',
+    bestTimeToCall:       raw.bestTimeToCall      || '',
+    howHeard:             raw.howHeard            || '',
   };
 }
 

@@ -1,0 +1,60 @@
+Here's the exact shape your frontend should now expect from the LeadDataFetch webhook (POST https://meeraworkflows.app.n8n.cloud/webhook/LeadDataFetch).
+
+Top-level response
+{
+  "count": 939,
+  "leads": [ { ...lead... }, { ...lead... } ]
+}
+count — number (total leads returned)
+leads — array, latest lead first
+Each object in leads[]
+Field reference	Type	Source sheet column
+leads[i].enquiryDate	string	Enquiry Date
+leads[i].name	string	Name
+leads[i].jobRole	string	Main Contact - Job Role
+leads[i].companyName	string	Company Name
+leads[i].companySector	string	Company Sector
+leads[i].email	string	Main Contact - Email
+leads[i].phone	string	Main Contact - Number
+leads[i].referenceNumber	string	Client Reference Number
+leads[i].source	string	Source
+leads[i].bestTimeToCall	string	Best time to call
+leads[i].market	string	Market
+leads[i].eventType	string	Event Type
+leads[i].yearOfEvent	string	Year of Event
+leads[i].fullEventDate	string	Full Event Date
+leads[i].eventDateFlexible	string	Event Date - Flexible?
+leads[i].requestedEventTimes	string	Requested Event Times
+leads[i].groupSize	string	Group Size
+leads[i].budget	string	Budget
+leads[i].howHeard	string	How did they hear about us?
+leads[i].status	string	Live/Dead/Blacklisted/Booked
+Important notes
+Every value is a string. Even numeric-looking fields (groupSize, yearOfEvent, budget) come back as strings — e.g. "80", "2027", "£10,000 - £14,999", or "TBC". Parse with Number(...) on the frontend if you need math, and guard for non-numeric text.
+Empty fields are "" (empty string), never null or missing. So leads[i].budget always exists as a key.
+status holds values like "LIVE", "DEAD", "BOOKED", "BLACKLISTED" (from the "Live/Dead/ Blacklisted/Booked" column).
+These keys are new — the old response returned raw sheet headers (e.g. "Company Name\n (If Applicable...)", "Main Contact - Email"). If your frontend was reading those, update it to the clean keys above.
+Example single lead:
+
+{
+  "enquiryDate": "17-07-2026",
+  "name": "Nerea Chafer",
+  "jobRole": "Senior Project Manager & Business Development",
+  "companyName": "Travel Connection",
+  "companySector": "Media & Entertainment",
+  "email": "groups@travelconnectiononline.net",
+  "phone": "07966 099 328",
+  "referenceNumber": "WE.18907",
+  "source": "Event Agency",
+  "bestTimeToCall": "",
+  "market": "Corporate",
+  "eventType": "Corporate Other",
+  "yearOfEvent": "2027",
+  "fullEventDate": "Fri 9th / Sat 10th / Sun 11th July 2027",
+  "eventDateFlexible": "TBC",
+  "requestedEventTimes": "18:00 - 22:00",
+  "groupSize": "80",
+  "budget": "TBC",
+  "howHeard": "",
+  "status": "LIVE"
+}
