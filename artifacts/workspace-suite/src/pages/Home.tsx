@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Home as HomeIcon,
   Users,
@@ -9,6 +10,7 @@ import {
   Sparkles,
   ArrowRight,
   Search,
+  User,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { PanelNav } from '@/components/PanelNav';
@@ -30,21 +32,34 @@ const NAV_CARDS: NavCard[] = [
   { href: '/bespoke',       label: 'Bespoke',       icon: Sparkles,     desc: 'Curated event packages'      },
 ];
 
+const LOGIN_USERS = [
+  { id: 'user',      name: 'User',      initials: null,  color: '#6366f1' },
+  { id: 'natasha',   name: 'Natasha',   initials: 'N',   color: '#ec4899' },
+  { id: 'lily-may',  name: 'Lily-May',  initials: 'LM',  color: '#f59e0b' },
+  { id: 'elizabeth', name: 'Elizabeth', initials: 'E',   color: '#22c55e' },
+  { id: 'katherine', name: 'Katherine', initials: 'K',   color: '#0894ce' },
+] as const;
+
 export function Home() {
   const [, navigate] = useLocation();
 
-  // landing → app transition phases
-  const [phase, setPhase] = useState<'landing' | 'wiping' | 'app'>('landing');
+  // landing → login → app transition phases
+  const [phase, setPhase] = useState<'landing' | 'wiping' | 'login' | 'app'>('landing');
 
   // fake cursor
   const cursorRef = useRef<HTMLDivElement>(null);
 
-  /* ── Landing → app wipe ─────────────────────────────────────────────── */
+  /* ── Landing → login wipe ───────────────────────────────────────────── */
   useEffect(() => {
     const t1 = setTimeout(() => setPhase('wiping'), 2400);
-    const t2 = setTimeout(() => setPhase('app'),    3000);
+    const t2 = setTimeout(() => setPhase('login'),  3000);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
+
+  function handleLogin(userId: string) {
+    localStorage.setItem('nexus_active_user', userId);
+    setPhase('app');
+  }
 
   /* ── Fake cursor (home page only) ───────────────────────────────────── */
   useEffect(() => {
@@ -132,6 +147,61 @@ export function Home() {
           <span /><span />
         </div>
       </div>
+
+      {/* ── Login screen ────────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {phase === 'login' && (
+          <motion.div
+            className="nhome-login"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            {/* Background — same kaleidoscope feel as left panel */}
+            <div className="nhome-login-bg" />
+
+            <motion.div
+              className="nhome-login-inner"
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.18, duration: 0.48, ease: [0.65, 0, 0.35, 1] }}
+            >
+              <p className="nhome-login-eyebrow">NEXUS WORKSPACE</p>
+              <h1 className="nhome-login-heading">Login as</h1>
+
+              <div className="nhome-login-cards">
+                {LOGIN_USERS.map((u, i) => (
+                  <motion.button
+                    key={u.id}
+                    className="nhome-login-card"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.28 + i * 0.07, duration: 0.38, ease: [0.65, 0, 0.35, 1] }}
+                    onClick={() => handleLogin(u.id)}
+                  >
+                    {/* Circular avatar */}
+                    <div
+                      className="nhome-login-avatar"
+                      style={{ background: `${u.color}22`, border: `2px solid ${u.color}55` }}
+                    >
+                      {u.initials === null ? (
+                        <User size={26} color={u.color} strokeWidth={1.6} />
+                      ) : (
+                        <span style={{ color: u.color, fontSize: u.initials.length > 1 ? 17 : 22 }}>
+                          {u.initials}
+                        </span>
+                      )}
+                    </div>
+                    {/* Name */}
+                    <span className="nhome-login-name">{u.name}</span>
+                  </motion.button>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Main app stage ─────────────────────────────────────────────── */}
       {phase === 'app' && (
