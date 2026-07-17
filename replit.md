@@ -1,56 +1,80 @@
-# Workspace Suite
+# Nexus — Business Operations Suite
 
-A business/workspace management suite (Dashboard, Calendar, Employee Dashboard, Process Timeline, and a multi-step account Setup Wizard) built as a pnpm-workspace monorepo, imported from GitHub.
+A lead management and sales workspace built as a pnpm monorepo. It captures leads via an n8n webhook, stores them in PostgreSQL, and surfaces them across a React frontend with pages for leads, quote builder, proposals, timeline, and progress notes.
 
-## Run & Operate
+## How to run
 
-- `pnpm install` — install dependencies (already run; re-run if `node_modules` is ever missing, e.g. after a fresh clone/import)
-- `pnpm --filter @workspace/workspace-suite run dev` — run the frontend (bound via the `artifacts/workspace-suite: web` workflow, port from `PORT` env var, currently 23392) — **this is the running, verified workflow**
-- `pnpm --filter @workspace/api-server run dev` — run the API server; scaffolded but not wired into a workflow, and currently fails on `pnpm install` alone because `build.mjs` needs `esbuild` as a direct dependency of `artifacts/api-server` (only set up if/when the API server is actually needed)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string (not yet configured; only needed once the API server/DB packages are actually used)
+Both services start automatically via configured workflows:
+
+- **Frontend** (`artifacts/workspace-suite: web`) — React + Vite on `PORT=23392`
+- **API Server** (`artifacts/api-server: API Server`) — Express on `PORT=8080`
+
+To start them manually:
+
+```bash
+pnpm install                                        # install all deps
+pnpm --filter @workspace/workspace-suite run dev    # frontend
+pnpm --filter @workspace/api-server run dev         # API server
+```
+
+## Database setup
+
+The project uses Replit's built-in PostgreSQL database (`DATABASE_URL` is injected automatically — do not set it manually).
+
+To apply schema changes (dev only — Replit handles production migrations on Publish):
+
+```bash
+pnpm --filter @workspace/db run push
+```
+
+The schema lives in `lib/db/src/schema/` (Drizzle ORM). The leads table is defined in `lib/db/src/schema/leads.ts`.
 
 ## Stack
 
-- pnpm workspaces, Node.js 24, TypeScript 5.9
-- Frontend: React + Vite, Tailwind, Radix UI, Framer Motion, wouter (in `artifacts/workspace-suite`)
-- API: Express 5 (in `artifacts/api-server`, scaffolded but not yet wired to the frontend)
-- DB: PostgreSQL + Drizzle ORM (in `lib/db`, not yet provisioned)
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec in `lib/api-spec`)
-- Build: esbuild (CJS bundle)
+- **Monorepo**: pnpm workspaces, Node.js 20, TypeScript 5.9
+- **Frontend**: React 19 + Vite, Tailwind CSS v4, Radix UI, Framer Motion, wouter (`artifacts/workspace-suite`)
+- **API**: Express 5 (`artifacts/api-server`)
+- **Database**: PostgreSQL + Drizzle ORM (`lib/db`)
+- **Validation**: Zod v4, drizzle-zod
+- **API codegen**: Orval from OpenAPI spec (`lib/api-spec` → `lib/api-client-react`, `lib/api-zod`)
 
 ## Where things live
 
-- `artifacts/workspace-suite/src/pages/Home.tsx` — landing page ("/"), a white card with icon tiles (Leads, Tasks, Forms, Timeline, Calendar, Apps, Proposal Doc — all pages except Settings) and a green bottom panel showing a feature checklist for the highlighted tile; clicking/opening a tile navigates to that page
-- `artifacts/workspace-suite/src/pages/Apps.tsx` — connected-apps grid (Gmail, Google Sheets, Dropbox, Google Drive, WhatsApp, Viva, Slack, Scribe, LinkedIn, Instagram, Google Reviews, Chatbot Form), centered, icons via Google's favicon service
-- `artifacts/workspace-suite/src/pages/Forms.tsx` — 5-step proposal wizard (Event Core, Itinerary, Catering, Financials, Upgrades), redesigned to clone a DNB-style account-creation wizard layout: mint-green left sidebar with logo + numbered step list, white content panel with uppercase section labels and pill-shaped inputs, pill "Next" button bottom-right. All original dropdown options/content preserved verbatim.
-- `artifacts/workspace-suite/src/pages/ProposalDoc.tsx` — redesigned to clone a Dropbox-style file browser: dark icon rail on the left (mirrors the old Details/Pricing/Drafts/Signed/Notes tabs), centered file grid (18 real proposal doc pages + 3 draft sections as "files"), right-hand File Preview panel (description, shared-with, share/edit/delete actions). Replaced the previous PDF-viewer/tabs UI entirely.
-- `artifacts/api-server` — Express API scaffold, not yet connected to the frontend
-- `lib/db`, `lib/api-spec`, `lib/api-zod`, `lib/api-client-react` — shared DB schema, OpenAPI spec, and generated client packages, currently unused by the frontend
+| Path | What it is |
+|------|-----------|
+| `artifacts/workspace-suite/src/pages/` | All frontend pages (Leads, Forms, ProposalDoc, Timeline, ProgressNotes, Apps) |
+| `artifacts/api-server/src/routes/leads.ts` | `POST /api/webhooks/leads` (n8n inbound) and `GET /api/leads` |
+| `lib/db/src/schema/leads.ts` | Drizzle schema for the leads table |
+| `lib/api-spec/openapi.yaml` | OpenAPI spec — source of truth for codegen |
+| `lib/api-client-react/src/generated/` | Generated React Query hooks (from Orval) |
+| `lib/api-zod/src/generated/` | Generated Zod schemas (from Orval) |
 
-## Architecture decisions
+## Key API endpoints
 
-- The project was imported with the frontend (`workspace-suite`) and backend (`api-server`) scaffolded as separate, currently-disconnected packages — the frontend uses no live data yet.
-- Only one workflow (`artifacts/workspace-suite: web`) is currently configured; the API server has no workflow of its own.
-- Global color scheme is a single bright green (`#2ecc71`) + white/dark-navy. All redesigned pages (Home, Apps, Forms, Proposal Doc) reuse this same palette even when cloning reference layouts from other brands (DNB teal → app green, Dropbox blue → app green) — layout/structure is cloned, brand color is not.
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/healthz` | Health check |
+| `POST` | `/api/webhooks/leads` | Ingest a lead from n8n |
+| `GET` | `/api/leads` | List leads (most recent 200) |
 
-## Product
+## n8n integration
 
-Internal business-operations suite: a Home page for picking a section, dashboard overview, calendar/scheduling, employee dashboard, a process timeline view, and a guided setup wizard (business info, operations, account config, data import/export, category mapping).
+The n8n workflow at `ravenmark.app.n8n.cloud` should POST lead JSON to:
+
+```
+https://<your-replit-domain>/api/webhooks/leads
+```
+
+Expected payload fields: `name` / `firstName` + `lastName`, `email`, `phone`, `company`, `designation`, `sector`, `source`, `referenceNumber`, `linkedin`.
+
+## Regenerate API client
+
+After modifying `lib/api-spec/openapi.yaml`:
+
+```bash
+pnpm --filter @workspace/api-spec run codegen
+```
 
 ## User preferences
 
 _Populate as you build — explicit user instructions worth remembering across sessions._
-
-## Gotchas
-
-- Dependencies are installed and the `artifacts/workspace-suite: web` workflow is running (verified via `curl localhost:23392` returning 200 and Vite serving the app with no console errors).
-- The `api-server` and DB packages are still just scaffolding — no workflow, no `DATABASE_URL` configured. Only set those up if/when the user asks to wire up the backend.
-
-## Pointers
-
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
