@@ -1,423 +1,121 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ArrowRight, Check, HelpCircle, Loader2, FileCheck2, AlertTriangle, X, UserRound } from 'lucide-react';
+import { Check, ArrowRight, Loader2, FileCheck2, AlertTriangle, X, UserRound, ArrowLeft } from 'lucide-react';
 import { addProposal } from '@/lib/proposalStore';
-import { VESSEL_TYPES, EVENT_TYPES, MENU_TYPES, getStoredPreview } from '@/lib/formOptions';
+import { VESSEL_TYPES, EVENT_TYPES, MENU_TYPES } from '@/lib/formOptions';
 import { ItineraryWatch } from '@/components/ItineraryWatch';
 import { getQuoteLead, clearQuoteLead, type QuoteLead } from '@/lib/quoteLeadStore';
 
 const QUOTE_WEBHOOK_URL = 'https://meeraworkflows.app.n8n.cloud/webhook/QuoteBuilder';
 
 const SOURCE_TYPES = [
-  'Build your event form',
-  'Chatbot Form',
-  'Form Submit (Sales)',
-  'Emailed Us (Info)',
-  'Emailed Us (Sales)',
-  'Called Us',
-  'Repeat Client',
-  'Chat Service',
-  'DMN',
-  'Responded to Remarketing',
-  'TagVenue',
-  'TagVenue Outreach',
-  'HireSpace',
-  'HeadBox',
-  'Booker Venue',
-  'Event Agency',
-  'Event Listing Platform',
-  'Recommendation/referral',
-  'Other',
-  'Wedding Planner/Agent',
+  'Build your event form', 'Chatbot Form', 'Form Submit (Sales)', 'Emailed Us (Info)',
+  'Emailed Us (Sales)', 'Called Us', 'Repeat Client', 'Chat Service', 'DMN',
+  'Responded to Remarketing', 'TagVenue', 'TagVenue Outreach', 'HireSpace',
+  'HeadBox', 'Booker Venue', 'Event Agency', 'Event Listing Platform',
+  'Recommendation/referral', 'Other', 'Wedding Planner/Agent',
 ];
 
-// Upgrade matrix: 'flat' items are a single fixed cost; 'perGuest' items are
-// multiplied by guestCount before being added to the Base Cost.
 const UPGRADES: { label: string; price: number; type: 'flat' | 'perGuest' }[] = [
-  { label: 'Live DJ', price: 500, type: 'flat' },
-  { label: 'Saxophonist', price: 550, type: 'flat' },
-  { label: 'Photo Booth', price: 650, type: 'flat' },
-  { label: 'Close-up Magician', price: 700, type: 'flat' },
-  { label: 'Branded Vessel Flag', price: 150, type: 'flat' },
-  { label: 'Unlimited Drinks', price: 35, type: 'perGuest' },
-  { label: 'Drink Tokens', price: 15, type: 'perGuest' },
+  { label: 'Live DJ',            price: 500,  type: 'flat' },
+  { label: 'Saxophonist',        price: 550,  type: 'flat' },
+  { label: 'Photo Booth',        price: 650,  type: 'flat' },
+  { label: 'Close-up Magician',  price: 700,  type: 'flat' },
+  { label: 'Branded Vessel Flag',price: 150,  type: 'flat' },
+  { label: 'Unlimited Drinks',   price: 35,   type: 'perGuest' },
+  { label: 'Drink Tokens',       price: 15,   type: 'perGuest' },
 ];
 
-// ── Base Cost inputs, mirroring the n8n "Process Financials" node ──────────
-// Internal Costs = Base Vessel Hire + (Menu Cost Per Head * Guests) + Fixed
-// Operational Costs + Upgrades Total.
-const VESSEL_HIRE_RATE = 1500; // flat fallback for baseVesselHire; also used
-// as the "most expensive period" figure when the event date is TBC, per the
-// vessel selection protocol (margin protection during negotiation).
+const VESSEL_HIRE_RATE   = 1500;
 const MENU_COST_PER_HEAD = 45;
-const FIXED_OPS_COST = 250;
-const FRUIT_SKEWER_PER_HEAD = 8; // mandatory inclusion for BBQ menus
-const PIMMS_PROSECCO_PER_HEAD = 12; // mandatory inclusion for Summer Events
-const CONTINGENCY_RATE = 0.0225;
-const VAT_RATE = 0.2;
-const PEAK_UPLIFT_RATE = 0.2; // Friday–Sunday bookings cost 20% more than the base rate
+const FIXED_OPS_COST     = 250;
+const FRUIT_SKEWER_PER_HEAD    = 8;
+const PIMMS_PROSECCO_PER_HEAD  = 12;
+const CONTINGENCY_RATE   = 0.0225;
+const VAT_RATE           = 0.2;
+const PEAK_UPLIFT_RATE   = 0.2;
 
-/** True when the event date hasn't been confirmed — triggers the vessel
- *  selection protocol (most expensive period used for Base Vessel Hire). */
-function isEventDateTbc(eventDate: string): boolean {
-  return !eventDate.trim() || /tbc/i.test(eventDate);
-}
-
-/** True on Friday/Saturday/Sunday, or when the date is TBC (vessel selection
- *  protocol: an unconfirmed date must resolve to the most expensive period,
- *  so margins are never quoted below the worst case). */
+function isEventDateTbc(eventDate: string) { return !eventDate.trim() || /tbc/i.test(eventDate); }
 function isPeakPeriod(eventDate: string): boolean {
   if (isEventDateTbc(eventDate)) return true;
-  const parsed = new Date(eventDate);
-  if (Number.isNaN(parsed.getTime())) return false;
-  const day = parsed.getDay(); // 0 = Sunday, 5 = Friday, 6 = Saturday
+  const d = new Date(eventDate);
+  if (Number.isNaN(d.getTime())) return false;
+  const day = d.getDay();
   return day === 0 || day === 5 || day === 6;
 }
 
-/** Sums every input that feeds the Base Cost, per the fundamental formula. */
+type FormData = {
+  vesselType: string[]; eventType: string; source: string;
+  eventDate: string; guestCount: string;
+  embarkation: string; departure: string; returnTime: string; disembarkation: string;
+  menuType: string[]; repeatClient: boolean; totalCost: string; selectedUpgrades: string[];
+};
+
 function calcBaseCostBreakdown(data: FormData) {
   const guests = parseFloat(data.guestCount) || 0;
-  const peak = isPeakPeriod(data.eventDate);
-  // No per-vessel rate table is on file yet, so every vessel shares the same
-  // flat rate — with the confirmed Friday–Sunday (or TBC) peak uplift on top.
+  const peak   = isPeakPeriod(data.eventDate);
   const vesselHire = peak ? VESSEL_HIRE_RATE * (1 + PEAK_UPLIFT_RATE) : VESSEL_HIRE_RATE;
-  const menuCost = MENU_COST_PER_HEAD * guests;
-  const fixedOps = FIXED_OPS_COST;
-
+  const menuCost   = MENU_COST_PER_HEAD * guests;
+  const fixedOps   = FIXED_OPS_COST;
   let cateringInclusions = 0;
   if (data.menuType.includes('Summer Barbecue')) cateringInclusions += FRUIT_SKEWER_PER_HEAD * guests;
-  if (data.eventType === 'Summer Event') cateringInclusions += PIMMS_PROSECCO_PER_HEAD * guests;
-
-  const upgradesTotal = UPGRADES.filter((u) => data.selectedUpgrades.includes(u.label)).reduce(
-    (s, u) => s + (u.type === 'perGuest' ? u.price * guests : u.price),
-    0,
-  );
-
+  if (data.eventType === 'Summer Event')          cateringInclusions += PIMMS_PROSECCO_PER_HEAD * guests;
+  const upgradesTotal = UPGRADES
+    .filter(u => data.selectedUpgrades.includes(u.label))
+    .reduce((s, u) => s + (u.type === 'perGuest' ? u.price * guests : u.price), 0);
   const total = vesselHire + menuCost + fixedOps + cateringInclusions + upgradesTotal;
   return { vesselHire, menuCost, fixedOps, cateringInclusions, upgradesTotal, total, peak };
 }
 
-type FormData = {
-  vesselType: string[];
-  eventType: string;
-  source: string;
-  eventDate: string;
-  guestCount: string;
-  embarkation: string;
-  departure: string;
-  returnTime: string;
-  disembarkation: string;
-  menuType: string[];
-  repeatClient: boolean;
-  totalCost: string;
-  selectedUpgrades: string[];
-};
-
-/**
- * The n8n lead fetch's "Source" column is a free-text tag like
- * "Repeat Client 1, 2" or "Build your event form 1-3" — the trailing
- * numbers are spreadsheet artifacts, not part of the tag. Match it against
- * the known SOURCE_TYPES so the Quote Builder's Source picker can be
- * prefilled, and separately flag "Repeat Client" so the toggle can be too.
- */
-function matchSourceType(rawSource?: string): string {
-  if (!rawSource) return '';
-  const found = SOURCE_TYPES.find((type) => rawSource.toLowerCase().startsWith(type.toLowerCase()));
-  return found ?? '';
-}
-
-function isRepeatClientSource(rawSource?: string): boolean {
-  if (!rawSource) return false;
-  return rawSource.toLowerCase().includes('repeat client');
-}
-
-function todayIso() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-const INIT: FormData = {
-  vesselType: [],
-  eventType: '',
-  source: '',
-  eventDate: todayIso(),
-  guestCount: '',
-  embarkation: '10:00',
-  departure: '12:00',
-  returnTime: '17:00',
-  disembarkation: '18:00',
-  menuType: [],
-  repeatClient: false,
-  totalCost: '',
-  selectedUpgrades: [],
-};
-
-type GenerationStage = 'idle' | 'preparing' | 'sending' | 'generating' | 'done' | 'error';
-
-const STAGE_META: Record<
-  Exclude<GenerationStage, 'idle'>,
-  { label: string; sub: string; color: string }
-> = {
-  preparing: {
-    label: 'Validating event details',
-    sub: 'Checking dates, guest count and schedule for consistency',
-    color: '#8b5cf6',
-  },
-  sending: {
-    label: 'Encrypting & transmitting',
-    sub: 'Your quote is being sent over a secure connection',
-    color: '#3b82f6',
-  },
-  generating: {
-    label: 'Generating your PDF proposal',
-    sub: 'Formatting pricing, upgrades and vessel details',
-    color: '#e8b93f',
-  },
-  done: {
-    label: 'Proposal ready',
-    sub: 'Every figure has been verified — redirecting…',
-    color: '#00e676',
-  },
-  error: {
-    label: 'Something went wrong',
-    sub: 'Your data is safe — nothing was lost',
-    color: '#ef4444',
-  },
-};
-
-/* Data-integrity checklist shown alongside the stage animation — each item
-   lights up as its corresponding stage is reached, reassuring the user that
-   nothing in their quote was dropped or corrupted along the way. */
-const INTEGRITY_STEPS: { key: Exclude<GenerationStage, 'idle' | 'error'>; label: string }[] = [
-  { key: 'preparing', label: 'Event details validated' },
-  { key: 'sending', label: 'Data securely transmitted' },
-  { key: 'generating', label: 'Pricing figures verified' },
-  { key: 'done', label: 'Proposal saved & ready' },
-];
-const STAGE_ORDER: Exclude<GenerationStage, 'idle' | 'error'>[] = ['preparing', 'sending', 'generating', 'done'];
-
-/**
- * Base Cost (the totalCost field, auto-prefilled from calcBaseCostBreakdown
- * but user-overridable) then flows through: + 2.25% Contingency, then the
- * Margin (15% repeat / 25% new) to reach the "Cost to Client", then VAT.
- */
 function calcFinancials(data: FormData) {
-  const baseCost = parseFloat(data.totalCost) || 0;
-  const upgradeTotal = UPGRADES.filter((u) => data.selectedUpgrades.includes(u.label)).reduce(
-    (s, u) => s + (u.type === 'perGuest' ? u.price * (parseFloat(data.guestCount) || 0) : u.price),
-    0,
-  );
-  const contingency = baseCost * CONTINGENCY_RATE;
+  const baseCost  = parseFloat(data.totalCost) || 0;
+  const upgradeTotal = UPGRADES
+    .filter(u => data.selectedUpgrades.includes(u.label))
+    .reduce((s, u) => s + (u.type === 'perGuest' ? u.price * (parseFloat(data.guestCount) || 0) : u.price), 0);
+  const contingency     = baseCost * CONTINGENCY_RATE;
   const afterContingency = baseCost + contingency;
-  const margin = data.repeatClient ? 0.15 : 0.25;
-  const marginAmount = afterContingency * margin;
-  const costToClient = afterContingency + marginAmount;
-  const vat = costToClient * VAT_RATE;
-  const grand = costToClient + vat;
+  const margin          = data.repeatClient ? 0.15 : 0.25;
+  const marginAmount    = afterContingency * margin;
+  const costToClient    = afterContingency + marginAmount;
+  const vat             = costToClient * VAT_RATE;
+  const grand           = costToClient + vat;
   return { baseCost, contingency, marginAmount, costToClient, vat, grand, upgradeTotal, margin };
 }
 
-/* DNB-style pill input: rounded, soft border, teal focus ring */
-const inputCls =
-  'w-full rounded-[10px] border border-[#e3e6e4] bg-white px-4 py-3.5 text-[13.5px] text-gray-800 placeholder-gray-400 outline-none focus:border-[#FF5A45] focus:ring-4 focus:ring-[#FF5A45]/12 transition-all appearance-none';
-const sectionLabelCls = 'mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-[#7c8a82]';
-const fieldLabelCls = 'mb-1.5 flex items-center gap-1.5 text-[12.5px] font-semibold text-gray-700';
-
-/* ─── Custom Multi-Select (checkbox pill dropdown) ─── */
-function FormMultiSelect({
-  label,
-  field,
-  options,
-  value,
-  onChange,
-  onPreview,
-  helper,
-}: {
-  label: string;
-  field: string;
-  options: string[];
-  value: string[];
-  onChange: (v: string[]) => void;
-  onPreview?: (field: string, option: string | null) => void;
-  helper?: string;
-}) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const handleOutside = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleOutside);
-    return () => document.removeEventListener('mousedown', handleOutside);
-  }, [open]);
-
-  const toggle = (opt: string) =>
-    onChange(value.includes(opt) ? value.filter((v) => v !== opt) : [...value, opt]);
-
-  return (
-    <div
-      ref={rootRef}
-      className="relative"
-      onMouseEnter={() => onPreview?.(field, value[0] || null)}
-      onMouseLeave={() => onPreview?.(field, null)}
-    >
-      <label className={fieldLabelCls}>
-        {label}
-        {helper && (
-          <span title={helper} className="text-[#7c8a82]">
-            <HelpCircle className="h-3.5 w-3.5" />
-          </span>
-        )}
-      </label>
-      <button
-        type="button"
-        onClick={() => setOpen((p) => !p)}
-        className={`${inputCls} flex items-center justify-between`}
-      >
-        <span className={value.length ? 'text-gray-800' : 'text-gray-400'}>
-          {value.length ? value.join(', ') : `Select ${label}`}
-        </span>
-        <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
-          <ChevronDown className="h-4 w-4 text-gray-400" />
-        </motion.div>
-      </button>
-
-      <AnimatePresence>
-        {open && (
-          <motion.ul
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.18 }}
-            className="absolute left-0 right-0 top-full z-20 mt-1.5 max-h-[260px] overflow-y-auto rounded-[10px] border border-[#e3e6e4] bg-white shadow-lg"
-          >
-            {options.map((opt) => {
-              const checked = value.includes(opt);
-              return (
-                <motion.li
-                  key={opt}
-                  whileHover={{ backgroundColor: '#f0fdf5' }}
-                  onMouseEnter={() => onPreview?.(field, opt)}
-                  onClick={() => toggle(opt)}
-                  className="flex cursor-pointer items-center justify-between px-4 py-3 text-[13px] text-gray-700 transition-colors"
-                >
-                  <span className="flex items-center gap-2.5">
-                    <span
-                      className={`flex h-4 w-4 items-center justify-center rounded-[5px] border transition-colors ${
-                        checked ? 'border-[#FF5A45] bg-[#FF5A45]' : 'border-[#d0d0d0]'
-                      }`}
-                    >
-                      {checked && <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />}
-                    </span>
-                    {opt}
-                  </span>
-                </motion.li>
-              );
-            })}
-          </motion.ul>
-        )}
-      </AnimatePresence>
-    </div>
-  );
+function matchSourceType(raw?: string) {
+  if (!raw) return '';
+  return SOURCE_TYPES.find(t => raw.toLowerCase().startsWith(t.toLowerCase())) ?? '';
+}
+function isRepeatClientSource(raw?: string) { return !!raw?.toLowerCase().includes('repeat client'); }
+function todayIso() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-/* ─── Custom Select (DNB pill dropdown) ─── */
-function FormSelect({
-  label,
-  field,
-  options,
-  value,
-  onChange,
-  onPreview,
-  helper,
-}: {
-  label: string;
-  field: string;
-  options: string[];
-  value: string;
-  onChange: (v: string) => void;
-  onPreview?: (field: string, option: string | null) => void;
-  helper?: string;
-}) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
+const INIT: FormData = {
+  vesselType: [], eventType: '', source: '', eventDate: todayIso(), guestCount: '',
+  embarkation: '10:00', departure: '12:00', returnTime: '17:00', disembarkation: '18:00',
+  menuType: [], repeatClient: false, totalCost: '', selectedUpgrades: [],
+};
 
-  useEffect(() => {
-    if (!open) return;
-    const handleOutside = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleOutside);
-    return () => document.removeEventListener('mousedown', handleOutside);
-  }, [open]);
+type GenerationStage = 'idle' | 'preparing' | 'sending' | 'generating' | 'done' | 'error';
+const STAGE_META: Record<Exclude<GenerationStage,'idle'>, { label: string; sub: string; color: string }> = {
+  preparing:  { label: 'Validating event details', sub: 'Checking dates, guest count and schedule for consistency', color: '#8b5cf6' },
+  sending:    { label: 'Encrypting & transmitting', sub: 'Your quote is being sent over a secure connection', color: '#3b82f6' },
+  generating: { label: 'Generating your PDF proposal', sub: 'Formatting pricing, upgrades and vessel details', color: '#e8b93f' },
+  done:       { label: 'Proposal ready', sub: 'Every figure has been verified — redirecting…', color: '#00e676' },
+  error:      { label: 'Something went wrong', sub: 'Your data is safe — nothing was lost', color: '#ef4444' },
+};
+const INTEGRITY_STEPS: { key: Exclude<GenerationStage,'idle'|'error'>; label: string }[] = [
+  { key: 'preparing',  label: 'Event details validated' },
+  { key: 'sending',    label: 'Data securely transmitted' },
+  { key: 'generating', label: 'Pricing figures verified' },
+  { key: 'done',       label: 'Proposal saved & ready' },
+];
+const STAGE_ORDER: Exclude<GenerationStage,'idle'|'error'>[] = ['preparing','sending','generating','done'];
 
-  return (
-    <div
-      ref={rootRef}
-      className="relative"
-      onMouseEnter={() => onPreview?.(field, value || null)}
-      onMouseLeave={() => onPreview?.(field, null)}
-    >
-      <label className={fieldLabelCls}>
-        {label}
-        {helper && (
-          <span title={helper} className="text-[#7c8a82]">
-            <HelpCircle className="h-3.5 w-3.5" />
-          </span>
-        )}
-      </label>
-      <button
-        type="button"
-        onClick={() => setOpen((p) => !p)}
-        className={`${inputCls} flex items-center justify-between`}
-      >
-        <span className={value ? 'text-gray-800' : 'text-gray-400'}>
-          {value || `Select ${label}`}
-        </span>
-        <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
-          <ChevronDown className="h-4 w-4 text-gray-400" />
-        </motion.div>
-      </button>
-
-      <AnimatePresence>
-        {open && (
-          <motion.ul
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.18 }}
-            className="absolute left-0 right-0 top-full z-20 mt-1.5 max-h-[260px] overflow-y-auto rounded-[10px] border border-[#e3e6e4] bg-white shadow-lg"
-          >
-            {options.map((opt) => (
-              <motion.li
-                key={opt}
-                whileHover={{ backgroundColor: '#f0fdf5' }}
-                onMouseEnter={() => onPreview?.(field, opt)}
-                onClick={() => {
-                  onChange(opt);
-                  setOpen(false);
-                }}
-                className="flex cursor-pointer items-center justify-between px-4 py-3 text-[13px] text-gray-700 transition-colors"
-              >
-                {opt}
-                {value === opt && <Check className="h-3.5 w-3.5 text-[#FF5A45]" />}
-              </motion.li>
-            ))}
-          </motion.ul>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-/* ─── Steps ─── */
+// ── Steps sidebar (kept from original) ──────────────────────────────────────
 const STEPS = [
   { n: 1, label: 'Event Core' },
   { n: 2, label: 'Guest Count' },
@@ -427,166 +125,187 @@ const STEPS = [
   { n: 6, label: 'Upgrades' },
 ];
 
+// ── Question definitions ─────────────────────────────────────────────────────
+type QType = 'single'|'multi'|'date'|'number'|'time'|'bool'|'cost'|'upgrades'|'schedule';
+
+interface Question {
+  id: string;
+  eyebrow: string;
+  title: string;
+  type: QType;
+  options?: string[];
+  step: number;  // which sidebar step this belongs to
+  submitLabel: string;
+}
+
+const QUESTIONS: Question[] = [
+  { id:'source',         step:1, eyebrow:'QUESTION 1',  title:'Which source did this enquiry come from?',        type:'single',   options:SOURCE_TYPES,   submitLabel:'Continue' },
+  { id:'vesselType',     step:1, eyebrow:'QUESTION 2',  title:'Which vessel(s) are you quoting for?',            type:'multi',    options:VESSEL_TYPES,   submitLabel:'Continue' },
+  { id:'eventType',      step:1, eyebrow:'QUESTION 3',  title:'What type of event is this?',                     type:'single',   options:EVENT_TYPES,    submitLabel:'Continue' },
+  { id:'eventDate',      step:1, eyebrow:'QUESTION 4',  title:'When is the event taking place?',                 type:'date',                             submitLabel:'Continue' },
+  { id:'guestCount',     step:2, eyebrow:'QUESTION 5',  title:'How many guests are expected?',                   type:'number',                           submitLabel:'Continue' },
+  { id:'schedule',       step:3, eyebrow:'QUESTION 6',  title:'What are the schedule timings?',                  type:'schedule',                         submitLabel:'Continue' },
+  { id:'menuType',       step:4, eyebrow:'QUESTION 7',  title:'What menu type is required?',                     type:'multi',    options:MENU_TYPES,     submitLabel:'Continue' },
+  { id:'repeatClient',   step:5, eyebrow:'QUESTION 8',  title:'Is this a repeat client?',                        type:'bool',                             submitLabel:'Continue' },
+  { id:'totalCost',      step:5, eyebrow:'QUESTION 9',  title:'What is the base cost for this event?',           type:'cost',                             submitLabel:'Continue' },
+  { id:'selectedUpgrades',step:6,eyebrow:'QUESTION 10', title:'Select any upgrades to include',                  type:'upgrades',                         submitLabel:'Generate Proposal' },
+];
+
+// Map question index → sidebar step
+function qToStep(qIdx: number): number { return QUESTIONS[qIdx]?.step ?? 1; }
+// First question index for each step
+function stepFirstQ(step: number): number { return QUESTIONS.findIndex(q => q.step === step); }
+
+// ── Raven-style classes (tailwind + inline for the right panel) ─────────────
+const rEyebrow = { fontSize:11.5, fontWeight:700, letterSpacing:'1.2px', color:'#5ac69a', marginBottom:10, textTransform:'uppercase' as const };
+const rTitle   = { fontSize:21, fontWeight:700, color:'#17181c', lineHeight:1.35, marginBottom:20, maxWidth:420 };
+const rOptBase = {
+  padding:'14px 18px', borderRadius:12, background:'#ebebf4',
+  fontSize:13.5, fontWeight:500, color:'#17181c', cursor:'pointer',
+  marginBottom:10, display:'flex', alignItems:'center', justifyContent:'space-between',
+  border:'none', width:'100%', textAlign:'left' as const, fontFamily:'inherit',
+  transition:'background .22s, color .22s',
+} as const;
+const rOptSel = { ...rOptBase, background:'#0894ce', color:'#fff' };
+const rOptDot = {
+  width:16, height:16, borderRadius:'50%', background:'#fff', display:'flex',
+  alignItems:'center', justifyContent:'center', flexShrink:0,
+};
+const rSubmitBase = {
+  appearance:'none' as const, border:'none', width:'100%', maxWidth:460,
+  padding:'15px 20px', borderRadius:14, fontFamily:'inherit', fontWeight:700,
+  fontSize:14.5, cursor:'pointer', transition:'transform .16s, box-shadow .16s',
+};
+const rSubmitReady = { ...rSubmitBase, background:'#00f78e', color:'#0c3524', boxShadow:'0 10px 22px rgba(0,247,142,.28)' };
+const rSubmitDis   = { ...rSubmitBase, background:'#b3b1bd', color:'rgba(255,255,255,.85)', cursor:'not-allowed' };
+const inputCls = 'w-full rounded-[10px] border border-[#e3e6e4] bg-white px-4 py-3.5 text-[13.5px] text-gray-800 placeholder-gray-400 outline-none focus:border-[#00f78e] focus:ring-4 focus:ring-[#00f78e]/12 transition-all appearance-none';
+
+// ── Component ────────────────────────────────────────────────────────────────
 export function Forms() {
   const [, navigate] = useLocation();
-  const [step, setStep] = useState(1);
-  const [data, setData] = useState<FormData>(() => {
+  const [qIdx, setQIdx]     = useState(0);
+  const [fading, setFading]  = useState(false);
+  const [data, setData]      = useState<FormData>(() => {
     const lead = getQuoteLead();
-    return {
-      ...INIT,
-      source: matchSourceType(lead?.source),
-      repeatClient: isRepeatClientSource(lead?.source),
-    };
+    return { ...INIT, source: matchSourceType(lead?.source), repeatClient: isRepeatClientSource(lead?.source) };
   });
-  const [previewField, setPreviewField] = useState<string | null>(null);
-  const [previewOption, setPreviewOption] = useState<string | null>(null);
-  const [stage, setStage] = useState<GenerationStage>('idle');
+  const [stage, setStage]         = useState<GenerationStage>('idle');
   const [errorMessage, setErrorMessage] = useState('');
-  // The lead this quote is being built for, if any — handed off from the
-  // Lead panel's "Build a Quote" button via sessionStorage.
-  const [quoteLead] = useState<QuoteLead | null>(() => getQuoteLead());
-  // Base Cost stays auto-prefilled from the vessel/menu/guests/upgrades
-  // formula until the user types their own figure into the field — then it
-  // stops overwriting them until they explicitly ask to resync.
+  const [quoteLead]               = useState<QuoteLead | null>(() => getQuoteLead());
   const [baseCostAuto, setBaseCostAuto] = useState(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const set = (key: keyof FormData, val: unknown) =>
-    setData((prev) => ({ ...prev, [key]: val }));
+    setData(prev => ({ ...prev, [key]: val }));
 
-  const toggleUpgrade = (label: string) =>
-    set(
-      'selectedUpgrades',
-      data.selectedUpgrades.includes(label)
-        ? data.selectedUpgrades.filter((u) => u !== label)
-        : [...data.selectedUpgrades, label],
-    );
-
-  const fin = calcFinancials(data);
+  const fin              = calcFinancials(data);
   const baseCostBreakdown = calcBaseCostBreakdown(data);
 
-  // Keep Base Cost synced to the formula while it's in "auto" mode. Guarded
-  // to only run once the relevant inputs actually change, so typing a
-  // manual override (which flips baseCostAuto off) never gets clobbered.
   useEffect(() => {
     if (!baseCostAuto) return;
-    setData((prev) => ({ ...prev, totalCost: calcBaseCostBreakdown(prev).total.toFixed(2) }));
+    setData(prev => ({ ...prev, totalCost: calcBaseCostBreakdown(prev).total.toFixed(2) }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    baseCostAuto,
-    data.vesselType,
-    data.eventType,
-    data.menuType,
-    data.guestCount,
-    data.eventDate,
-    data.selectedUpgrades,
-  ]);
+  }, [baseCostAuto, data.vesselType, data.eventType, data.menuType, data.guestCount, data.eventDate, data.selectedUpgrades]);
 
-  const handlePreview = (field: string, option: string | null) => {
-    setPreviewField(option ? field : null);
-    setPreviewOption(option);
+  function fade(cb: () => void) {
+    setFading(true);
+    setTimeout(() => { cb(); setFading(false); scrollRef.current?.scrollTo({ top: 0 }); }, 240);
+  }
+  function goNext() {
+    if (qIdx < QUESTIONS.length - 1) fade(() => setQIdx(i => i + 1));
+    else handleGenerate();
+  }
+  function goBack() { if (qIdx > 0) fade(() => setQIdx(i => i - 1)); }
+  function jumpToStep(step: number) { fade(() => setQIdx(stepFirstQ(step))); }
+
+  const toggleMulti = (key: keyof FormData, val: string) => {
+    const arr = data[key] as string[];
+    set(key, arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val]);
   };
-  const previewImg = getStoredPreview(previewField, previewOption);
+  const toggleUpgrade = (label: string) =>
+    set('selectedUpgrades', data.selectedUpgrades.includes(label)
+      ? data.selectedUpgrades.filter(u => u !== label)
+      : [...data.selectedUpgrades, label]);
 
+  const isReady = (q: Question): boolean => {
+    switch (q.type) {
+      case 'single':   return !!(data[q.id as keyof FormData] as string);
+      case 'multi':    return true; // always can continue
+      case 'date':     return !!data.eventDate;
+      case 'number':   return !!(data[q.id as keyof FormData] as string);
+      case 'time':     return true;
+      case 'bool':     return true;
+      case 'cost':     return !!(data.totalCost);
+      case 'schedule': return true;
+      case 'upgrades': return true;
+      default:         return true;
+    }
+  };
+
+  const currentQ    = QUESTIONS[qIdx];
+  const currentStep = qToStep(qIdx);
+
+  // ── Generate proposal ─────────────────────────────────────────────────────
   const handleGenerate = async () => {
     setErrorMessage('');
     setStage('preparing');
-
     const payload = {
       ...data,
       financials: {
-        baseCost: fin.baseCost,
-        contingency: fin.contingency,
-        marginAmount: fin.marginAmount,
-        costToClient: fin.costToClient,
-        vat: fin.vat,
-        grandTotal: fin.grand,
-        upgradeTotal: fin.upgradeTotal,
+        baseCost: fin.baseCost, contingency: fin.contingency, marginAmount: fin.marginAmount,
+        costToClient: fin.costToClient, vat: fin.vat, grandTotal: fin.grand, upgradeTotal: fin.upgradeTotal,
       },
-      // Tag the webhook payload with whichever lead this quote was built
-      // for, so the automation can match it back to the CRM record.
-      lead: quoteLead
-        ? {
-            id: quoteLead.id,
-            name: quoteLead.name,
-            email: quoteLead.email,
-            phone: quoteLead.phone,
-            designation: quoteLead.designation,
-            company: quoteLead.company,
-            referenceNumber: quoteLead.referenceNumber,
-          }
-        : null,
+      lead: quoteLead ? {
+        id: quoteLead.id, name: quoteLead.name, email: quoteLead.email,
+        phone: quoteLead.phone, designation: quoteLead.designation,
+        company: quoteLead.company, referenceNumber: quoteLead.referenceNumber,
+      } : null,
     };
-
-    await new Promise((r) => setTimeout(r, 500));
+    await new Promise(r => setTimeout(r, 500));
     setStage('sending');
-
     try {
-      const res = await fetch(QUOTE_WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
+      const res = await fetch(QUOTE_WEBHOOK_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
       if (!res.ok) throw new Error(`Webhook responded ${res.status}`);
-
       setStage('generating');
-
       const contentType = res.headers.get('content-type') ?? '';
       let pdfDataUrl = '';
-
       if (contentType.includes('application/pdf') || contentType.includes('octet-stream')) {
         const blob = await res.blob();
         pdfDataUrl = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
+          reader.onload  = () => resolve(reader.result as string);
           reader.onerror = reject;
           reader.readAsDataURL(blob);
         });
       } else {
         const json = await res.json().catch(() => null);
-        const base64OrUrl: string | undefined =
-          json?.pdfBase64 ?? json?.pdf ?? json?.fileUrl ?? json?.pdfUrl ?? json?.url;
-        if (base64OrUrl?.startsWith('data:')) {
-          pdfDataUrl = base64OrUrl;
-        } else if (base64OrUrl) {
-          // Assume a bare base64 string, or a fetchable URL.
-          if (/^[A-Za-z0-9+/=]+$/.test(base64OrUrl) && base64OrUrl.length > 100) {
-            pdfDataUrl = `data:application/pdf;base64,${base64OrUrl}`;
+        const b64: string | undefined = json?.pdfBase64 ?? json?.pdf ?? json?.fileUrl ?? json?.pdfUrl ?? json?.url;
+        if (b64?.startsWith('data:')) {
+          pdfDataUrl = b64;
+        } else if (b64) {
+          if (/^[A-Za-z0-9+/=]+$/.test(b64) && b64.length > 100) {
+            pdfDataUrl = `data:application/pdf;base64,${b64}`;
           } else {
-            const fileRes = await fetch(base64OrUrl);
+            const fileRes = await fetch(b64);
             const blob = await fileRes.blob();
             pdfDataUrl = await new Promise<string>((resolve, reject) => {
               const reader = new FileReader();
-              reader.onload = () => resolve(reader.result as string);
+              reader.onload  = () => resolve(reader.result as string);
               reader.onerror = reject;
               reader.readAsDataURL(blob);
             });
           }
-        } else {
-          throw new Error('The webhook did not return a PDF.');
-        }
+        } else { throw new Error('The webhook did not return a PDF.'); }
       }
-
       const saved = await addProposal({
-        id: `proposal-${Date.now()}`,
-        createdAt: new Date().toISOString(),
+        id: `proposal-${Date.now()}`, createdAt: new Date().toISOString(),
         eventDate: data.eventDate,
         title: `${data.eventType || 'Event'} Proposal — ${data.vesselType.join(', ') || 'Vessel TBC'}`,
-        vesselType: data.vesselType.join(', '),
-        eventType: data.eventType,
-        guestCount: data.guestCount,
-        grandTotal: fin.grand,
-        pdfDataUrl,
-        leadName: quoteLead?.name,
-        leadEmail: quoteLead?.email,
+        vesselType: data.vesselType.join(', '), eventType: data.eventType,
+        guestCount: data.guestCount, grandTotal: fin.grand, pdfDataUrl,
+        leadName: quoteLead?.name, leadEmail: quoteLead?.email,
       });
-
-      if (!saved) {
-        throw new Error(
-          'The PDF was generated but is too large to store in this browser — clear some space (e.g. delete older proposals) and try again.',
-        );
-      }
-
+      if (!saved) throw new Error('The PDF was generated but is too large to store — clear older proposals and try again.');
       clearQuoteLead();
       setStage('done');
       setTimeout(() => navigate('/proposal-doc'), 1200);
@@ -596,76 +315,50 @@ export function Forms() {
     }
   };
 
-  const pageVariants = {
-    initial: { opacity: 0, x: 24 },
-    animate: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: -24 },
-  };
-
   return (
     <div className="flex bg-white" style={{ minHeight: 'calc(100vh - 4rem)' }}>
 
-      {/* ── Left: mint sidebar — logo, heading, numbered steps (DNB layout) ── */}
+      {/* ── Left sidebar (coral/white, numbered steps) ── */}
       <aside className="sticky top-16 flex h-[calc(100vh-4rem)] w-[300px] shrink-0 flex-col bg-[#FFF1F0] px-9 py-10">
-        <div className="mb-10 flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-[6px] bg-[#FF5A45] text-[13px] font-bold text-white">
-            N
-          </span>
-          <span className="text-[15px] font-bold tracking-tight text-[#101a15]">Nexus</span>
-        </div>
 
-        <h1 className="mb-4 text-[24px] font-bold tracking-tight text-[#101a15]">Quote Builder</h1>
-
-        {/* Lead tag — shows who this quote is being built for, when the
-            wizard was opened via a lead's "Build a Quote" button. */}
+        {/* Lead name/company at top */}
         {quoteLead && (
-          <div className="mb-6 flex items-center gap-2.5 rounded-[10px] border border-[#FF5A45]/25 bg-white px-3 py-2.5 shadow-sm">
-            <span
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
-              style={{ backgroundColor: quoteLead.color || '#FF5A45' }}
-            >
+          <div className="mb-6 rounded-[10px] border border-[#FF5A45]/20 bg-white px-3.5 py-3 shadow-sm">
+            <span className="flex h-8 w-8 mb-1.5 items-center justify-center rounded-full text-[11px] font-bold text-white"
+              style={{ backgroundColor: quoteLead.color || '#FF5A45' }}>
               {quoteLead.initials || <UserRound className="h-3.5 w-3.5" />}
             </span>
-            <div className="min-w-0">
-              <p className="truncate text-[10px] font-bold uppercase tracking-wider text-[#FF5A45]">
-                Quote for
-              </p>
-              <p className="truncate text-[12.5px] font-semibold text-[#101a15]" title={quoteLead.name}>
-                {quoteLead.name}
-              </p>
-              <p className="truncate text-[10.5px] text-[#8fa89a]" title={quoteLead.company}>
-                {quoteLead.company}
-              </p>
-            </div>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[#FF5A45]">Quote for</p>
+            <p className="truncate text-[13px] font-bold text-[#101a15]" title={quoteLead.name}>{quoteLead.name}</p>
+            <p className="truncate text-[11px] text-[#8fa89a]" title={quoteLead.company}>{quoteLead.company}</p>
           </div>
         )}
 
+        <div className="mb-6 flex items-center gap-2">
+          <span className="flex h-7 w-7 items-center justify-center rounded-[6px] bg-[#FF5A45] text-[13px] font-bold text-white">N</span>
+          <span className="text-[15px] font-bold tracking-tight text-[#101a15]">Nexus</span>
+        </div>
+
+        <h1 className="mb-5 text-[22px] font-bold tracking-tight text-[#101a15]">Quote Builder</h1>
+
         <nav className="flex flex-col gap-1">
           {STEPS.map(({ n, label }) => {
-            const active = step === n;
-            const done = step > n;
+            const active = currentStep === n;
+            const done   = currentStep > n;
             return (
               <button
                 key={n}
-                onClick={() => setStep(n)}
+                onClick={() => jumpToStep(n)}
                 className="flex items-center gap-3 rounded-[10px] px-2 py-2.5 text-left transition-colors hover:bg-white/60"
               >
-                <span
-                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition-colors ${
-                    active
-                      ? 'bg-[#FF5A45] text-white'
-                      : done
-                      ? 'bg-[#FF5A45] text-white'
-                      : 'border-2 border-[#c3d9cb] text-[#8fa89a]'
-                  }`}
-                >
+                <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition-colors ${
+                  active || done ? 'bg-[#FF5A45] text-white' : 'border-2 border-[#c3d9cb] text-[#8fa89a]'
+                }`}>
                   {done ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : n}
                 </span>
-                <span
-                  className={`text-[14px] transition-colors ${
-                    active ? 'font-bold text-[#101a15]' : done ? 'font-medium text-[#E22A12]' : 'text-[#8fa89a]'
-                  }`}
-                >
+                <span className={`text-[14px] transition-colors ${
+                  active ? 'font-bold text-[#101a15]' : done ? 'font-medium text-[#E22A12]' : 'text-[#8fa89a]'
+                }`}>
                   {label}
                 </span>
               </button>
@@ -674,495 +367,350 @@ export function Forms() {
         </nav>
 
         <div className="mt-auto text-[11px] leading-relaxed text-[#8fa89a]">
-          Step {step} of {STEPS.length} · Your details save automatically
+          Question {qIdx + 1} of {QUESTIONS.length} · Your details save automatically
         </div>
       </aside>
 
-      {/* ── Right: form content ── */}
-      <main className="flex-1 overflow-y-auto bg-white">
-        <div className="mx-auto max-w-[640px] px-12 py-14">
+      {/* ── Right panel: Raven one-question-at-a-time UX ── */}
+      <main className="flex-1 flex flex-col overflow-hidden" style={{ background: '#fdfcff' }}>
+
+        {/* Right panel header */}
+        <div style={{ padding: '34px 56px 0', flexShrink: 0 }}>
+          {/* Progress track */}
+          <div style={{ height: 3, background: '#ebebf4', borderRadius: 3, maxWidth: 460, marginBottom: 32, overflow: 'hidden' }}>
+            <div style={{
+              height: '100%',
+              width: `${((qIdx + 1) / QUESTIONS.length) * 100}%`,
+              background: 'linear-gradient(90deg,#34c98d,#00f78e)',
+              borderRadius: 3,
+              transition: 'width .65s cubic-bezier(.65,0,.35,1)',
+            }} />
+          </div>
+        </div>
+
+        {/* Scrollable question area */}
+        <div
+          ref={scrollRef}
+          style={{
+            flex: 1, minHeight: 0, overflowY: 'auto',
+            padding: '0 56px 60px',
+            opacity: fading ? 0 : 1,
+            transition: 'opacity .24s cubic-bezier(.65,0,.35,1)',
+          }}
+        >
           <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={qIdx}
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.28 }}
+              style={{ maxWidth: 460 }}
+            >
+              {/* Back link */}
+              {qIdx > 0 && (
+                <button
+                  onClick={goBack}
+                  style={{
+                    background:'none', border:'none', fontSize:12.5, fontWeight:600,
+                    color:'rgba(23,24,28,.38)', cursor:'pointer', padding:0, marginBottom:22,
+                    display:'flex', alignItems:'center', gap:6, fontFamily:'inherit',
+                  }}
+                >
+                  <ArrowLeft size={13} /> Back
+                </button>
+              )}
 
-            {/* STEP 1 — Event Core */}
-            {step === 1 && (
-              <motion.div key="step1" variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.25 }}>
-                <p className={sectionLabelCls}>Your Event Details</p>
+              <p style={rEyebrow}>{currentQ.eyebrow}</p>
+              <h2 style={rTitle}>{currentQ.title}</h2>
 
-                <div className="mb-7">
-                  <FormSelect
-                    label="Source"
-                    field="source"
-                    options={SOURCE_TYPES}
-                    value={data.source}
-                    onChange={(v) => set('source', v)}
-                    helper="Where this enquiry originated from"
-                  />
-                  <p className="mt-1.5 text-[11.5px] text-gray-400">This should match how the lead first reached us.</p>
+              {/* ── SINGLE SELECT ── */}
+              {currentQ.type === 'single' && (
+                <div style={{ display:'flex', flexDirection:'column', marginBottom:18, maxHeight:340, overflowY:'auto' }}>
+                  {(currentQ.options ?? []).map(opt => {
+                    const sel = (data[currentQ.id as keyof FormData] as string) === opt;
+                    return (
+                      <button
+                        key={opt}
+                        style={sel ? rOptSel : rOptBase}
+                        onClick={() => set(currentQ.id as keyof FormData, opt)}
+                      >
+                        {opt}
+                        {sel && <span style={rOptDot}><Check size={9} color="#0894ce" strokeWidth={3}/></span>}
+                      </button>
+                    );
+                  })}
                 </div>
+              )}
 
-                <p className={sectionLabelCls}>Vessel &amp; Event Type</p>
-                <div className="mb-7 grid grid-cols-2 gap-5">
-                  <FormMultiSelect
-                    label="Vessel Type"
-                    field="vesselType"
-                    options={VESSEL_TYPES}
-                    value={data.vesselType}
-                    onChange={(v) => set('vesselType', v)}
-                    onPreview={handlePreview}
-                  />
-                  <FormSelect
-                    label="Event Type"
-                    field="eventType"
-                    options={EVENT_TYPES}
-                    value={data.eventType}
-                    onChange={(v) => set('eventType', v)}
-                    onPreview={handlePreview}
-                  />
+              {/* ── MULTI SELECT ── */}
+              {currentQ.type === 'multi' && (
+                <div style={{ display:'flex', flexDirection:'column', marginBottom:18, maxHeight:340, overflowY:'auto' }}>
+                  {(currentQ.options ?? []).map(opt => {
+                    const arr = data[currentQ.id as keyof FormData] as string[];
+                    const sel = arr.includes(opt);
+                    return (
+                      <button
+                        key={opt}
+                        style={sel ? rOptSel : rOptBase}
+                        onClick={() => toggleMulti(currentQ.id as keyof FormData, opt)}
+                      >
+                        {opt}
+                        {sel && <span style={rOptDot}><Check size={9} color="#0894ce" strokeWidth={3}/></span>}
+                      </button>
+                    );
+                  })}
                 </div>
+              )}
 
-                <p className={sectionLabelCls}>Event Date</p>
-                <div>
-                  <label className={fieldLabelCls}>
-                    Date of Event
-                    <span title="The calendar day this event takes place">
-                      <HelpCircle className="h-3.5 w-3.5 text-[#7c8a82]" />
-                    </span>
-                  </label>
+              {/* ── DATE ── */}
+              {currentQ.type === 'date' && (
+                <div style={{ marginBottom: 18 }}>
                   <input
                     type="date"
                     value={data.eventDate}
-                    onChange={(e) => set('eventDate', e.target.value)}
+                    onChange={e => set('eventDate', e.target.value)}
                     className={inputCls}
                   />
+                  {isPeakPeriod(data.eventDate) && (
+                    <p style={{ marginTop:10, fontSize:11.5, color:'#E22A12', fontWeight:600 }}>
+                      ⚠ Peak period (Fri–Sun or TBC) — +20% vessel hire applied
+                    </p>
+                  )}
                 </div>
-              </motion.div>
-            )}
+              )}
 
-            {/* STEP 2 — Guest Count */}
-            {step === 2 && (
-              <motion.div key="step2" variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.25 }}>
-                <p className={sectionLabelCls}>Guest Count</p>
-                <div className="mb-7">
-                  <label className={fieldLabelCls}>Number of Guests</label>
+              {/* ── NUMBER ── */}
+              {currentQ.type === 'number' && (
+                <div style={{ marginBottom: 18 }}>
                   <input
                     type="number"
                     min={1}
-                    value={data.guestCount}
-                    onChange={(e) => set('guestCount', e.target.value)}
-                    placeholder="e.g. 120"
+                    value={data[currentQ.id as keyof FormData] as string}
+                    onChange={e => set(currentQ.id as keyof FormData, e.target.value)}
+                    placeholder="Enter a number…"
                     className={inputCls}
                   />
-                  <p className="mt-1.5 text-[11.5px] text-gray-400">Used to calculate staffing across the event.</p>
                 </div>
-              </motion.div>
-            )}
+              )}
 
-            {/* STEP 3 — Schedule Timings */}
-            {step === 3 && (
-              <motion.div key="step3-schedule" variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.25 }}>
-                <p className={sectionLabelCls}>Schedule Timings</p>
-                <div className="grid grid-cols-2 gap-5">
-                  {(
-                    [
-                      ['Embarkation', 'embarkation'],
-                      ['Departure', 'departure'],
-                      ['Return', 'returnTime'],
+              {/* ── SCHEDULE (4 time fields + watch) ── */}
+              {currentQ.type === 'schedule' && (
+                <div style={{ marginBottom: 18 }}>
+                  <div className="grid grid-cols-2 gap-4 mb-5">
+                    {([
+                      ['Embarkation',    'embarkation'],
+                      ['Departure',      'departure'],
+                      ['Return',         'returnTime'],
                       ['Disembarkation', 'disembarkation'],
-                    ] as [string, keyof FormData][]
-                  ).map(([label, key]) => (
-                    <div key={key}>
-                      <label className={fieldLabelCls}>{label}</label>
-                      <input
-                        type="time"
-                        value={data[key] as string}
-                        onChange={(e) => set(key, e.target.value)}
-                        className={inputCls}
-                      />
-                    </div>
-                  ))}
-                </div>
-
-                <ItineraryWatch
-                  embarkation={data.embarkation}
-                  departure={data.departure}
-                  returnTime={data.returnTime}
-                  disembarkation={data.disembarkation}
-                  onChangeField={(key, value) => set(key, value)}
-                />
-              </motion.div>
-            )}
-
-            {/* STEP 4 — Catering */}
-            {step === 4 && (
-              <motion.div key="step3" variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.25 }}>
-                <p className={sectionLabelCls}>Catering</p>
-
-                <FormMultiSelect
-                  label="Menu Type"
-                  field="menuType"
-                  options={MENU_TYPES}
-                  value={data.menuType}
-                  onChange={(v) => set('menuType', v)}
-                  onPreview={handlePreview}
-                />
-
-                {data.menuType.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-7 grid grid-cols-2 gap-4"
-                  >
-                    <div className="rounded-[10px] border border-[#e3e6e4] bg-[#FFF1F0] p-5">
-                      <p className={sectionLabelCls}>Catering Assistants</p>
-                      <p className="text-[28px] font-black text-[#E22A12]">
-                        {Math.ceil((parseInt(data.guestCount) || 50) / 20)}
-                      </p>
-                      <p className="mt-1 text-[11px] text-gray-400">1 per 20 guests</p>
-                    </div>
-                    <div className="rounded-[10px] border border-[#e3e6e4] bg-[#FFF1F0] p-5">
-                      <p className={sectionLabelCls}>Event Staff</p>
-                      <p className="text-[28px] font-black text-[#E22A12]">
-                        {Math.ceil((parseInt(data.guestCount) || 50) / 25)}
-                      </p>
-                      <p className="mt-1 text-[11px] text-gray-400">1 per 25 guests</p>
-                    </div>
-                  </motion.div>
-                )}
-              </motion.div>
-            )}
-
-            {/* STEP 5 — Financials */}
-            {step === 5 && (
-              <motion.div
-                key="step5-financials"
-                variants={pageVariants}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                transition={{ duration: 0.25 }}
-              >
-                <p className={sectionLabelCls}>Client Status</p>
-                <div className="mb-7 flex items-center justify-between rounded-[10px] border border-[#e3e6e4] p-4">
-                  <div>
-                    <p className="text-[13px] font-semibold text-gray-800">Repeat Client</p>
-                    <p className="text-[12px] text-gray-400">Reduces margin from 25% to 15%</p>
+                    ] as [string, keyof FormData][]).map(([label, key]) => (
+                      <div key={key}>
+                        <label className="mb-1.5 block text-[12.5px] font-semibold text-gray-700">{label}</label>
+                        <input
+                          type="time"
+                          value={data[key] as string}
+                          onChange={e => set(key, e.target.value)}
+                          className={inputCls}
+                        />
+                      </div>
+                    ))}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => set('repeatClient', !data.repeatClient)}
-                    className={`relative h-7 w-14 rounded-full transition-colors ${data.repeatClient ? 'bg-[#FF5A45]' : 'bg-gray-200'}`}
-                  >
-                    <motion.div
-                      animate={{ x: data.repeatClient ? 28 : 2 }}
-                      transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-                      className="absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm"
-                    />
-                  </button>
+                  <ItineraryWatch
+                    embarkation={data.embarkation}
+                    departure={data.departure}
+                    returnTime={data.returnTime}
+                    disembarkation={data.disembarkation}
+                    onChangeField={(key, value) => set(key, value)}
+                  />
                 </div>
+              )}
 
-                <p className={sectionLabelCls}>Cost Inputs</p>
-
-                {/* Base Cost formula breakdown — Vessel Hire + Menu Cost + Fixed Ops +
-                    catering inclusions + Upgrades, mirroring the n8n Process Financials node. */}
-                <div className="mb-4 overflow-hidden rounded-[10px] border border-[#e3e6e4]">
-                  <div className="flex items-center justify-between border-b border-[#f0f0f0] px-5 py-3 text-[13px] text-gray-600">
-                    <span className="flex items-center gap-2">
-                      Vessel Hire
-                      {baseCostBreakdown.peak && (
-                        <span className="rounded-full bg-[#FFF1F0] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[#E22A12]">
-                          Peak +20%
-                        </span>
-                      )}
-                    </span>
-                    <span className="font-semibold text-[#00e676] [text-shadow:0_0_6px_rgba(0,230,118,0.55)]">£{baseCostBreakdown.vesselHire.toFixed(2)}</span>
-                  </div>
+              {/* ── BOOL (Repeat Client) ── */}
+              {currentQ.type === 'bool' && (
+                <div style={{ display:'flex', flexDirection:'column', marginBottom:18 }}>
                   {[
-                    ['Menu Cost', baseCostBreakdown.menuCost],
-                    ['Fixed Operational Costs', baseCostBreakdown.fixedOps],
-                    ...(baseCostBreakdown.cateringInclusions > 0
-                      ? ([['Catering Inclusions', baseCostBreakdown.cateringInclusions]] as const)
-                      : []),
-                    ...(baseCostBreakdown.upgradesTotal > 0
-                      ? ([['Upgrades Total', baseCostBreakdown.upgradesTotal]] as const)
-                      : []),
-                  ].map(([label, val]) => (
-                    <div key={label} className="flex items-center justify-between border-b border-[#f0f0f0] px-5 py-3 text-[13px] text-gray-600">
-                      <span>{label}</span>
-                      <span className="font-semibold text-[#00e676] [text-shadow:0_0_6px_rgba(0,230,118,0.55)]">£{(val as number).toFixed(2)}</span>
-                    </div>
-                  ))}
-                  <div className="flex items-center justify-between bg-[#f0fdf5] px-5 py-3 text-[13px] font-bold text-gray-700">
-                    <span>Base Cost (formula total)</span>
-                    <span className="text-[14px] font-black text-[#00e676] [text-shadow:0_0_6px_rgba(0,230,118,0.55)]">£{baseCostBreakdown.total.toFixed(2)}</span>
-                  </div>
-                </div>
-                <p className="mb-4 -mt-2 text-[11px] text-gray-400">
-                  Vessel hire is £{VESSEL_HIRE_RATE} flat (no per-vessel rate table on file), +20% on Friday–Sunday
-                  bookings or whenever the date is TBC.
-                </p>
-
-                <div className="mb-7">
-                  <div className="mb-1.5 flex items-center justify-between">
-                    <label className={fieldLabelCls}>Base Cost (£)</label>
-                    {baseCostAuto ? (
-                      <span className="rounded-full bg-[#f0fdf5] px-2.5 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#00e676] [text-shadow:0_0_6px_rgba(0,230,118,0.55)]">
-                        Auto-filled
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setBaseCostAuto(true)}
-                        className="text-[11px] font-semibold text-gray-400 underline-offset-2 hover:text-[#FF5A45] hover:underline"
-                      >
-                        Reset to auto
+                    { label:'Yes — repeat client',  val:true,  hint:'15% margin applied' },
+                    { label:'No — new client',       val:false, hint:'25% margin applied' },
+                  ].map(({ label, val, hint }) => {
+                    const sel = data.repeatClient === val;
+                    return (
+                      <button key={String(val)} style={sel ? rOptSel : rOptBase} onClick={() => set('repeatClient', val)}>
+                        <span>
+                          <span style={{ display:'block' }}>{label}</span>
+                          <span style={{ fontSize:11, opacity:.65 }}>{hint}</span>
+                        </span>
+                        {sel && <span style={rOptDot}><Check size={9} color="#0894ce" strokeWidth={3}/></span>}
                       </button>
-                    )}
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* ── COST (Base Cost with formula) ── */}
+              {currentQ.type === 'cost' && (
+                <div style={{ marginBottom: 18 }}>
+                  {/* Formula breakdown */}
+                  <div style={{ marginBottom:14, borderRadius:10, border:'1px solid #e3e6e4', overflow:'hidden', fontSize:13 }}>
+                    {[
+                      ['Vessel Hire' + (baseCostBreakdown.peak ? ' (Peak +20%)' : ''), baseCostBreakdown.vesselHire],
+                      ['Menu Cost', baseCostBreakdown.menuCost],
+                      ['Fixed Operational Costs', baseCostBreakdown.fixedOps],
+                      ...(baseCostBreakdown.cateringInclusions > 0 ? [['Catering Inclusions', baseCostBreakdown.cateringInclusions]] as const : []),
+                      ...(baseCostBreakdown.upgradesTotal > 0 ? [['Upgrades Total', baseCostBreakdown.upgradesTotal]] as const : []),
+                    ].map(([label, val]) => (
+                      <div key={label as string} style={{ display:'flex', justifyContent:'space-between', padding:'10px 14px', borderBottom:'1px solid #f0f0f0', color:'#555' }}>
+                        <span>{label as string}</span>
+                        <span style={{ fontWeight:600, color:'#00e676' }}>£{(val as number).toFixed(2)}</span>
+                      </div>
+                    ))}
+                    <div style={{ display:'flex', justifyContent:'space-between', padding:'11px 14px', background:'#f0fdf5', fontWeight:700, color:'#333' }}>
+                      <span>Formula Total</span>
+                      <span style={{ color:'#00e676' }}>£{baseCostBreakdown.total.toFixed(2)}</span>
+                    </div>
+                  </div>
+
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+                    <label style={{ fontSize:12.5, fontWeight:600, color:'#555' }}>Base Cost (£)</label>
+                    {baseCostAuto
+                      ? <span style={{ fontSize:10, fontWeight:700, background:'#f0fdf5', color:'#00c06a', padding:'2px 8px', borderRadius:20 }}>Auto-filled</span>
+                      : <button type="button" onClick={() => setBaseCostAuto(true)} style={{ fontSize:11, color:'#aaa', background:'none', border:'none', cursor:'pointer', textDecoration:'underline' }}>Reset to auto</button>
+                    }
                   </div>
                   <input
                     type="number"
                     min={0}
                     value={data.totalCost}
-                    onChange={(e) => {
-                      setBaseCostAuto(false);
-                      set('totalCost', e.target.value);
-                    }}
+                    onChange={e => { setBaseCostAuto(false); set('totalCost', e.target.value); }}
                     placeholder="Enter base event cost"
-                    className={`${inputCls} font-semibold text-[#00e676] [text-shadow:0_0_6px_rgba(0,230,118,0.55)]`}
+                    className={inputCls}
+                    style={{ fontWeight:600, color:'#00e676' }}
                   />
-                  <p className="mt-1.5 text-[11.5px] text-gray-400">
-                    Prefilled from the formula above — edit it directly to override.
-                  </p>
                 </div>
+              )}
 
-                {(parseFloat(data.totalCost) > 0 || data.selectedUpgrades.length > 0) && (
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="overflow-hidden rounded-[10px] border border-[#e3e6e4]">
-                    <div className="flex items-center justify-between border-b border-[#f0f0f0] bg-[#f0fdf5] px-5 py-3 text-[13px] font-bold text-gray-700">
-                      <span>Base Cost</span>
-                      <span className="font-black text-[#00e676] [text-shadow:0_0_6px_rgba(0,230,118,0.55)]">£{fin.baseCost.toFixed(2)}</span>
-                    </div>
-                    {[
-                      ['Contingency (2.25%)', fin.contingency],
-                      [`Margin (${(fin.margin * 100).toFixed(0)}%)`, fin.marginAmount],
-                    ].map(([label, val]) => (
-                      <div key={label} className="flex items-center justify-between border-b border-[#f0f0f0] px-5 py-3 text-[13px] text-gray-600">
-                        <span>{label}</span>
-                        <span className="font-semibold text-[#00e676] [text-shadow:0_0_6px_rgba(0,230,118,0.55)]">£{(val as number).toFixed(2)}</span>
-                      </div>
-                    ))}
-                    <div className="flex items-center justify-between border-b border-[#f0f0f0] bg-[#f0fdf5] px-5 py-3 text-[13px] font-bold text-gray-700">
-                      <span>Cost to Client</span>
-                      <span className="font-black text-[#00e676] [text-shadow:0_0_6px_rgba(0,230,118,0.55)]">£{fin.costToClient.toFixed(2)}</span>
-                    </div>
-                    <div className="flex items-center justify-between border-b border-[#f0f0f0] px-5 py-3 text-[13px] text-gray-600">
-                      <span>VAT (20%)</span>
-                      <span className="font-semibold text-[#00e676] [text-shadow:0_0_6px_rgba(0,230,118,0.55)]">£{fin.vat.toFixed(2)}</span>
-                    </div>
-                    <div className="flex items-center justify-between bg-[#FF5A45] px-5 py-4 text-[14px] font-black text-white">
-                      <span>Grand Total</span>
-                      <span className="text-[#00e676] [text-shadow:0_0_6px_rgba(0,230,118,0.55)]">£{fin.grand.toFixed(2)}</span>
-                    </div>
-                  </motion.div>
-                )}
-              </motion.div>
-            )}
-
-            {/* STEP 6 — Upgrades */}
-            {step === 6 && (
-              <motion.div
-                key="step6-upgrades"
-                variants={pageVariants}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                transition={{ duration: 0.25 }}
-              >
-                <p className={sectionLabelCls}>Optional Add-Ons</p>
-
-                <div className="flex flex-col gap-3">
+              {/* ── UPGRADES ── */}
+              {currentQ.type === 'upgrades' && (
+                <div style={{ marginBottom: 18 }}>
                   {UPGRADES.map(({ label, price, type }) => {
-                    const selected = data.selectedUpgrades.includes(label);
-                    const guests = parseFloat(data.guestCount) || 0;
+                    const sel      = data.selectedUpgrades.includes(label);
+                    const guests   = parseFloat(data.guestCount) || 0;
                     const lineTotal = type === 'perGuest' ? price * guests : price;
                     return (
-                      <motion.button
+                      <button
                         key={label}
-                        type="button"
-                        whileHover={{ x: 4 }}
+                        style={{
+                          ...rOptBase,
+                          borderRadius:10,
+                          border: sel ? '1.5px solid #FF5A45' : '1.5px solid #e3e6e4',
+                          background: sel ? '#FFF1F0' : '#fff',
+                        }}
                         onClick={() => toggleUpgrade(label)}
-                        className={`flex items-center justify-between rounded-[10px] border px-5 py-4 text-left transition-colors ${
-                          selected
-                            ? 'border-[#FF5A45] bg-[#FFF1F0]'
-                            : 'border-[#e3e6e4] bg-white hover:border-gray-300'
-                        }`}
                       >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`flex h-5 w-5 items-center justify-center rounded-[6px] transition-colors ${
-                              selected ? 'bg-[#FF5A45]' : 'border border-[#d0d0d0]'
-                            }`}
-                          >
-                            {selected && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
-                          </div>
-                          <span className="text-[13px] font-semibold text-gray-800">{label}</span>
-                          {type === 'perGuest' && (
-                            <span className="text-[10.5px] text-gray-400">(£{price}/guest)</span>
-                          )}
-                        </div>
-                        <span className={`text-[13px] font-bold ${selected ? 'text-[#00e676] [text-shadow:0_0_6px_rgba(0,230,118,0.55)]' : 'text-gray-400'}`}>
+                        <span style={{ display:'flex', alignItems:'center', gap:10 }}>
+                          <span style={{
+                            width:18, height:18, borderRadius:5, flexShrink:0,
+                            display:'flex', alignItems:'center', justifyContent:'center',
+                            background: sel ? '#FF5A45' : 'transparent',
+                            border: sel ? 'none' : '1.5px solid #d0d0d0',
+                          }}>
+                            {sel && <Check size={11} color="#fff" strokeWidth={3} />}
+                          </span>
+                          <span>
+                            <span style={{ fontWeight:600, fontSize:13 }}>{label}</span>
+                            {type === 'perGuest' && <span style={{ fontSize:11, color:'#aaa', marginLeft:6 }}>(£{price}/guest)</span>}
+                          </span>
+                        </span>
+                        <span style={{ fontWeight:700, fontSize:13, color: sel ? '#00e676' : '#aaa' }}>
                           £{lineTotal.toLocaleString()}
                         </span>
-                      </motion.button>
+                      </button>
                     );
                   })}
+                  {data.selectedUpgrades.length > 0 && (
+                    <div style={{ marginTop:12, display:'flex', justifyContent:'space-between', padding:'12px 16px', borderRadius:10, border:'1.5px solid #FF5A45', background:'#FFF1F0' }}>
+                      <span style={{ fontSize:12, fontWeight:600, color:'#E22A12' }}>
+                        {data.selectedUpgrades.length} upgrade{data.selectedUpgrades.length > 1 ? 's' : ''} selected
+                      </span>
+                      <span style={{ fontSize:14, fontWeight:700, color:'#00e676' }}>
+                        +£{baseCostBreakdown.upgradesTotal.toLocaleString()}
+                      </span>
+                    </div>
+                  )}
                 </div>
+              )}
 
-                {data.selectedUpgrades.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-6 flex items-center justify-between rounded-[10px] border border-[#FF5A45] bg-[#FFF1F0] px-5 py-4"
-                  >
-                    <span className="text-[12px] font-semibold text-[#E22A12]">
-                      {data.selectedUpgrades.length} upgrade{data.selectedUpgrades.length > 1 ? 's' : ''} selected
+              {/* ── Continue / Generate button ── */}
+              <button
+                style={isReady(currentQ) ? rSubmitReady : rSubmitDis}
+                disabled={!isReady(currentQ)}
+                onClick={goNext}
+              >
+                {currentQ.submitLabel === 'Generate Proposal'
+                  ? <span style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+                      Generate Proposal <ArrowRight size={15} />
                     </span>
-                    <span className="text-[14px] font-black text-[#00e676] [text-shadow:0_0_6px_rgba(0,230,118,0.55)]">
-                      +£{baseCostBreakdown.upgradesTotal.toLocaleString()}
-                    </span>
-                  </motion.div>
-                )}
-              </motion.div>
-            )}
+                  : 'Continue'
+                }
+              </button>
+
+            </motion.div>
           </AnimatePresence>
-
-          {/* ── Navigation (DNB: single pill "Next" button, bottom right) ── */}
-          <div className="mt-11 flex items-center justify-between">
-            {step > 1 ? (
-              <button
-                onClick={() => setStep((s) => Math.max(1, s - 1))}
-                className="text-[13px] font-semibold text-gray-400 transition-colors hover:text-gray-700"
-              >
-                Back
-              </button>
-            ) : (
-              <span />
-            )}
-            {step < 6 ? (
-              <button
-                onClick={() => setStep((s) => Math.min(6, s + 1))}
-                className="flex items-center gap-2 rounded-full bg-[#FF5A45] px-8 py-3.5 text-[13px] font-bold text-white shadow-sm transition-colors hover:bg-[#F4412A]"
-              >
-                Next
-              </button>
-            ) : (
-              <button
-                onClick={handleGenerate}
-                className="flex items-center gap-2 rounded-full bg-[#FF5A45] px-8 py-3.5 text-[13px] font-bold text-white shadow-sm transition-colors hover:bg-[#F4412A]"
-              >
-                Generate Proposal
-                <ArrowRight className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
         </div>
       </main>
 
-      {/* ── Right-edge hover image preview (from settings, per selected/hovered option) ── */}
-      <AnimatePresence>
-        {previewImg && previewOption && (
-          <motion.div
-            key={`${previewField}-${previewOption}`}
-            initial={{ x: 200, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: 200, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 280, damping: 28 }}
-            className="pointer-events-none fixed right-0 top-1/2 z-40 h-[220px] w-[220px] -translate-y-1/2 overflow-hidden shadow-2xl"
-          >
-            <img src={previewImg} alt="" className="h-full w-full object-cover" />
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-3">
-              <p className="text-[11px] font-bold text-white/90 leading-snug">{previewOption}</p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ── Generation overlay: large animated card with color-coded stages and a live data-integrity checklist ── */}
+      {/* ── Generation overlay (unchanged from original) ── */}
       <AnimatePresence>
         {stage !== 'idle' && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-[#0b0f0d]/60 backdrop-blur-md"
           >
             <motion.div
-              initial={{ opacity: 0, y: 24, scale: 0.94 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 24, scale: 0.94 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 26 }}
+              initial={{ opacity:0, y:24, scale:.94 }} animate={{ opacity:1, y:0, scale:1 }}
+              exit={{ opacity:0, y:24, scale:.94 }}
+              transition={{ type:'spring', stiffness:300, damping:26 }}
               className="relative w-[560px] overflow-hidden rounded-[28px] bg-white shadow-2xl"
             >
-              {/* Top progress bar — fills and shifts color as each stage completes */}
               <div className="h-1.5 w-full bg-gray-100">
                 <motion.div
                   className="h-full"
                   animate={{
-                    width:
-                      stage === 'error'
-                        ? '100%'
-                        : `${((STAGE_ORDER.indexOf(stage as (typeof STAGE_ORDER)[number]) + 1) / STAGE_ORDER.length) * 100}%`,
+                    width: stage === 'error' ? '100%' : `${((STAGE_ORDER.indexOf(stage as (typeof STAGE_ORDER)[number]) + 1) / STAGE_ORDER.length) * 100}%`,
                     backgroundColor: STAGE_META[stage as keyof typeof STAGE_META].color,
                   }}
                   transition={{ duration: 0.5, ease: 'easeOut' }}
                 />
               </div>
-
               <div className="grid grid-cols-[1.1fr_1fr]">
-                {/* ── Left: animated stage icon + label ── */}
                 <div className="relative flex flex-col items-center justify-center overflow-hidden px-8 py-12">
-                  {/* Ambient pulsing rings behind the icon, tinted to the current stage color */}
                   {stage !== 'error' && (
                     <>
-                      <motion.div
-                        key={`ring1-${stage}`}
-                        className="absolute h-40 w-40 rounded-full"
-                        style={{ backgroundColor: `${STAGE_META[stage as keyof typeof STAGE_META].color}12` }}
-                        animate={{ scale: [1, 1.35, 1], opacity: [0.6, 0.15, 0.6] }}
-                        transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-                      />
-                      <motion.div
-                        key={`ring2-${stage}`}
-                        className="absolute h-28 w-28 rounded-full"
-                        style={{ backgroundColor: `${STAGE_META[stage as keyof typeof STAGE_META].color}1f` }}
-                        animate={{ scale: [1, 1.2, 1], opacity: [0.7, 0.25, 0.7] }}
-                        transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
-                      />
+                      <motion.div key={`r1-${stage}`} className="absolute h-40 w-40 rounded-full"
+                        style={{ backgroundColor:`${STAGE_META[stage as keyof typeof STAGE_META].color}12` }}
+                        animate={{ scale:[1,1.35,1], opacity:[.6,.15,.6] }}
+                        transition={{ duration:2.4, repeat:Infinity, ease:'easeInOut' }} />
+                      <motion.div key={`r2-${stage}`} className="absolute h-28 w-28 rounded-full"
+                        style={{ backgroundColor:`${STAGE_META[stage as keyof typeof STAGE_META].color}1f` }}
+                        animate={{ scale:[1,1.2,1], opacity:[.7,.25,.7] }}
+                        transition={{ duration:2.4, repeat:Infinity, ease:'easeInOut', delay:.3 }} />
                     </>
                   )}
-
                   <AnimatePresence mode="wait">
-                    <motion.div
-                      key={stage}
-                      initial={{ opacity: 0, y: 10, scale: 0.9 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -10, scale: 0.9 }}
-                      transition={{ duration: 0.25 }}
+                    <motion.div key={stage}
+                      initial={{ opacity:0, y:10, scale:.9 }} animate={{ opacity:1, y:0, scale:1 }}
+                      exit={{ opacity:0, y:-10, scale:.9 }} transition={{ duration:.25 }}
                       className="relative z-10 flex flex-col items-center text-center"
                     >
-                      <div
-                        className="mb-6 flex h-20 w-20 items-center justify-center rounded-full"
-                        style={{ backgroundColor: `${STAGE_META[stage as keyof typeof STAGE_META].color}18` }}
-                      >
+                      <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full"
+                        style={{ backgroundColor:`${STAGE_META[stage as keyof typeof STAGE_META].color}18` }}>
                         {stage === 'done' ? (
-                          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 400, damping: 18 }}>
-                            <FileCheck2 className="h-9 w-9" style={{ color: STAGE_META.done.color }} />
+                          <motion.div initial={{ scale:0 }} animate={{ scale:1 }} transition={{ type:'spring', stiffness:400, damping:18 }}>
+                            <FileCheck2 className="h-9 w-9" style={{ color:STAGE_META.done.color }} />
                           </motion.div>
                         ) : stage === 'error' ? (
-                          <AlertTriangle className="h-9 w-9" style={{ color: STAGE_META.error.color }} />
+                          <AlertTriangle className="h-9 w-9" style={{ color:STAGE_META.error.color }} />
                         ) : (
-                          <Loader2
-                            className="h-9 w-9 animate-spin"
-                            style={{ color: STAGE_META[stage as keyof typeof STAGE_META].color }}
-                          />
+                          <Loader2 className="h-9 w-9 animate-spin" style={{ color:STAGE_META[stage as keyof typeof STAGE_META].color }} />
                         )}
                       </div>
                       <p className="text-[17px] font-bold text-gray-800">
@@ -1173,83 +721,53 @@ export function Forms() {
                       </p>
                     </motion.div>
                   </AnimatePresence>
-
                   {stage === 'error' && (
                     <div className="relative z-10 mt-7 flex items-center justify-center gap-3">
-                      <button
-                        onClick={() => setStage('idle')}
-                        className="flex items-center gap-1.5 rounded-full border border-[#e3e6e4] px-4 py-2 text-[12.5px] font-semibold text-gray-500 transition-colors hover:bg-gray-50"
-                      >
+                      <button onClick={() => setStage('idle')}
+                        className="flex items-center gap-1.5 rounded-full border border-[#e3e6e4] px-4 py-2 text-[12.5px] font-semibold text-gray-500 transition-colors hover:bg-gray-50">
                         <X className="h-3.5 w-3.5" /> Close
                       </button>
-                      <button
-                        onClick={handleGenerate}
-                        className="rounded-full bg-[#FF5A45] px-5 py-2 text-[12.5px] font-bold text-white transition-colors hover:bg-[#F4412A]"
-                      >
+                      <button onClick={handleGenerate}
+                        className="rounded-full bg-[#FF5A45] px-5 py-2 text-[12.5px] font-bold text-white transition-colors hover:bg-[#F4412A]">
                         Retry
                       </button>
                     </div>
                   )}
                 </div>
-
-                {/* ── Right: data-integrity checklist + live order snapshot ── */}
                 <div className="flex flex-col gap-6 border-l border-gray-100 bg-[#FAFBF9] px-7 py-9">
                   <div>
-                    <p className="mb-3 text-[10.5px] font-bold uppercase tracking-[0.14em] text-[#7c8a82]">
-                      Data Integrity
-                    </p>
+                    <p className="mb-3 text-[10.5px] font-bold uppercase tracking-[0.14em] text-[#7c8a82]">Data Integrity</p>
                     <div className="flex flex-col gap-3">
                       {INTEGRITY_STEPS.map(({ key, label }) => {
-                        const reached =
-                          stage !== 'error' && STAGE_ORDER.indexOf(stage as (typeof STAGE_ORDER)[number]) >= STAGE_ORDER.indexOf(key);
-                        const active = stage === key;
+                        const reached = stage !== 'error' && STAGE_ORDER.indexOf(stage as (typeof STAGE_ORDER)[number]) >= STAGE_ORDER.indexOf(key);
+                        const active  = stage === key;
                         return (
                           <div key={key} className="flex items-center gap-2.5">
-                            <motion.div
-                              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
-                              animate={{
-                                backgroundColor: reached ? STAGE_META[key].color : '#e5e7eb',
-                                scale: active ? [1, 1.15, 1] : 1,
-                              }}
-                              transition={{ duration: active ? 0.8 : 0.3, repeat: active ? Infinity : 0 }}
-                            >
+                            <motion.div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
+                              animate={{ backgroundColor: reached ? STAGE_META[key].color : '#e5e7eb', scale: active ? [1,1.15,1] : 1 }}
+                              transition={{ duration: active ? .8 : .3, repeat: active ? Infinity : 0 }}>
                               {reached && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
                             </motion.div>
-                            <span
-                              className={`text-[12.5px] transition-colors ${
-                                reached ? 'font-semibold text-gray-700' : 'text-gray-400'
-                              }`}
-                            >
-                              {label}
-                            </span>
+                            <span className={`text-[12.5px] transition-colors ${reached ? 'font-semibold text-gray-700' : 'text-gray-400'}`}>{label}</span>
                           </div>
                         );
                       })}
                     </div>
                   </div>
-
-                  {/* Live snapshot of the exact figures being sent, so nothing looks altered in transit */}
                   <div className="rounded-[14px] border border-gray-100 bg-white p-4">
-                    <p className="mb-2.5 text-[10.5px] font-bold uppercase tracking-[0.14em] text-[#7c8a82]">
-                      Quote Snapshot
-                    </p>
+                    <p className="mb-2.5 text-[10.5px] font-bold uppercase tracking-[0.14em] text-[#7c8a82]">Quote Snapshot</p>
                     <div className="flex flex-col gap-1.5 text-[12px]">
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-400">Vessel</span>
-                        <span className="font-semibold text-gray-700">{data.vesselType.join(', ') || '—'}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-400">Event</span>
-                        <span className="font-semibold text-gray-700">{data.eventType || '—'}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-400">Guests</span>
-                        <span className="font-semibold text-gray-700">{data.guestCount || '—'}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-400">Base Cost</span>
-                        <span className="font-semibold text-[#00e676] [text-shadow:0_0_6px_rgba(0,230,118,0.55)]">£{fin.baseCost.toFixed(2)}</span>
-                      </div>
+                      {[
+                        ['Vessel', data.vesselType.join(', ') || '—'],
+                        ['Event',  data.eventType || '—'],
+                        ['Guests', data.guestCount || '—'],
+                        ['Base Cost', `£${fin.baseCost.toFixed(2)}`],
+                      ].map(([label, val]) => (
+                        <div key={label} className="flex items-center justify-between">
+                          <span className="text-gray-400">{label}</span>
+                          <span className={`font-semibold ${label === 'Base Cost' ? 'text-[#00e676]' : 'text-gray-700'}`}>{val}</span>
+                        </div>
+                      ))}
                       <div className="mt-1.5 flex items-center justify-between border-t border-gray-100 pt-1.5">
                         <span className="text-gray-500">Grand Total</span>
                         <span className="font-black text-[#00e676]">£{fin.grand.toFixed(2)}</span>
