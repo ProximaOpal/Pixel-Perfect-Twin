@@ -11,6 +11,7 @@ import { useActiveLead } from '@/context/ActiveLeadContext';
 import { Avatar } from '@/components/Avatar';
 import { personAvatarUrl } from '@/lib/avatar';
 import { soundClick } from '@/lib/sounds';
+import { PanelNav } from '@/components/PanelNav';
 import './Home.css';
 import './ProgressNotes.css';
 
@@ -138,6 +139,7 @@ export function ProgressNotes() {
                 <ArrowLeft size={12} /> Leads
               </button>
             </div>
+            <PanelNav />
 
             {/* progress */}
             <div className="nhome-progress-track">

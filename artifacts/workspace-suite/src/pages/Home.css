@@ -187,7 +187,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  padding: 34px 40px 40px 68px; /* 68px = 52px sidenav + 16px breathing room */
+  padding: 34px 40px 40px 40px;
   z-index: 2;
 }
 .nhome-kaleidoscope {

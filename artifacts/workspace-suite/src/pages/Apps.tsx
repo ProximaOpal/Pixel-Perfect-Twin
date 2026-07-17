@@ -1,6 +1,7 @@
 import { useActiveLead } from '@/context/ActiveLeadContext';
 import { Avatar } from '@/components/Avatar';
 import { personAvatarUrl } from '@/lib/avatar';
+import { TopNav } from '@/components/TopNav';
 
 interface AppTile {
   name:    string;
@@ -99,7 +100,9 @@ export function Apps() {
   };
 
   return (
-    <div className="min-h-screen bg-white px-8 py-10" style={{ paddingLeft: 68 }}>
+    <div className="min-h-screen bg-white flex flex-col">
+      <TopNav />
+      <div className="px-8 py-10">
 
       {/* Header */}
       <div className="mb-2">
@@ -180,6 +183,7 @@ export function Apps() {
           Go to <a href="/leads" className="text-[#FF5A45] hover:underline">Leads</a> and click a lead row to sync their data here.
         </p>
       )}
+      </div>
     </div>
   );
 }

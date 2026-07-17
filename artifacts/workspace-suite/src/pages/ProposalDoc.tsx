@@ -7,6 +7,7 @@ import {
   Maximize2, Mail, HardDrive, Box, MessageCircle, Trash2, PenSquare,
 } from 'lucide-react';
 import { loadProposals, subscribeProposals, deleteProposal, type GeneratedProposal } from '@/lib/proposalStore';
+import { PanelNav } from '@/components/PanelNav';
 import './Home.css';
 
 /* ─── Real document pages from the uploaded PDF ─── */
@@ -300,6 +301,7 @@ export function ProposalDoc() {
             <div className="nhome-top-row">
               <div className="nhome-brand">Nexus<span className="nhome-brand-dot" /></div>
             </div>
+            <PanelNav />
 
             <div className="nhome-progress-track">
               <div className="nhome-progress-fill" style={{ width: allFiles.length > 0 ? '100%' : '12%' }} />

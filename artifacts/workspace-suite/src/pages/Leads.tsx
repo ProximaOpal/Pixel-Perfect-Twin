@@ -1,11 +1,22 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { soundClick, soundOpen, soundClose, soundTab, soundRefresh } from '@/lib/sounds';
-import { Search, Bell, ChevronDown, MoreVertical, Plus, X, RefreshCw, AlertCircle } from 'lucide-react';
+import { Search, Bell, ChevronDown, MoreVertical, Plus, X, RefreshCw, AlertCircle, Home, Users, ClipboardList, FileText, GitBranch, NotebookPen, Settings } from 'lucide-react';
+import { Link, useLocation } from 'wouter';
 import { LeadPanel, type Lead } from '@/components/LeadPanel';
 import { useActiveLead } from '@/context/ActiveLeadContext';
 import { Avatar } from '@/components/Avatar';
 import { personAvatarUrl } from '@/lib/avatar';
+
+const LEAD_NAV = [
+  { href: '/',               label: 'Home',           icon: Home          },
+  { href: '/leads',          label: 'Leads',          icon: Users         },
+  { href: '/quote-builder',  label: 'Quote Builder',  icon: ClipboardList },
+  { href: '/proposal-doc',   label: 'Proposal Doc',   icon: FileText      },
+  { href: '/timeline',       label: 'Timeline',       icon: GitBranch     },
+  { href: '/progress-notes', label: 'Progress Notes', icon: NotebookPen   },
+  { href: '/settings',       label: 'Settings',       icon: Settings      },
+] as const;
 
 // ── Webhook ──────────────────────────────────────────────────────────────────
 const WEBHOOK_URL = 'https://meeraworkflows.app.n8n.cloud/webhook/LeadDataFetch';
@@ -93,6 +104,7 @@ const TABS = ['Live', 'Booked', 'Dead', 'Blacklisted'] as const;
 // ── Component ─────────────────────────────────────────────────────────────────
 export function Leads() {
   const { setActiveLead } = useActiveLead();
+  const [location] = useLocation();
   const [activeTab, setActiveTab] = useState(0);
   const [leads, setLeads]         = useState<Lead[]>([]);
   const [status, setStatus]       = useState<'loading' | 'ok' | 'error'>('loading');
@@ -129,7 +141,7 @@ export function Leads() {
     : tabFiltered;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-white" style={{ paddingLeft: 52 }}>
+    <div className="flex h-screen overflow-hidden bg-white">
       <div className="flex flex-1 flex-col overflow-hidden">
 
         {/* ── Combined header bar ── */}
@@ -159,6 +171,31 @@ export function Leads() {
               <span className="ml-2 text-[12px] font-normal text-black/30">{leads.length}</span>
             )}
           </h1>
+
+          {/* Nav icons alongside "Leads Database" */}
+          <div style={{ display: 'flex', gap: 4 }}>
+            {LEAD_NAV.map(({ href, label, icon: Icon }) => {
+              const active = location === href;
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  aria-label={label}
+                  title={label}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    width: 28, height: 28, borderRadius: 7,
+                    background: active ? '#FF5A45' : 'rgba(23,24,28,0.06)',
+                    color: active ? '#fff' : 'rgba(23,24,28,0.45)',
+                    textDecoration: 'none', flexShrink: 0,
+                    transition: 'background .18s, color .18s',
+                  }}
+                >
+                  <Icon size={13} />
+                </Link>
+              );
+            })}
+          </div>
 
           <div className="flex-1" />
 

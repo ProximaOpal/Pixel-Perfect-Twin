@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Upload, X, Check } from 'lucide-react';
+import { TopNav } from '@/components/TopNav';
 import { VESSEL_TYPES, EVENT_TYPES, MENU_TYPES, loadFieldPhotos, saveFieldPhotos, photoKey, type PhotoMap } from '@/lib/formOptions';
 
 /* ─── Categories that support hover preview photos — one photo per individual item ─── */
@@ -55,7 +56,8 @@ export function Settings() {
   };
 
   return (
-    <div className="min-h-screen bg-white" style={{ paddingLeft: 52 }}>
+    <div className="min-h-screen bg-white flex flex-col">
+      <TopNav />
       {/* Header */}
       <div className="border-b border-black/8 px-10 py-8">
         <h1 className="text-[22px] font-black tracking-tight text-gray-900">Settings</h1>

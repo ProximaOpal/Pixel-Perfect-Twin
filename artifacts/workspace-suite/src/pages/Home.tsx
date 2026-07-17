@@ -11,6 +11,7 @@ import {
   Search,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { PanelNav } from '@/components/PanelNav';
 import './Home.css';
 
 type NavCard = {
@@ -145,6 +146,7 @@ export function Home() {
                   Nexus<span className="nhome-brand-dot" />
                 </div>
               </div>
+              <PanelNav />
 
               <div className="nhome-progress-track">
                 <div className="nhome-progress-fill" />

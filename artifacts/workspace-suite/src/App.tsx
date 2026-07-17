@@ -2,7 +2,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Route, Switch, Router as WouterRouter } from 'wouter';
-import { SideNav } from '@/components/SideNav';
 import { ActiveLeadProvider } from '@/context/ActiveLeadContext';
 import { Home } from '@/pages/Home';
 import { Leads } from '@/pages/Leads';
@@ -19,7 +18,6 @@ const queryClient = new QueryClient();
 function Router() {
   return (
     <>
-      <SideNav />
       <Switch>
         <Route path="/" component={Home} />
         <Route path="/leads" component={Leads} />

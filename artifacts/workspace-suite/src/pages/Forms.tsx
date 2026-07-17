@@ -6,6 +6,7 @@ import { addProposal } from '@/lib/proposalStore';
 import { VESSEL_TYPES, EVENT_TYPES, MENU_TYPES } from '@/lib/formOptions';
 import { ItineraryWatch } from '@/components/ItineraryWatch';
 import { getQuoteLead, clearQuoteLead, type QuoteLead } from '@/lib/quoteLeadStore';
+import { PanelNav } from '@/components/PanelNav';
 import './Home.css';
 import './ProgressNotes.css';
 
@@ -262,6 +263,7 @@ export function Forms() {
                 </span>
               )}
             </div>
+            <PanelNav />
 
             {/* progress — based on question index */}
             <div className="nhome-progress-track">
@@ -288,12 +290,8 @@ export function Forms() {
         {/* ── RIGHT PANEL — Home.tsx clone, content = question ── */}
         <main className="nhome-panel-right" style={{ overflow:'hidden', display:'flex', flexDirection:'column' }}>
 
-          {/* header: search + mode toggle */}
-          <div className="nhome-panel-right-header">
-            <label className="nhome-search-bar">
-              <Search size={16} style={{ flexShrink:0, color:'var(--ink-soft)' }} />
-              <input type="text" placeholder="Search options…" readOnly />
-            </label>
+          {/* header: mode toggle only (search bar removed) */}
+          <div className="nhome-panel-right-header" style={{ paddingTop: 20 }}>
 
             {/* toggle: Build Quote | Built Quotes */}
             <div className="pn-mode-toggle">
@@ -314,7 +312,7 @@ export function Forms() {
           <div
             ref={scrollRef}
             className={`pn-scroll-area${fading?' fading':''}`}
-            style={{ flex:1, minHeight:0, overflowY:'auto', padding:'20px 52px 60px' }}
+            style={{ flex:1, minHeight:0, overflowY:'auto', padding:'14px 40px 20px' }}
           >
 
             {/* ── BUILD QUOTE: one question at a time ── */}
@@ -332,11 +330,11 @@ export function Forms() {
 
                   {/* SINGLE SELECT */}
                   {currentQ.type==='single' && (
-                    <div style={{ maxHeight:340, overflowY:'auto', marginBottom:18 }}>
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:18 }}>
                       {(currentQ.options??[]).map(opt => {
                         const sel = (data[currentQ.id as keyof FormData] as string)===opt;
                         return (
-                          <button key={opt} className={`pn-text-opt${sel?' selected':''}`} onClick={()=>set(currentQ.id as keyof FormData, opt)}>
+                          <button key={opt} className={`pn-text-opt${sel?' selected':''}`} style={{ width:'auto', maxWidth:'none', margin:0, padding:'10px 12px', fontSize:'12.5px' }} onClick={()=>set(currentQ.id as keyof FormData, opt)}>
                             {opt}
                             {sel && <span className="pn-text-opt-dot"><Check size={9} color="#0894ce" strokeWidth={3}/></span>}
                           </button>
@@ -347,12 +345,12 @@ export function Forms() {
 
                   {/* MULTI SELECT */}
                   {currentQ.type==='multi' && (
-                    <div style={{ maxHeight:340, overflowY:'auto', marginBottom:18 }}>
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:18 }}>
                       {(currentQ.options??[]).map(opt => {
                         const arr = data[currentQ.id as keyof FormData] as string[];
                         const sel = arr.includes(opt);
                         return (
-                          <button key={opt} className={`pn-text-opt${sel?' selected':''}`} onClick={()=>toggleMulti(currentQ.id as keyof FormData, opt)}>
+                          <button key={opt} className={`pn-text-opt${sel?' selected':''}`} style={{ width:'auto', maxWidth:'none', margin:0, padding:'10px 12px', fontSize:'12.5px' }} onClick={()=>toggleMulti(currentQ.id as keyof FormData, opt)}>
                             {opt}
                             {sel && <span className="pn-text-opt-dot"><Check size={9} color="#0894ce" strokeWidth={3}/></span>}
                           </button>
@@ -378,16 +376,18 @@ export function Forms() {
 
                   {/* SCHEDULE */}
                   {currentQ.type==='schedule' && (
-                    <div style={{ marginBottom:18 }}>
-                      <div className="grid grid-cols-2 gap-4 mb-5">
+                    <div style={{ marginBottom:10 }}>
+                      <div className="grid grid-cols-4 gap-3 mb-4">
                         {([['Embarkation','embarkation'],['Departure','departure'],['Return','returnTime'],['Disembarkation','disembarkation']] as [string,keyof FormData][]).map(([label,key])=>(
                           <div key={key}>
-                            <label className="mb-1.5 block text-[12.5px] font-semibold text-gray-700">{label}</label>
-                            <input type="time" value={data[key] as string} onChange={e=>set(key,e.target.value)} className={inputCls} />
+                            <label className="mb-1 block text-[11px] font-semibold text-gray-700">{label}</label>
+                            <input type="time" value={data[key] as string} onChange={e=>set(key,e.target.value)} className={inputCls} style={{ padding:'8px 10px' }} />
                           </div>
                         ))}
                       </div>
-                      <ItineraryWatch embarkation={data.embarkation} departure={data.departure} returnTime={data.returnTime} disembarkation={data.disembarkation} onChangeField={(k,v)=>set(k,v)} />
+                      <div style={{ transform:'scale(0.88)', transformOrigin:'top center', marginBottom:-24 }}>
+                        <ItineraryWatch embarkation={data.embarkation} departure={data.departure} returnTime={data.returnTime} disembarkation={data.disembarkation} onChangeField={(k,v)=>set(k,v)} />
+                      </div>
                     </div>
                   )}
 

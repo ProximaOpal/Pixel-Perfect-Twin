@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Mail } from 'lucide-react';
+import { TopNav } from '@/components/TopNav';
 
 function HandshakeIcon({ color = 'currentColor' }: { color?: string }) {
   return (
@@ -126,7 +127,9 @@ export function Timeline() {
   const [email, setEmail] = useState('');
 
   return (
-    <div className="min-h-screen w-full bg-white flex flex-col items-center justify-center px-6" style={{ paddingLeft: 68 }}>
+    <div className="min-h-screen w-full bg-white flex flex-col">
+      <TopNav />
+      <div className="flex flex-1 items-center justify-center px-6">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -161,6 +164,7 @@ export function Timeline() {
           </div>
         </div>
       </motion.div>
+      </div>
     </div>
   );
 }
