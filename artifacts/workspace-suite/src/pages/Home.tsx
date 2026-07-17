@@ -1,137 +1,218 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
-import { Users, ClipboardList, GitBranch, Grid2x2, FileText, Settings, Check, ArrowRight } from 'lucide-react';
+import {
+  Home as HomeIcon,
+  Users,
+  ClipboardList,
+  FileText,
+  GitBranch,
+  Grid2x2,
+  ArrowRight,
+  Search,
+} from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import './Home.css';
 
-type Tile = {
+type NavCard = {
   href: string;
   label: string;
   icon: LucideIcon;
-  features: string[];
+  desc: string;
 };
 
-const TILES: Tile[] = [
-  {
-    href: '/leads',
-    label: 'Leads',
-    icon: Users,
-    features: ['View team roster', 'Track attendance', 'Manage roles', 'Contact staff'],
-  },
-  {
-    href: '/quote-builder',
-    label: 'Quote Builder',
-    icon: ClipboardList,
-    features: ['Configure business info', 'Set modules & permissions', 'Import / export data', 'Map categories'],
-  },
-  {
-    href: '/timeline',
-    label: 'Timeline',
-    icon: GitBranch,
-    features: ['View process steps', 'Track milestones', 'Monitor progress', 'See completed stages'],
-  },
-  {
-    href: '/apps',
-    label: 'Apps',
-    icon: Grid2x2,
-    features: ['Connect Gmail & Drive', 'Message on WhatsApp', 'Launch Slack & LinkedIn', 'Open with lead context'],
-  },
-  {
-    href: '/proposal-doc',
-    label: 'Proposal Doc',
-    icon: FileText,
-    features: ['Browse proposal pages', 'Preview & share drafts', 'Track signed status', 'Publish to clients'],
-  },
-  {
-    href: '/settings',
-    label: 'Settings',
-    icon: Settings,
-    features: ['Manage account details', 'Configure preferences', 'Set field photos', 'Control integrations'],
-  },
+const NAV_CARDS: NavCard[] = [
+  { href: '/',              label: 'Home',         icon: HomeIcon,     desc: 'Dashboard & overview'        },
+  { href: '/leads',         label: 'Leads',        icon: Users,        desc: 'Manage your pipeline'        },
+  { href: '/quote-builder', label: 'Quote Builder',icon: ClipboardList,desc: 'Build & send quotes'         },
+  { href: '/proposal-doc',  label: 'Proposal Doc', icon: FileText,     desc: 'Review proposals'            },
+  { href: '/timeline',      label: 'Timeline',     icon: GitBranch,    desc: 'Track milestones'            },
+  { href: '/apps',          label: 'Apps',         icon: Grid2x2,      desc: 'Connected integrations'      },
 ];
 
 export function Home() {
   const [, navigate] = useLocation();
-  const [activeIndex, setActiveIndex] = useState(0);
-  const active = TILES[activeIndex];
+
+  // landing → app transition phases
+  const [phase, setPhase] = useState<'landing' | 'wiping' | 'app'>('landing');
+
+  // fake cursor
+  const cursorRef = useRef<HTMLDivElement>(null);
+
+  /* ── Landing → app wipe ─────────────────────────────────────────────── */
+  useEffect(() => {
+    const t1 = setTimeout(() => setPhase('wiping'), 2400);
+    const t2 = setTimeout(() => setPhase('app'),    3000);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, []);
+
+  /* ── Fake cursor (home page only) ───────────────────────────────────── */
+  useEffect(() => {
+    const el = cursorRef.current;
+    if (!el) return;
+
+    const HOVER_SEL = '.nhome-nav-card, .nhome-search-bar input';
+
+    const onMove = (e: MouseEvent) => {
+      el.style.transform = `translate(${e.clientX}px,${e.clientY}px)`;
+      el.classList.toggle('hover', !!(e.target as Element)?.closest?.(HOVER_SEL));
+    };
+    const onLeave = () => { el.style.transform = 'translate(-999px,-999px)'; };
+    const onDown  = (e: MouseEvent) => {
+      if ((e.target as Element)?.closest?.(HOVER_SEL)) el.classList.add('press');
+    };
+    const onUp = () => { el.classList.remove('press'); };
+
+    window.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseleave', onLeave);
+    window.addEventListener('mousedown', onDown);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseleave', onLeave);
+      window.removeEventListener('mousedown', onDown);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, []);
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] w-full items-center justify-center bg-[#0A0A0C] px-4 py-10">
-      <div className="w-full max-w-[980px] overflow-hidden rounded-[28px] shadow-2xl">
-        {/* ── white top section ── */}
-        <div className="bg-white px-8 pb-10 pt-9 sm:px-12">
-          <div className="text-center">
-            <p className="text-[13px] font-medium text-gray-400">Please select a</p>
-            <h1 className="mt-1 text-[26px] font-bold tracking-tight text-[#101a15] sm:text-[28px]">
-              PAGE
-            </h1>
-          </div>
+    <div className="nexus-home">
 
-          <div className="mt-8 flex flex-wrap justify-center gap-4 sm:gap-5">
-            {TILES.map((tile, i) => {
-              const Icon = tile.icon;
-              const isActive = i === activeIndex;
-              return (
-                <button
-                  key={tile.href}
-                  type="button"
-                  onMouseEnter={() => setActiveIndex(i)}
-                  onFocus={() => setActiveIndex(i)}
-                  onClick={() => navigate(tile.href)}
-                  className={`group relative flex w-[130px] flex-col items-center gap-3 rounded-[16px] bg-[#f6f7f9] px-3 py-6 text-center shadow-sm transition-all duration-200 sm:w-[150px] ${
-                    isActive
-                      ? 'bg-white shadow-[0_10px_30px_-8px_rgba(16,60,40,0.25)] ring-2 ring-[#FF5A45]'
-                      : 'hover:bg-white hover:shadow-md'
-                  }`}
-                >
-                  <Icon
-                    className={`h-7 w-7 transition-colors ${isActive ? 'text-[#101a15]' : 'text-gray-400 group-hover:text-gray-600'}`}
-                    strokeWidth={1.6}
-                  />
-                  <span
-                    className={`text-[13px] font-semibold transition-colors ${
-                      isActive ? 'text-[#101a15]' : 'text-gray-500 group-hover:text-gray-700'
-                    }`}
+      {/* ── Landing screen ─────────────────────────────────────────────── */}
+      {phase === 'landing' && (
+        <div className="nhome-landing">
+          <div className="nhome-landing-bg" />
+          <div className="nhome-landing-content">
+            <div className="nhome-landing-icons">
+              {/* Leads */}
+              <div className="nhome-landing-icon">
+                <svg viewBox="0 0 24 24" fill="none" width="22" height="22">
+                  <path d="M17 20c0-2.21-2.24-4-5-4s-5 1.79-5 4" stroke="#00f78e" strokeWidth="1.6" strokeLinecap="round"/>
+                  <circle cx="12" cy="8" r="4" stroke="#00f78e" strokeWidth="1.6"/>
+                </svg>
+              </div>
+              {/* Quote */}
+              <div className="nhome-landing-icon">
+                <svg viewBox="0 0 24 24" fill="none" width="22" height="22">
+                  <path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" stroke="#00f78e" strokeWidth="1.6"/>
+                  <path d="M9 12h6M9 16h4" stroke="#00f78e" strokeWidth="1.6" strokeLinecap="round"/>
+                </svg>
+              </div>
+              {/* Timeline */}
+              <div className="nhome-landing-icon">
+                <svg viewBox="0 0 24 24" fill="none" width="22" height="22">
+                  <circle cx="12" cy="12" r="3" stroke="#00f78e" strokeWidth="1.6"/>
+                  <path d="M12 3v3M12 18v3M3 12h3M18 12h3" stroke="#00f78e" strokeWidth="1.6" strokeLinecap="round"/>
+                </svg>
+              </div>
+              {/* Apps */}
+              <div className="nhome-landing-icon">
+                <svg viewBox="0 0 24 24" fill="none" width="22" height="22">
+                  <rect x="3" y="3" width="7" height="7" rx="1.5" stroke="#00f78e" strokeWidth="1.6"/>
+                  <rect x="14" y="3" width="7" height="7" rx="1.5" stroke="#00f78e" strokeWidth="1.6"/>
+                  <rect x="3" y="14" width="7" height="7" rx="1.5" stroke="#00f78e" strokeWidth="1.6"/>
+                  <rect x="14" y="14" width="7" height="7" rx="1.5" stroke="#00f78e" strokeWidth="1.6"/>
+                </svg>
+              </div>
+            </div>
+
+            <h1 className="nhome-landing-hero">Nexus</h1>
+            <p className="nhome-landing-sub">Your Business Operations Suite</p>
+            <div className="nhome-loader">
+              <span /><span /><span />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Wipe transition overlay ─────────────────────────────────────── */}
+      <div className={`nhome-overlay${phase === 'wiping' ? ' run' : ''}`}>
+        <div className="nhome-wipe" />
+        <div className="nhome-wipe-logo">
+          <span /><span />
+        </div>
+      </div>
+
+      {/* ── Main app stage ─────────────────────────────────────────────── */}
+      {phase === 'app' && (
+        <div className="nhome-stage">
+
+          {/* Left panel */}
+          <aside className="nhome-panel-left">
+            <div className="nhome-kaleidoscope" />
+            <div className="nhome-left-inner">
+              <div className="nhome-top-row">
+                <div className="nhome-brand">
+                  Nexus<span className="nhome-brand-dot" />
+                </div>
+              </div>
+
+              <div className="nhome-progress-track">
+                <div className="nhome-progress-fill" />
+              </div>
+
+              <div className="nhome-tags">
+                <span className="nhome-tag">#OPERATIONS</span>
+                <span className="nhome-tag">#WORKSPACE</span>
+                <span className="nhome-tag">#CRM</span>
+              </div>
+
+              <h1 className="nhome-headline">
+                Your workspace,<br />
+                <span>unified.</span>
+              </h1>
+              <p className="nhome-subtext">
+                One place for leads, quotes, proposals, timelines, and every tool your team needs — ready when you are.
+              </p>
+
+              <div className="nhome-byline">
+                <div className="by">NEXUS WORKSPACE</div>
+                <div className="date">BUSINESS OPERATIONS SUITE</div>
+              </div>
+            </div>
+          </aside>
+
+          {/* Right panel */}
+          <main className="nhome-panel-right">
+            <div className="nhome-panel-right-header">
+              <label className="nhome-search-bar">
+                <Search size={16} style={{ flexShrink: 0, color: 'var(--ink-soft)' }} />
+                <input type="text" placeholder="Search Nexus…" />
+              </label>
+            </div>
+
+            <p className="nhome-section-label">NAVIGATE TO</p>
+
+            <div className="nhome-nav-grid">
+              {NAV_CARDS.map((card) => {
+                const Icon = card.icon;
+                return (
+                  <button
+                    key={card.href}
+                    type="button"
+                    className="nhome-nav-card"
+                    onClick={() => navigate(card.href)}
                   >
-                    {tile.label}
-                  </span>
-
-                  {isActive && (
-                    <span className="absolute -bottom-2.5 -right-2.5 flex h-6 w-6 items-center justify-center rounded-full bg-[#FF5A45] shadow-md ring-4 ring-white">
-                      <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+                    <div className="nhome-nav-card-icon">
+                      <Icon size={18} color="var(--ink)" strokeWidth={1.7} />
+                    </div>
+                    <div className="nhome-nav-card-text">
+                      <p className="nhome-nav-card-title">{card.label}</p>
+                      <p className="nhome-nav-card-desc">{card.desc}</p>
+                    </div>
+                    <div className="nhome-nav-card-arrow">
+                      <ArrowRight size={13} color="var(--ink)" strokeWidth={2.2} />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </main>
         </div>
+      )}
 
-        {/* ── coral bottom panel ── */}
-        <div className="flex flex-col gap-6 bg-[#FF5A45] px-8 py-7 sm:flex-row sm:items-center sm:justify-between sm:px-12">
-          <ul className="grid grid-cols-1 gap-x-10 gap-y-1.5 sm:grid-cols-2">
-            {active.features.map((feature) => (
-              <li key={feature} className="flex items-center gap-2 text-[13px] font-medium text-[#0d2318]">
-                <Check className="h-3.5 w-3.5 shrink-0 text-[#0d2318]" strokeWidth={3} />
-                {feature}
-              </li>
-            ))}
-          </ul>
-
-          <button
-            type="button"
-            onClick={() => navigate(active.href)}
-            className="flex shrink-0 items-center gap-3 self-start sm:self-auto"
-          >
-            <span className="text-right text-[11px] font-bold uppercase tracking-widest text-[#0d2318] sm:text-left">
-              Open
-              <br />
-              {active.label}
-            </span>
-            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#FF5A45] shadow-md transition-transform hover:scale-105">
-              <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
-            </span>
-          </button>
-        </div>
+      {/* Decorative cursor */}
+      <div className="nhome-cursor" ref={cursorRef}>
+        <div className="nhome-cursor-ring" />
       </div>
     </div>
   );
