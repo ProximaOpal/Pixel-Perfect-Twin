@@ -11,6 +11,7 @@ import { ProposalDoc } from '@/pages/ProposalDoc';
 import { Timeline } from '@/pages/Timeline';
 import { Settings } from '@/pages/Settings';
 import { Apps } from '@/pages/Apps';
+import { ProgressNotes } from '@/pages/ProgressNotes';
 import NotFound from '@/pages/NotFound';
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ function Router() {
         <Route path="/timeline" component={Timeline} />
         <Route path="/settings" component={Settings} />
         <Route path="/apps" component={Apps} />
+        <Route path="/progress-notes" component={ProgressNotes} />
         <Route component={NotFound} />
       </Switch>
     </>

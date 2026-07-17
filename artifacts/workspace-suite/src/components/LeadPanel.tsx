@@ -3,7 +3,7 @@ import { useLocation } from 'wouter';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   X, Menu, Play, ChevronUp, ChevronDown, Mail, Phone, FileText, ArrowLeft, Send,
-  Search, CircleDollarSign, Anchor, GitBranch, Clock, Tag as TagIcon,
+  Search, Zap, MessageSquare, Bell, CheckCircle2, Tag as TagIcon,
   Video, Calendar, Linkedin, ReceiptText,
 } from 'lucide-react';
 import { NOTE_CATEGORIES, detectTag, loadNotes, addNote, type NoteTag, type LeadNote } from '@/lib/leadNotes';
@@ -12,12 +12,13 @@ import { personAvatarUrl, companyAvatarUrl } from '@/lib/avatar';
 import { setQuoteLead } from '@/lib/quoteLeadStore';
 
 const NOTE_ICONS: Record<NoteTag, typeof Search> = {
-  research: Search,
-  calls: Phone,
-  financial: CircleDollarSign,
-  logistics: Anchor,
-  pipeline: GitBranch,
-  history: Clock,
+  initial:      Zap,
+  calls:        Phone,
+  consultation: MessageSquare,
+  proposal:     FileText,
+  tracking:     Bell,
+  nurture:      Mail,
+  resolution:   CheckCircle2,
 };
 
 function timeAgo(iso: string): string {
@@ -531,7 +532,7 @@ export function LeadPanel({ lead, onClose }: { lead: Lead | null; onClose: () =>
                   transition={{ duration: 0.32, ease: 'easeInOut' }}
                   className="absolute inset-0"
                 >
-                  <ContactView lead={lead} onNotes={() => setView('note')} />
+                  <ContactView lead={lead} onNotes={() => { onClose(); navigate('/progress-notes'); }} />
                 </motion.div>
               )}
             </AnimatePresence>

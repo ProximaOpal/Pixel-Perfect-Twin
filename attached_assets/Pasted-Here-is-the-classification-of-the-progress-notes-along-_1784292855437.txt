@@ -1,0 +1,48 @@
+Here is the classification of the progress notes, along with real examples from your sheet:1. Initial Lead Logging
+
+The first progress note (usually Progress 1) almost always records exactly how and when the lead entered the system, assigning an initial action.
+Examples:
+"came in thru BYE (sales acct) 23/12/2025 - client prefers to be emailed" (Row 2)
+"emailed us (info acct) 5/1 - phone call intro to be done" (Row 4)
+"came in via form submit (sales acct) 17/7 - phone call intro to be done" (Row 942)
+2. Outbound Call Attempts (No Contact)
+
+A massive portion of the notes are short logs by the sales team (using initials like kc, tash, els, lmc) documenting unsuccessful attempts to reach the client by phone.
+Examples:
+"19/1 kc called 15:17 - no answer" (Row 2)
+"8/1 - lmc called 13:44 - no answer - try tmr" (Row 3)
+"30/1 tash called 13:52 no answer - forwarded to vm" (Row 6)
+3. Client Consultations & Needs Gathering
+
+When the team successfully connects with a client, the notes become highly detailed, summarizing the client's vibe, event requirements, budget constraints, and specific catering/vessel preferences.
+Examples:
+"spoke to lauren - really sweet voice seemed so lovely... dont want a typical sit down and wanted something different... wants a photobooth included in the quote... AVON, BOWL, RECEPTION, BG MUSIC, PHOTOBOOTH..." (Row 2)
+"els called 15:38 - super longgg call - she speant 10 mins explaining how they always go to a confernce which is at excel this year... asked about doing a happy hour instead..." (Row 4)
+"tash called 10:41 - spoke to cath lovely lady- not first time on river... wants a seated dinner - wants to see drink packages - maybe a magician..." (Row 938)
+4. Proposal Management & Iteration
+
+These notes track the lifecycle of the quotes being sent to the client, including sending Version 1 (V1), gathering feedback, and sending revised versions (V2, V3).
+Examples:
+"V1 proposal sent out 6/1" (Row 2)
+"What would the rate be on that Tuesday, please? ... V2 - EXACT SAME AS V1 BUT REDUCE BY 5% - THIS WILL BE BASED ON THE TUESDAY, ADD UNLIMITED DRINKS" (Row 3)
+"client confirmed receipt - will send ig tomorrow morning" (Row 4)
+5. Automated Email Tracking Alerts
+
+The sheet contains automated copy-pastes from an email tracking tool, alerting the team when a client is engaging with an old proposal or opening an email frequently.
+Examples:
+"🔥 Hot conversation: lucy.warren@ogier.com opened it many times in a short period or forwarded it." (Row 6)
+"📆 Old conversation revival: Williams, Gracie @ London opened it 2 weeks after it was sent" (Row 9)
+6. Email Nurturing & Follow-ups
+
+Notes detailing the specific email templates and check-ins sent to keep the lead warm, especially when they can't be reached by phone.
+Examples:
+"kc sent buffer email - asking if her date is flex" (Row 2)
+"tash drafted 10/12 bespoke email - she asked a lot of questions last time - kc checked and sent" (Row 7)
+"kc sent summer video" (Row 6)
+7. Resolution (Bookings or Dead Leads)
+
+The final notes in a sequence usually detail the conclusion of the lead—either signing the Booking Form (BF) and handing over to project management, or closing the lead out as dead.
+Examples:
+"emily signed bf, katherine ooo so lmc doing post booking - kc to arrange handover when back in" (Row 3)
+"came back and said they went else where COL area? - asked for feedback. dead lead" (Row 4)
+"she's sooo sad that they cant do the cost... she said to close it for now , and she kept apologising for dissapointing us" (Row

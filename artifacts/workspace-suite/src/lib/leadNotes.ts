@@ -1,74 +1,90 @@
-// ── Lead notes: taggable, per-lead note history ─────────────────────────────
-// Backs the "Add a note" screen on a lead's profile panel. Notes are stored
-// per-lead (keyed by reference number / email / id) and each note carries a
-// tag drawn from a fixed set of categories the business actually uses.
+// ── Lead notes: taggable, per-lead progress note history ─────────────────────
+// Backs the ProgressNotes full-page view. Notes are stored per-lead (keyed by
+// reference number / email / id) and each note carries a tag from one of the
+// 7 progress categories that match the actual sales workflow.
 
-export type NoteTag = 'research' | 'calls' | 'financial' | 'logistics' | 'pipeline' | 'history';
+export type NoteTag =
+  | 'initial'
+  | 'calls'
+  | 'consultation'
+  | 'proposal'
+  | 'tracking'
+  | 'nurture'
+  | 'resolution';
 
 export type NoteCategory = {
   tag: NoteTag;
   label: string;
   hashtag: string;
   description: string;
-  iconName: 'Search' | 'Phone' | 'CircleDollarSign' | 'Anchor' | 'GitBranch' | 'Clock';
+  iconName: 'Zap' | 'Phone' | 'MessageSquare' | 'FileText' | 'Bell' | 'Mail' | 'CheckCircle2';
   color: string;
   keywords: string[];
 };
 
 export const NOTE_CATEGORIES: NoteCategory[] = [
   {
-    tag: 'research',
-    label: 'Professional Enrichment & Research',
-    hashtag: '#research',
-    description: 'Job titles, sector, company size — LinkedIn profiling.',
-    iconName: 'Search',
+    tag: 'initial',
+    label: 'Initial Lead Logging',
+    hashtag: '#initial',
+    description: 'First contact recorded, source, and opening action.',
+    iconName: 'Zap',
     color: '#6366f1',
-    keywords: ['linkedin', 'job title', 'sector', 'employees', 'research', 'profile'],
+    keywords: ['came in', 'form submit', 'emailed us', 'intro to be done', 'first contact', 'lead logged', 'sales acct', 'info acct'],
   },
   {
     tag: 'calls',
-    label: 'Interaction History & Calls',
+    label: 'Outbound Call Attempts',
     hashtag: '#calls',
-    description: 'Call outcomes, voicemails, next-action reminders.',
+    description: 'Call logs, voicemails, no-answers, and follow-up reminders.',
     iconName: 'Phone',
     color: '#0ea5e9',
-    keywords: ['call', 'phone', 'voicemail', 'video intro', 'next action', 'confirmed receipt'],
+    keywords: ['called', 'no answer', 'voicemail', 'vm', 'try tmr', 'forwarded to vm', 'left message', 'rang'],
   },
   {
-    tag: 'financial',
-    label: 'Financial Modeling & Logic',
-    hashtag: '#financial',
-    description: 'Repeat-client discounts, margins, target budgets.',
-    iconName: 'CircleDollarSign',
+    tag: 'consultation',
+    label: 'Client Consultations',
+    hashtag: '#consultation',
+    description: 'Detailed notes from successful client calls and needs gathering.',
+    iconName: 'MessageSquare',
     color: '#22c55e',
-    keywords: ['budget', 'discount', 'margin', '£', 'repeat client', 'price', 'pp'],
+    keywords: ['spoke to', 'super long', 'long call', 'she wants', 'he wants', 'they want', 'photobooth', 'seated dinner', 'drink packages', 'lovely', 'sweet'],
   },
   {
-    tag: 'logistics',
-    label: 'Operational Logistics',
-    hashtag: '#logistics',
-    description: 'Timing flexibility, vessel requirements, staffing ratios.',
-    iconName: 'Anchor',
+    tag: 'proposal',
+    label: 'Proposal Management',
+    hashtag: '#proposal',
+    description: 'Quote versions sent, client feedback, and revisions.',
+    iconName: 'FileText',
     color: '#f59e0b',
-    keywords: ['vessel', 'timing', 'catering', 'staffing', 'firm', 'negotiable', 'tbc', 'remove for'],
+    keywords: ['v1', 'v2', 'v3', 'proposal sent', 'quote sent', 'reduce by', 'confirmed receipt', 'will send', 'sending', 'draft'],
   },
   {
-    tag: 'pipeline',
-    label: 'Pipeline Status & Handoff',
-    hashtag: '#pipeline',
-    description: 'Cost checks, proposal status, PM handover, Dropbox paths.',
-    iconName: 'GitBranch',
+    tag: 'tracking',
+    label: 'Automated Email Tracking',
+    hashtag: '#tracking',
+    description: 'Alerts when clients open or re-engage with proposals.',
+    iconName: 'Bell',
     color: '#ec4899',
-    keywords: ['proposal created', 'handover', 'dropbox', 'cost still needs checking', 'pm handover', 'status'],
+    keywords: ['hot conversation', 'opened it', 'opened many times', 'forwarded it', 'revival', 'old conversation', 'alert', '🔥', '📆'],
   },
   {
-    tag: 'history',
-    label: 'Historical Context',
-    hashtag: '#history',
-    description: 'Past client database, "same as last year" requests.',
-    iconName: 'Clock',
-    color: '#8b5cf6',
-    keywords: ['last year', 'repeat', 'previous', 'same as', 'final event brief'],
+    tag: 'nurture',
+    label: 'Email Nurturing & Follow-ups',
+    hashtag: '#nurture',
+    description: 'Buffer emails, check-ins, and warm-keeping campaigns.',
+    iconName: 'Mail',
+    color: '#14b8a6',
+    keywords: ['buffer email', 'check in', 'check-in', 'bespoke email', 'summer video', 'sent email', 'follow up', 'follow-up', 'keeping warm', 'sent video'],
+  },
+  {
+    tag: 'resolution',
+    label: 'Resolution',
+    hashtag: '#resolution',
+    description: 'Bookings confirmed, dead leads closed, and PM handovers.',
+    iconName: 'CheckCircle2',
+    color: '#FF5A45',
+    keywords: ['bf', 'booking form', 'signed bf', 'signed', 'dead lead', 'went elsewhere', 'close it', 'closed', 'handover', 'booked', 'pm handover', 'cant do the cost'],
   },
 ];
 
@@ -77,7 +93,7 @@ const HASHTAG_TO_TAG: Record<string, NoteTag> = NOTE_CATEGORIES.reduce((acc, c) 
   return acc;
 }, {} as Record<string, NoteTag>);
 
-/** Detect a tag from free text: an explicit #hashtag wins, otherwise fall back to keyword match. */
+/** Detect a tag from free text: explicit #hashtag wins, then keyword match. */
 export function detectTag(text: string): NoteTag | null {
   const lower = text.toLowerCase();
 
