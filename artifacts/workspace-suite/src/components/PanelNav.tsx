@@ -1,17 +1,17 @@
 /**
  * PanelNav — horizontal icon nav shown on dark left-panel pages (Home, Forms,
- * ProgressNotes, ProposalDoc). Placed directly below the "Nexus" brand word.
+ * ProgressNotes, ProposalDoc, Bespoke). Placed directly below the "Nexus" brand word.
  */
 import { Link, useLocation } from 'wouter';
-import { Home, Users, ClipboardList, FileText, GitBranch, NotebookPen } from 'lucide-react';
+import { Home, Users, NotebookPen, ClipboardList, FileText, Sparkles } from 'lucide-react';
 
 const NAV_ITEMS = [
   { href: '/',               label: 'Home',           icon: Home          },
   { href: '/leads',          label: 'Leads',          icon: Users         },
+  { href: '/progress-notes', label: 'Progress Notes', icon: NotebookPen   },
   { href: '/quote-builder',  label: 'Quote Builder',  icon: ClipboardList },
   { href: '/proposal-doc',   label: 'Proposal Doc',   icon: FileText      },
-  { href: '/timeline',       label: 'Timeline',       icon: GitBranch     },
-  { href: '/progress-notes', label: 'Progress Notes', icon: NotebookPen   },
+  { href: '/bespoke',        label: 'Bespoke',        icon: Sparkles      },
 ] as const;
 
 export function PanelNav() {

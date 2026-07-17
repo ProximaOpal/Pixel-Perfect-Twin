@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   X, Menu, Play, ChevronUp, ChevronDown, Mail, Phone, FileText, ArrowLeft, Send,
   Search, Zap, MessageSquare, Bell, CheckCircle2, Tag as TagIcon,
-  Video, Calendar, Linkedin, ReceiptText,
+  Video, Calendar, Linkedin, ReceiptText, UserCheck,
 } from 'lucide-react';
 import { NOTE_CATEGORIES, detectTag, loadNotes, addNote, type NoteTag, type LeadNote } from '@/lib/leadNotes';
 import { soundClick } from '@/lib/sounds';
@@ -445,13 +445,17 @@ function NoteView({ lead, onBack }: { lead: Lead; onBack: () => void }) {
   );
 }
 
+const REPS = ['Natasha', 'Lily-May', 'Elizabeth', 'Katherine'] as const;
+
 /* ─── Main export: centered overlay ─── */
 export function LeadPanel({ lead, onClose }: { lead: Lead | null; onClose: () => void }) {
   const [, navigate] = useLocation();
   const [view, setView] = useState<'contact' | 'company' | 'note'>('contact');
+  const [showReps, setShowReps] = useState(false);
+  const [assignedRep, setAssignedRep] = useState<string | null>(null);
 
   useEffect(() => {
-    if (lead) setView('contact');
+    if (lead) { setView('contact'); setShowReps(false); setAssignedRep(null); }
   }, [lead?.id]);
 
   const showCompany = view === 'company';
@@ -535,16 +539,56 @@ export function LeadPanel({ lead, onClose }: { lead: Lead | null; onClose: () =>
               )}
             </AnimatePresence>
 
-            {/* Build a Quote — sits directly above the Contact/Company toggle, always available regardless of view */}
+            {/* Action buttons: Assign a Rep + Build a Quote */}
             {view !== 'note' && (
-              <button
-                onClick={handleBuildQuote}
-                title={`Start a quote for ${lead.name}`}
-                className="absolute bottom-16 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 bg-blue-600 px-5 py-3 text-[13px] font-bold text-white shadow-lg shadow-blue-600/40 transition-transform hover:scale-105 hover:bg-blue-700"
-              >
-                <ReceiptText className="h-4 w-4" />
-                Build a Quote
-              </button>
+              <div className="absolute bottom-16 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-2">
+
+                {/* Rep picker cards — animate in above the buttons */}
+                <AnimatePresence>
+                  {showReps && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+                      className="flex gap-2"
+                    >
+                      {REPS.map(rep => (
+                        <button
+                          key={rep}
+                          onClick={() => { setAssignedRep(rep); setShowReps(false); soundClick(); }}
+                          className="flex flex-col items-center gap-1.5 border border-white/20 bg-[#111]/85 px-3 py-2.5 backdrop-blur-sm transition-colors hover:border-[#FF5A45]/60 hover:bg-[#1a1a1a]"
+                        >
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#FF5A45]/20 text-[10px] font-black text-[#FF5A45]">
+                            {rep[0]}
+                          </div>
+                          <span className="text-[10px] font-semibold text-white/80">{rep}</span>
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Assign a Rep */}
+                <button
+                  onClick={() => { setShowReps(s => !s); soundClick(); }}
+                  title="Assign a sales rep to this lead"
+                  className="flex items-center gap-2 border border-white/20 bg-[#111]/70 px-5 py-2.5 text-[12px] font-bold text-white backdrop-blur-sm transition-all hover:border-white/40 hover:bg-[#111]"
+                >
+                  <UserCheck className="h-3.5 w-3.5" />
+                  {assignedRep ? `Rep: ${assignedRep}` : 'Assign a Rep'}
+                </button>
+
+                {/* Build a Quote */}
+                <button
+                  onClick={handleBuildQuote}
+                  title={`Start a quote for ${lead.name}`}
+                  className="flex items-center gap-2 bg-blue-600 px-5 py-2.5 text-[13px] font-bold text-white shadow-lg shadow-blue-600/40 transition-transform hover:scale-105 hover:bg-blue-700"
+                >
+                  <ReceiptText className="h-4 w-4" />
+                  Build a Quote
+                </button>
+              </div>
             )}
 
             {/* Toggle + close */}

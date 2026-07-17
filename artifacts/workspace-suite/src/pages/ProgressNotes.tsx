@@ -34,7 +34,7 @@ type ViewMode = 'notes' | 'status';
 
 export function ProgressNotes() {
   const [, navigate] = useLocation();
-  const { activeLead } = useActiveLead();
+  const { activeLead, setActiveLead } = useActiveLead();
 
   const [mode, setMode]           = useState<ViewMode>('notes');
   const [detailIdx, setDetailIdx] = useState<number | null>(null);
@@ -291,12 +291,23 @@ export function ProgressNotes() {
                   {[
                     { label: 'Live',        color: '#22c55e' },
                     { label: 'Booked',      color: '#3b82f6' },
+                    { label: 'Approved',    color: '#10b981' },
+                    { label: 'On Hold',     color: '#f59e0b' },
                     { label: 'Dead',        color: '#ef4444' },
                     { label: 'Blacklisted', color: '#6b7280' },
                   ].map(({ label, color }) => {
                     const isCurrent = activeLead ? (activeLead.status ?? '').toLowerCase() === label.toLowerCase() : false;
                     return (
-                      <div key={label} className={`pn-text-opt${isCurrent ? ' selected' : ''}`} style={{ marginBottom: 10 }}>
+                      <button
+                        key={label}
+                        className={`pn-text-opt${isCurrent ? ' selected' : ''}`}
+                        style={{ marginBottom: 10, cursor: activeLead ? 'pointer' : 'default', opacity: !activeLead ? 0.5 : 1 }}
+                        disabled={!activeLead}
+                        onClick={() => {
+                          if (!activeLead) return;
+                          setActiveLead({ ...activeLead, status: label.toLowerCase() });
+                        }}
+                      >
                         <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <span style={{ width: 8, height: 8, borderRadius: '50%', background: isCurrent ? 'rgba(255,255,255,.7)' : color, flexShrink: 0 }} />
                           {label}
@@ -304,25 +315,9 @@ export function ProgressNotes() {
                         {isCurrent && (
                           <span style={{ fontSize: 11, fontWeight: 700, opacity: .8 }}>Current</span>
                         )}
-                      </div>
+                      </button>
                     );
                   })}
-
-                  {allNotes.length > 0 && (
-                    <div style={{ marginTop: 22, padding: '16px 18px', background: '#f2f1f9', borderRadius: 12 }}>
-                      <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: 'rgba(23,24,28,.38)', marginBottom: 12 }}>Notes by Category</p>
-                      {NOTE_CATEGORIES.map(cat => {
-                        const count = allNotes.filter(n => n.tag === cat.tag).length;
-                        if (!count) return null;
-                        return (
-                          <div key={cat.tag} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 8 }}>
-                            <span style={{ color: cat.color, fontWeight: 700 }}>{cat.hashtag}</span>
-                            <span style={{ color: 'rgba(23,24,28,.55)', fontWeight: 500 }}>{count} note{count !== 1 ? 's' : ''}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
 
                   {!activeLead && (
                     <div style={{ marginTop: 18, padding: '14px 16px', background: '#eef6ff', borderRadius: 12, fontSize: 12.5, color: '#0894ce', fontWeight: 600, textAlign: 'center' }}>

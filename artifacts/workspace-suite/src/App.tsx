@@ -9,6 +9,7 @@ import { Forms as QuoteBuilder } from '@/pages/Forms';
 import { ProposalDoc } from '@/pages/ProposalDoc';
 import { Apps } from '@/pages/Apps';
 import { ProgressNotes } from '@/pages/ProgressNotes';
+import { Bespoke } from '@/pages/Bespoke';
 import NotFound from '@/pages/NotFound';
 
 const queryClient = new QueryClient();
@@ -23,6 +24,7 @@ function Router() {
         <Route path="/proposal-doc" component={ProposalDoc} />
         <Route path="/apps" component={Apps} />
         <Route path="/progress-notes" component={ProgressNotes} />
+        <Route path="/bespoke" component={Bespoke} />
         <Route component={NotFound} />
       </Switch>
     </>

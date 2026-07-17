@@ -3,10 +3,10 @@ import { useLocation } from 'wouter';
 import {
   Home as HomeIcon,
   Users,
+  NotebookPen,
   ClipboardList,
   FileText,
-  GitBranch,
-  NotebookPen,
+  Sparkles,
   ArrowRight,
   Search,
 } from 'lucide-react';
@@ -22,12 +22,12 @@ type NavCard = {
 };
 
 const NAV_CARDS: NavCard[] = [
-  { href: '/',              label: 'Home',         icon: HomeIcon,     desc: 'Dashboard & overview'        },
-  { href: '/leads',         label: 'Leads',        icon: Users,        desc: 'Manage your pipeline'        },
-  { href: '/quote-builder', label: 'Quote Builder',icon: ClipboardList,desc: 'Build & send quotes'         },
-  { href: '/proposal-doc',  label: 'Proposal Doc', icon: FileText,     desc: 'Review proposals'            },
-  { href: '/timeline',      label: 'Timeline',     icon: GitBranch,    desc: 'Track milestones'            },
+  { href: '/',              label: 'Home',          icon: HomeIcon,     desc: 'Dashboard & overview'        },
+  { href: '/leads',         label: 'Leads',         icon: Users,        desc: 'Manage your pipeline'        },
   { href: '/progress-notes',label: 'Progress Notes',icon: NotebookPen,  desc: 'Sales workflow notes'        },
+  { href: '/quote-builder', label: 'Quote Builder', icon: ClipboardList,desc: 'Build & send quotes'         },
+  { href: '/proposal-doc',  label: 'Proposal Doc',  icon: FileText,     desc: 'Review proposals'            },
+  { href: '/bespoke',       label: 'Bespoke',       icon: Sparkles,     desc: 'Curated event packages'      },
 ];
 
 export function Home() {
