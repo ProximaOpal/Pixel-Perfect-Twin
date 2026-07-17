@@ -411,22 +411,53 @@
 }
 .pn-fab:hover { transform: translateY(-2px); }
 
-/* Add-note overlay */
+/* text-opt cards (answer choices, used in both ProgressNotes and Forms) */
+.pn-text-opt {
+  padding: 14px 18px;
+  border-radius: 12px;
+  background: #ebebf4;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #17181c;
+  cursor: pointer;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: none;
+  width: 100%;
+  max-width: 460px;
+  text-align: left;
+  font-family: inherit;
+  transition: background .28s cubic-bezier(.65,0,.35,1), color .28s cubic-bezier(.65,0,.35,1);
+}
+.pn-text-opt:hover { background: #e2e2ee; }
+.pn-text-opt.selected { background: #0894ce; color: #fff; }
+.pn-text-opt-dot {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #fff; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Add-note overlay — centered floating card */
 .pn-add-overlay {
   position: absolute;
   inset: 0;
   background: rgba(13,18,38,.45);
   backdrop-filter: blur(4px);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
+  justify-content: center;
   z-index: 30;
+  padding: 24px;
 }
 .pn-add-card {
   background: #fff;
-  border-radius: 20px 20px 0 0;
-  padding: 28px 32px 36px;
+  border-radius: 20px;
+  padding: 28px 32px 32px;
   width: 100%;
-  box-shadow: 0 -24px 60px rgba(0,0,0,.18);
+  max-width: 480px;
+  box-shadow: 0 24px 60px rgba(0,0,0,.28);
 }
 .pn-add-label {
   font-size: 10px;
