@@ -328,7 +328,6 @@ export function Forms() {
                   transition={{ duration:0.28 }}
                   style={{ maxWidth:460 }}
                 >
-                  <p className="pn-eyebrow">{currentQ.eyebrow}</p>
                   <h2 className="pn-q-title">{currentQ.title}</h2>
 
                   {/* SINGLE SELECT */}

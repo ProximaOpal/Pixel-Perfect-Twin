@@ -171,7 +171,7 @@
 /* ─── Main stage ────────────────────────────────────────────────────────── */
 .nhome-stage {
   width: 100%;
-  height: calc(100vh - 64px); /* below the sticky AppNav */
+  height: 100vh;
   display: flex;
   background: var(--panel-bg);
   overflow: hidden;
@@ -180,14 +180,14 @@
 /* ─── Left panel (fixed) ────────────────────────────────────────────────── */
 .nhome-panel-left {
   position: fixed;
-  top: 64px; left: 0;
+  top: 0; left: 0;
   width: 40%;
-  height: calc(100vh - 64px);
+  height: 100vh;
   color: #fff;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  padding: 34px 40px 40px;
+  padding: 34px 40px 40px 68px; /* 68px = 52px sidenav + 16px breathing room */
   z-index: 2;
 }
 .nhome-kaleidoscope {
@@ -303,9 +303,7 @@
   flex-direction: column;
   min-width: 0;
   height: 100%;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(0,0,0,.12) transparent;
+  overflow: hidden;
 }
 .nhome-panel-right-header {
   padding: 36px 52px 0;

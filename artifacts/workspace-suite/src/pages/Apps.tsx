@@ -99,7 +99,7 @@ export function Apps() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-white px-8 py-10">
+    <div className="min-h-screen bg-white px-8 py-10" style={{ paddingLeft: 68 }}>
 
       {/* Header */}
       <div className="mb-2">

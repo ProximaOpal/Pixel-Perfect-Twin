@@ -55,7 +55,7 @@ export function Settings() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-white">
+    <div className="min-h-screen bg-white" style={{ paddingLeft: 52 }}>
       {/* Header */}
       <div className="border-b border-black/8 px-10 py-8">
         <h1 className="text-[22px] font-black tracking-tight text-gray-900">Settings</h1>

@@ -126,7 +126,7 @@ export function Timeline() {
   const [email, setEmail] = useState('');
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] w-full bg-white flex flex-col items-center justify-center px-6">
+    <div className="min-h-screen w-full bg-white flex flex-col items-center justify-center px-6" style={{ paddingLeft: 68 }}>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

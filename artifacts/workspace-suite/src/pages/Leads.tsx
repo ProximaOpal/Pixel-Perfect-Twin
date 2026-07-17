@@ -129,7 +129,7 @@ export function Leads() {
     : tabFiltered;
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-white">
+    <div className="flex h-screen overflow-hidden bg-white" style={{ paddingLeft: 52 }}>
       <div className="flex flex-1 flex-col overflow-hidden">
 
         {/* ── Combined header bar ── */}

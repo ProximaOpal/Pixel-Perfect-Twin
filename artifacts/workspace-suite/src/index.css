@@ -29,6 +29,102 @@
   display: none;
 }
 
+/* ── SideNav ─────────────────────────────────────────────────────────────── */
+.sidenav {
+  position: fixed;
+  left: 0; top: 0; bottom: 0;
+  width: 52px;
+  background: #1a2345;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 0;
+  gap: 0;
+}
+.sidenav-logo {
+  width: 28px; height: 28px;
+  background: #FF5A45;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: #fff;
+  font-family: 'Inter', sans-serif;
+  flex-shrink: 0;
+  margin-bottom: 18px;
+  letter-spacing: -0.5px;
+}
+.sidenav-items {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+}
+.sidenav-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.sidenav-item {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+.sidenav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px; height: 36px;
+  border-radius: 9px;
+  color: rgba(255,255,255,0.4);
+  transition: background 0.18s, color 0.18s;
+  text-decoration: none;
+}
+.sidenav-icon:hover {
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.85);
+}
+.sidenav-icon.active {
+  background: rgba(255,255,255,0.18);
+  color: #fff;
+}
+.sidenav-tooltip {
+  position: absolute;
+  left: 50px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #1a2345;
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 5px 11px;
+  border-radius: 7px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 300;
+  font-family: 'Inter', sans-serif;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+.sidenav-item:hover .sidenav-tooltip {
+  opacity: 1;
+}
+
+/* ── Hide all scrollbars on scroll areas ─────────────────────────────────── */
+.pn-scroll-area {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.pn-scroll-area::-webkit-scrollbar { display: none; }
+
+
 /* Brand coral — West End on the Thames identity. Every "coral" utility in the
    app (bg-coral-500, text-coral-700, etc.) is repointed to this single hue
    so the whole app matches the public site's accent (#FF5A45). */
