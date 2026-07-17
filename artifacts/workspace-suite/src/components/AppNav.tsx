@@ -6,16 +6,16 @@ import {
   FileText,
   GitBranch,
   Settings,
-  Grid2x2,
+  NotebookPen,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
-  { href: '/',             label: 'Home',         icon: Home           },
-  { href: '/leads',        label: 'Leads',        icon: Users          },
-  { href: '/quote-builder', label: 'Quote Builder', icon: ClipboardList  },
-  { href: '/proposal-doc', label: 'Proposal Doc', icon: FileText       },
-  { href: '/timeline',     label: 'Timeline',     icon: GitBranch      },
-  { href: '/apps',         label: 'Apps',         icon: Grid2x2        },
+  { href: '/',              label: 'Home',           icon: Home          },
+  { href: '/leads',         label: 'Leads',          icon: Users         },
+  { href: '/quote-builder', label: 'Quote Builder',  icon: ClipboardList },
+  { href: '/proposal-doc',  label: 'Proposal Doc',   icon: FileText      },
+  { href: '/timeline',      label: 'Timeline',       icon: GitBranch     },
+  { href: '/progress-notes',label: 'Progress Notes', icon: NotebookPen   },
 ] as const;
 
 export function AppNav() {
@@ -42,7 +42,7 @@ export function AppNav() {
                 href={href}
                 className={`flex items-center gap-2 whitespace-nowrap px-4 py-2 text-[13px] font-medium transition-colors ${
                   isActive
-                    ? 'bg-[#FF5A45] text-white'
+                    ? 'bg-blue-600 text-white'
                     : 'text-black/50 hover:text-black hover:bg-black/4'
                 }`}
               >

@@ -117,7 +117,7 @@ export function ProgressNotes() {
           </p>
           <button
             onClick={() => navigate('/leads')}
-            className="mt-5 bg-[#FF5A45] px-5 py-2.5 text-[13px] font-semibold text-white hover:bg-[#F4412A] transition-colors"
+            className="mt-5 bg-blue-600 px-5 py-2.5 text-[13px] font-semibold text-white hover:bg-blue-700 transition-colors"
           >
             Go to Leads
           </button>
@@ -206,10 +206,9 @@ export function ProgressNotes() {
                 onClick={() => handleCategoryChange(cat.tag)}
                 className={`flex items-center gap-3 px-4 py-3 border text-left w-full transition-all ${
                   isActive
-                    ? 'border-current'
-                    : 'border-black/10 hover:border-black/20 bg-white'
+                    ? 'border-blue-600 bg-blue-50 text-blue-700'
+                    : 'border-black/10 hover:border-blue-300 hover:bg-blue-50/50 bg-white text-black'
                 }`}
-                style={isActive ? { color: cat.color, background: `${cat.color}0d` } : undefined}
               >
                 {/* Icon box */}
                 <div
@@ -248,22 +247,22 @@ export function ProgressNotes() {
       </div>
 
       {/* ════════════════════════════════════════════
-          RIGHT PANEL — dark, notes + add note
+          RIGHT PANEL — white, notes + add note
           ════════════════════════════════════════════ */}
-      <div className="flex-1 flex flex-col bg-[#111] overflow-hidden">
+      <div className="flex-1 flex flex-col bg-white overflow-hidden">
 
         {/* Header */}
-        <div className="px-8 py-5 border-b border-white/8 flex-shrink-0">
+        <div className="px-8 py-5 border-b border-black/8 flex-shrink-0">
           <div className="flex items-center gap-3">
             <div
               className="flex h-8 w-8 shrink-0 items-center justify-center"
-              style={{ background: `${activeCat.color}22` }}
+              style={{ background: `${activeCat.color}18` }}
             >
               <ActiveIcon className="h-4 w-4" style={{ color: activeCat.color }} />
             </div>
             <div>
-              <h2 className="text-[14px] font-bold text-white leading-tight">{activeCat.label}</h2>
-              <p className="text-[11px] text-white/35">
+              <h2 className="text-[14px] font-bold text-black leading-tight">{activeCat.label}</h2>
+              <p className="text-[11px] text-black/40">
                 {categoryNotes.length} note{categoryNotes.length !== 1 ? 's' : ''}
                 {activeLead.name ? ` · ${activeLead.name}` : ''}
               </p>
@@ -281,9 +280,9 @@ export function ProgressNotes() {
                 animate={{ opacity: 1 }}
                 className="flex flex-col items-center justify-center h-full py-16 text-center"
               >
-                <ActiveIcon className="h-9 w-9 mb-3" style={{ color: `${activeCat.color}40` }} />
-                <p className="text-[13px] font-medium text-white/30">No notes in this category yet</p>
-                <p className="text-[11px] text-white/20 mt-1">Use the form below to add one</p>
+                <ActiveIcon className="h-9 w-9 mb-3" style={{ color: `${activeCat.color}50` }} />
+                <p className="text-[13px] font-medium text-black/30">No notes in this category yet</p>
+                <p className="text-[11px] text-black/25 mt-1">Use the form below to add one</p>
               </motion.div>
             ) : (
               <div className="space-y-2.5">
@@ -296,16 +295,16 @@ export function ProgressNotes() {
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: Math.min(idx * 0.04, 0.3) }}
-                      className="border border-white/10 bg-white/[0.03] p-4"
+                      className="border border-black/10 bg-black/[0.015] p-4"
                     >
                       <div className="flex items-center gap-2 mb-2">
-                        <Icon className="h-3 w-3 shrink-0" style={{ color: cat?.color ?? '#aaa' }} />
-                        <span className="text-[10.5px] font-semibold" style={{ color: cat?.color ?? '#aaa' }}>
+                        <Icon className="h-3 w-3 shrink-0" style={{ color: cat?.color ?? '#999' }} />
+                        <span className="text-[10.5px] font-semibold" style={{ color: cat?.color ?? '#999' }}>
                           {cat?.hashtag ?? '#note'}
                         </span>
-                        <span className="ml-auto text-[10px] text-white/25 shrink-0">{timeAgo(note.createdAt)}</span>
+                        <span className="ml-auto text-[10px] text-black/30 shrink-0">{timeAgo(note.createdAt)}</span>
                       </div>
-                      <p className="text-[12.5px] leading-relaxed text-white/70 whitespace-pre-wrap">{note.text}</p>
+                      <p className="text-[12.5px] leading-relaxed text-black/70 whitespace-pre-wrap">{note.text}</p>
                     </motion.div>
                   );
                 })}
@@ -315,8 +314,8 @@ export function ProgressNotes() {
         </div>
 
         {/* ── Add note ── */}
-        <div className="flex-shrink-0 border-t border-white/8 bg-[#0d0d0d] px-8 pt-5 pb-6">
-          <p className="text-[9.5px] font-bold uppercase tracking-widest text-white/25 mb-3">
+        <div className="flex-shrink-0 border-t border-black/8 bg-black/[0.02] px-8 pt-5 pb-6">
+          <p className="text-[9.5px] font-bold uppercase tracking-widest text-black/30 mb-3">
             Add a Progress Note
           </p>
 
@@ -329,7 +328,7 @@ export function ProgressNotes() {
             }}
             placeholder={`Add a note to "${activeCat.label}"…`}
             rows={3}
-            className="w-full resize-none bg-white/[0.05] border border-white/10 p-3 text-[12.5px] text-white/80 placeholder-white/22 outline-none transition-colors focus:border-white/22 focus:bg-white/[0.07]"
+            className="w-full resize-none bg-white border border-black/12 p-3 text-[12.5px] text-black/80 placeholder-black/25 outline-none transition-colors focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
           />
 
           {/* Tag chips */}
@@ -349,10 +348,9 @@ export function ProgressNotes() {
                   }}
                   className={`flex items-center gap-1 px-2 py-1 text-[10px] font-semibold border transition-all ${
                     isSelected
-                      ? 'border-current'
-                      : 'border-white/10 text-white/28 hover:border-white/20 hover:text-white/45'
+                      ? 'bg-blue-600 border-blue-600 text-white'
+                      : 'border-black/12 text-black/40 hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50'
                   }`}
-                  style={isSelected ? { color: cat.color, borderColor: cat.color, background: `${cat.color}18` } : undefined}
                 >
                   <Icon className="h-2.5 w-2.5" />
                   {cat.hashtag}
@@ -363,20 +361,20 @@ export function ProgressNotes() {
 
           {/* Auto-detect hint */}
           {text.trim() && detectedTag && detectedTag !== (manualTag ?? activeTag) && (
-            <p className="mt-2 text-[10.5px] text-white/28">
+            <p className="mt-2 text-[10.5px] text-black/35">
               Auto-detected:{' '}
-              <span style={{ color: NOTE_CATEGORIES.find((c) => c.tag === detectedTag)?.color }}>
+              <span className="text-blue-600 font-semibold">
                 {NOTE_CATEGORIES.find((c) => c.tag === detectedTag)?.hashtag}
               </span>
             </p>
           )}
 
           <div className="mt-3 flex items-center justify-between">
-            <p className="text-[10px] text-white/20">⌘↵ to save</p>
+            <p className="text-[10px] text-black/25">⌘↵ to save</p>
             <button
               onClick={handleSave}
               disabled={!text.trim()}
-              className="flex items-center gap-2 bg-[#FF5A45] px-4 py-2 text-[12.5px] font-semibold text-white transition-colors hover:bg-[#F4412A] disabled:opacity-35 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 bg-blue-600 px-4 py-2 text-[12.5px] font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-35 disabled:cursor-not-allowed"
             >
               <Send className="h-3.5 w-3.5" />
               Save Note

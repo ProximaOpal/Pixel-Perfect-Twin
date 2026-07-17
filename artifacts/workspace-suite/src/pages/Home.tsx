@@ -6,7 +6,7 @@ import {
   ClipboardList,
   FileText,
   GitBranch,
-  Grid2x2,
+  NotebookPen,
   ArrowRight,
   Search,
 } from 'lucide-react';
@@ -26,7 +26,7 @@ const NAV_CARDS: NavCard[] = [
   { href: '/quote-builder', label: 'Quote Builder',icon: ClipboardList,desc: 'Build & send quotes'         },
   { href: '/proposal-doc',  label: 'Proposal Doc', icon: FileText,     desc: 'Review proposals'            },
   { href: '/timeline',      label: 'Timeline',     icon: GitBranch,    desc: 'Track milestones'            },
-  { href: '/apps',          label: 'Apps',         icon: Grid2x2,      desc: 'Connected integrations'      },
+  { href: '/progress-notes',label: 'Progress Notes',icon: NotebookPen,  desc: 'Sales workflow notes'        },
 ];
 
 export function Home() {
