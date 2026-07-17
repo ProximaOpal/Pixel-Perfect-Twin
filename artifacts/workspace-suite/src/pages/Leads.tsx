@@ -1,78 +1,61 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { soundClick, soundOpen, soundClose, soundTab, soundRefresh } from '@/lib/sounds';
-import { Search, Bell, ChevronDown, MoreVertical, Plus, X, RefreshCw, AlertCircle, Home, Users, ClipboardList, FileText, GitBranch, NotebookPen, Settings } from 'lucide-react';
-import { Link, useLocation } from 'wouter';
+import {
+  Search, Bell, ChevronDown, MoreVertical, Plus, X, RefreshCw, AlertCircle,
+} from 'lucide-react';
 import { LeadPanel, type Lead } from '@/components/LeadPanel';
 import { useActiveLead } from '@/context/ActiveLeadContext';
 import { Avatar } from '@/components/Avatar';
 import { personAvatarUrl } from '@/lib/avatar';
 
-const LEAD_NAV = [
-  { href: '/',               label: 'Home',           icon: Home          },
-  { href: '/leads',          label: 'Leads',          icon: Users         },
-  { href: '/quote-builder',  label: 'Quote Builder',  icon: ClipboardList },
-  { href: '/proposal-doc',   label: 'Proposal Doc',   icon: FileText      },
-  { href: '/timeline',       label: 'Timeline',       icon: GitBranch     },
-  { href: '/progress-notes', label: 'Progress Notes', icon: NotebookPen   },
-  { href: '/settings',       label: 'Settings',       icon: Settings      },
-] as const;
-
 // ── Webhook ──────────────────────────────────────────────────────────────────
 const WEBHOOK_URL = 'https://meeraworkflows.app.n8n.cloud/webhook/LeadDataFetch';
 
-// Clean keys as of the updated LeadDataFetch webhook response.
-// Every value is a string; empty fields are "" not null.
 interface RawLead {
-  enquiryDate:          string;
-  name:                 string;
-  jobRole:              string;
-  companyName:          string;
-  companySector:        string;
-  email:                string;
-  phone:                string;
-  referenceNumber:      string;
-  source:               string;
-  bestTimeToCall:       string;
-  market:               string;
-  eventType:            string;
-  yearOfEvent:          string;
-  fullEventDate:        string;
-  eventDateFlexible:    string;
-  requestedEventTimes:  string;
-  groupSize:            string;
-  budget:               string;
-  howHeard:             string;
-  status:               string; // "LIVE" | "DEAD" | "BOOKED" | "BLACKLISTED"
+  enquiryDate:         string;
+  name:                string;
+  jobRole:             string;
+  companyName:         string;
+  companySector:       string;
+  email:               string;
+  phone:               string;
+  referenceNumber:     string;
+  source:              string;
+  bestTimeToCall:      string;
+  market:              string;
+  eventType:           string;
+  yearOfEvent:         string;
+  fullEventDate:       string;
+  eventDateFlexible:   string;
+  requestedEventTimes: string;
+  groupSize:           string;
+  budget:              string;
+  howHeard:            string;
+  status:              string;
 }
 
 function toInitials(name: string): string {
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join('');
+  return name.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
 }
 
 function mapRaw(raw: RawLead, index: number): Lead {
   const name = raw.name || '—';
   return {
-    id: index + 1,
+    id:              index + 1,
     name,
     email:           raw.email           || '—',
     code:            raw.referenceNumber || `#${index + 1}`,
     designation:     raw.jobRole         || '—',
     phone:           raw.phone           || '—',
     joined:          raw.enquiryDate     || '—',
-    color:           '#FF5A45',
+    color:           '#0894ce',
     initials:        toInitials(name),
     sector:          raw.companySector   || '—',
     referenceNumber: raw.referenceNumber || '—',
     source:          raw.source          || '—',
     company:         raw.companyName     || '—',
     status:          raw.status.toLowerCase().trim(),
-    // Extended event fields
     market:               raw.market              || '',
     eventType:            raw.eventType           || '',
     yearOfEvent:          raw.yearOfEvent         || '',
@@ -98,25 +81,26 @@ async function fetchLeads(): Promise<Lead[]> {
   return rows.map(mapRaw);
 }
 
-// ── Constants ─────────────────────────────────────────────────────────────────
 const TABS = ['Live', 'Booked', 'Dead', 'Blacklisted'] as const;
 
-// ── Component ─────────────────────────────────────────────────────────────────
+/* Brand palette — matches the Home page navy / teal / mint system */
+const NAVY   = '#0a1628';
+const TEAL   = '#0894ce';
+const MINT   = '#00f78e';
+
 export function Leads() {
   const { setActiveLead } = useActiveLead();
-  const [location] = useLocation();
-  const [activeTab, setActiveTab] = useState(0);
-  const [leads, setLeads]         = useState<Lead[]>([]);
-  const [status, setStatus]       = useState<'loading' | 'ok' | 'error'>('loading');
-  const [panelLead, setPanelLead] = useState<Lead | null>(null);
-  const [query, setQuery]         = useState('');
-  const searchRef                 = useRef<HTMLInputElement>(null);
+  const [activeTab, setActiveTab]     = useState(0);
+  const [leads, setLeads]             = useState<Lead[]>([]);
+  const [status, setStatus]           = useState<'loading' | 'ok' | 'error'>('loading');
+  const [panelLead, setPanelLead]     = useState<Lead | null>(null);
+  const [query, setQuery]             = useState('');
+  const searchRef                     = useRef<HTMLInputElement>(null);
 
   const load = async () => {
     setStatus('loading');
     try {
-      const data = await fetchLeads();
-      setLeads(data);
+      setLeads(await fetchLeads());
       setStatus('ok');
     } catch {
       setStatus('error');
@@ -125,108 +109,105 @@ export function Leads() {
 
   useEffect(() => { load(); }, []);
 
-  // ── Tab filtering — filter by status ──
-  const tabKey = TABS[activeTab].toLowerCase();
-  const tabFiltered: Lead[] = leads.filter((l) => {
-    const s = (l.status ?? '').toLowerCase();
-    return s === tabKey;
-  });
-
-  // ── Search filtering ──
-  const visible = query.trim()
+  const tabKey    = TABS[activeTab].toLowerCase();
+  const tabFiltered = leads.filter((l) => (l.status ?? '').toLowerCase() === tabKey);
+  const visible   = query.trim()
     ? tabFiltered.filter((l) =>
         [l.name, l.email, l.code, l.designation, l.company, l.sector, l.source]
-          .some((v) => v.toLowerCase().includes(query.toLowerCase())),
-      )
+          .some((v) => v.toLowerCase().includes(query.toLowerCase())))
     : tabFiltered;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-white">
+    <div className="flex h-screen overflow-hidden" style={{ background: '#f5f4fa' }}>
       <div className="flex flex-1 flex-col overflow-hidden">
 
-        {/* ── Combined header bar ── */}
-        <div className="flex items-center gap-3 border-b border-black/8 bg-white px-8 py-3 shrink-0">
-
-          {/* Search */}
-          <div className="flex items-center gap-2 border border-black/12 px-3 py-2 w-[200px] shrink-0 focus-within:border-[#FF5A45] transition-colors">
-            <Search className="h-[14px] w-[14px] shrink-0 text-black/30" />
+        {/* ── Header ── */}
+        <div
+          className="relative flex items-center shrink-0 border-b"
+          style={{ background: NAVY, borderColor: 'rgba(255,255,255,0.08)', padding: '10px 28px' }}
+        >
+          {/* Left: search */}
+          <div
+            className="flex items-center gap-2 shrink-0"
+            style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 8, padding: '7px 12px', width: 220 }}
+          >
+            <Search style={{ width: 14, height: 14, color: 'rgba(255,255,255,0.4)', flexShrink: 0 }} />
             <input
               ref={searchRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search leads…"
-              className="w-full bg-transparent text-[13px] text-black/70 placeholder-black/30 outline-none"
+              style={{
+                flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                fontSize: 13, color: '#fff',
+              }}
+              // eslint-disable-next-line react/no-unknown-property
+              className="placeholder:text-white/30"
             />
             {query && (
-              <button onClick={() => { setQuery(''); soundClick(); }} className="text-black/25 hover:text-black/50 transition-colors">
-                <X className="h-3.5 w-3.5" />
+              <button onClick={() => { setQuery(''); soundClick(); }} style={{ color: 'rgba(255,255,255,0.3)', lineHeight: 0 }}>
+                <X style={{ width: 13, height: 13 }} />
               </button>
             )}
           </div>
 
-          {/* Title + count */}
-          <h1 className="text-[19px] font-bold text-black tracking-tight whitespace-nowrap">
-            Leads Database
+          {/* Centre: title — absolutely centred in the bar */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none select-none">
+            <h1 style={{ fontSize: 17, fontWeight: 800, color: '#fff', letterSpacing: '-0.3px', whiteSpace: 'nowrap' }}>
+              Leads Database
+            </h1>
             {status === 'ok' && leads.length > 0 && (
-              <span className="ml-2 text-[12px] font-normal text-black/30">{leads.length}</span>
+              <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.35)', marginTop: 1 }}>
+                {leads.length}
+              </span>
             )}
-          </h1>
-
-          {/* Nav icons alongside "Leads Database" */}
-          <div style={{ display: 'flex', gap: 4 }}>
-            {LEAD_NAV.map(({ href, label, icon: Icon }) => {
-              const active = location === href;
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  aria-label={label}
-                  title={label}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    width: 28, height: 28, borderRadius: 7,
-                    background: active ? '#FF5A45' : 'rgba(23,24,28,0.06)',
-                    color: active ? '#fff' : 'rgba(23,24,28,0.45)',
-                    textDecoration: 'none', flexShrink: 0,
-                    transition: 'background .18s, color .18s',
-                  }}
-                >
-                  <Icon size={13} />
-                </Link>
-              );
-            })}
           </div>
 
-          <div className="flex-1" />
-
-          {/* Right-side controls */}
-          <div className="flex items-center gap-3 shrink-0">
+          {/* Right: controls */}
+          <div className="ml-auto flex items-center gap-3 shrink-0">
+            {/* Refresh */}
             <button
               onClick={() => { load(); soundRefresh(); }}
               disabled={status === 'loading'}
-              className="flex items-center justify-center h-8 w-8 border border-black/10 text-black/35 hover:border-[#FF5A45] hover:text-[#FF5A45] disabled:opacity-40 transition-colors"
               title="Refresh"
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 32, height: 32, borderRadius: 7,
+                background: 'rgba(255,255,255,0.08)', border: 'none', cursor: 'pointer',
+                color: 'rgba(255,255,255,0.5)', transition: 'background .18s',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(8,148,206,0.25)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
             >
-              <RefreshCw className={`h-3.5 w-3.5 ${status === 'loading' ? 'animate-spin' : ''}`} />
+              <RefreshCw style={{ width: 13, height: 13 }} className={status === 'loading' ? 'animate-spin' : ''} />
             </button>
 
+            {/* Add Lead */}
             <motion.button
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               onClick={soundClick}
-              className="flex items-center gap-1.5 bg-[#FF5A45] hover:bg-[#F4412A] text-white text-[13px] font-semibold px-4 py-2 transition-colors whitespace-nowrap"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                background: TEAL, color: '#fff',
+                border: 'none', borderRadius: 8,
+                padding: '8px 16px', fontSize: 13, fontWeight: 700,
+                cursor: 'pointer', whiteSpace: 'nowrap',
+              }}
             >
-              <Plus className="h-3.5 w-3.5" />
+              <Plus style={{ width: 14, height: 14 }} />
               Add Lead
             </motion.button>
 
-            <div className="h-5 w-px bg-black/10" />
+            <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.12)' }} />
 
-            <div className="relative">
-              <Bell className="h-[17px] w-[17px] text-black/35" />
-              <span className="absolute -top-0.5 -right-0.5 h-[6px] w-[6px] bg-[#FF5A45]" />
+            {/* Bell */}
+            <div style={{ position: 'relative' }}>
+              <Bell style={{ width: 17, height: 17, color: 'rgba(255,255,255,0.5)' }} />
+              <span style={{ position: 'absolute', top: -1, right: -1, width: 6, height: 6, borderRadius: '50%', background: MINT }} />
             </div>
 
+            {/* Avatar */}
             <div className="flex items-center gap-2 cursor-pointer">
               <Avatar
                 src={personAvatarUrl({ name: 'Alief Vinicius' })}
@@ -234,36 +215,61 @@ export function Leads() {
                 fallbackText="AV"
                 className="h-8 w-8 text-[11px] shrink-0"
               />
-              <span className="text-[13px] font-medium text-black/70 whitespace-nowrap">Alief Vinicius</span>
-              <ChevronDown className="h-3.5 w-3.5 text-black/30" />
+              <span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.75)', whiteSpace: 'nowrap' }}>
+                Alief Vinicius
+              </span>
+              <ChevronDown style={{ width: 13, height: 13, color: 'rgba(255,255,255,0.35)' }} />
             </div>
           </div>
         </div>
 
         {/* ── Tabs ── */}
-        <div className="flex border-b border-black/8 bg-white px-8 shrink-0">
+        <div
+          className="flex shrink-0 border-b"
+          style={{ background: '#fff', borderColor: 'rgba(23,24,28,0.08)', paddingLeft: 28 }}
+        >
           {TABS.map((tab, i) => {
             const count = leads.filter(l => (l.status ?? '').toLowerCase() === tab.toLowerCase()).length;
+            const isActive = activeTab === i;
             return (
               <button
                 key={tab}
                 onClick={() => { setActiveTab(i); soundTab(); }}
-                className={`relative px-5 pb-2.5 pt-2 text-[13px] font-medium transition-colors flex items-center gap-1.5 ${
-                  activeTab === i ? 'text-black' : 'text-black/35 hover:text-black/60'
-                }`}
+                className="relative"
+                style={{
+                  padding: '10px 20px 10px',
+                  fontSize: 13,
+                  fontWeight: 500,
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: isActive ? NAVY : 'rgba(23,24,28,0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  transition: 'color .18s',
+                }}
               >
                 {tab}
                 {status === 'ok' && count > 0 && (
-                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-sm ${
-                    activeTab === i ? 'bg-[#FF5A45]/15 text-[#E22A12]' : 'bg-black/6 text-black/30'
-                  }`}>
+                  <span style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    padding: '2px 6px',
+                    borderRadius: 4,
+                    background: isActive ? `${TEAL}20` : 'rgba(23,24,28,0.06)',
+                    color: isActive ? TEAL : 'rgba(23,24,28,0.35)',
+                  }}>
                     {count}
                   </span>
                 )}
-                {activeTab === i && (
+                {isActive && (
                   <motion.span
                     layoutId="leads-tab-line"
-                    className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-[#FF5A45]"
+                    style={{
+                      position: 'absolute', bottom: 0, left: 0, right: 0,
+                      height: 2.5, background: TEAL,
+                    }}
                     transition={{ type: 'spring', stiffness: 500, damping: 36 }}
                   />
                 )}
@@ -273,17 +279,12 @@ export function Leads() {
         </div>
 
         {/* ── Body ── */}
-        <div className="flex-1 overflow-auto bg-white">
+        <div className="flex-1 overflow-auto" style={{ background: '#fff' }}>
 
           {/* Loading skeleton */}
           <AnimatePresence>
             {status === 'loading' && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="divide-y divide-black/5"
-              >
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="divide-y divide-black/5">
                 {Array.from({ length: 8 }).map((_, i) => (
                   <div key={i} className="grid grid-cols-[40px_1fr_140px_180px_150px_140px_40px] px-6 py-[13px]">
                     <div className="h-4 w-5 bg-black/6 animate-pulse self-center" />
@@ -304,7 +305,7 @@ export function Leads() {
             )}
           </AnimatePresence>
 
-          {/* Error state */}
+          {/* Error */}
           {status === 'error' && (
             <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
               <AlertCircle className="h-8 w-8 text-black/20" />
@@ -312,7 +313,7 @@ export function Leads() {
               <p className="text-[12px] text-black/30">Check your connection and try again.</p>
               <button
                 onClick={load}
-                className="mt-1 bg-[#FF5A45] px-4 py-2 text-[12px] font-semibold text-white hover:bg-[#F4412A] transition-colors"
+                style={{ marginTop: 4, background: TEAL, color: '#fff', border: 'none', borderRadius: 7, padding: '8px 18px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
               >
                 Retry
               </button>
@@ -323,19 +324,22 @@ export function Leads() {
           {status === 'ok' && (
             <>
               {/* Column headers */}
-              <div className="grid grid-cols-[28px_1fr_116px_1fr_128px_104px_40px] px-8 py-3 border-b border-black/8 sticky top-0 bg-white z-10">
+              <div
+                className="grid sticky top-0 z-10 border-b"
+                style={{ gridTemplateColumns: '28px 1fr 116px 1fr 128px 104px 40px', padding: '10px 28px', background: '#fff', borderColor: 'rgba(23,24,28,0.08)' }}
+              >
                 <div />
-                <span className="text-[11.5px] font-medium text-black/35">Basic Info</span>
-                <span className="text-[11.5px] font-medium text-black/35">Reference</span>
-                <span className="text-[11.5px] font-medium text-black/35">Role</span>
-                <span className="text-[11.5px] font-medium text-black/35">Phone</span>
-                <span className="text-[11.5px] font-medium text-black/35">Enquiry Date</span>
+                <span style={{ fontSize: 11.5, fontWeight: 500, color: 'rgba(23,24,28,0.35)' }}>Basic Info</span>
+                <span style={{ fontSize: 11.5, fontWeight: 500, color: 'rgba(23,24,28,0.35)' }}>Reference</span>
+                <span style={{ fontSize: 11.5, fontWeight: 500, color: 'rgba(23,24,28,0.35)' }}>Role</span>
+                <span style={{ fontSize: 11.5, fontWeight: 500, color: 'rgba(23,24,28,0.35)' }}>Phone</span>
+                <span style={{ fontSize: 11.5, fontWeight: 500, color: 'rgba(23,24,28,0.35)' }}>Enquiry Date</span>
                 <div />
               </div>
 
-              {/* Empty state */}
+              {/* Empty */}
               {visible.length === 0 && (
-                <div className="flex items-center justify-center py-16 text-[13px] text-black/30">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '64px 0', fontSize: 13, color: 'rgba(23,24,28,0.3)' }}>
                   {query ? `No leads match "${query}"` : `No ${TABS[activeTab].toLowerCase()} leads`}
                 </div>
               )}
@@ -348,11 +352,18 @@ export function Leads() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: Math.min(idx * 0.025, 0.4), duration: 0.18 }}
                   onClick={() => { setPanelLead(lead); setActiveLead(lead); soundOpen(); }}
-                  className={`grid grid-cols-[28px_1fr_116px_1fr_128px_104px_40px] px-8 py-[13px] border-b border-black/5 last:border-0 cursor-pointer transition-colors ${
-                    panelLead?.id === lead.id ? 'bg-[#FF5A45]/6' : 'hover:bg-black/[0.02]'
-                  }`}
+                  className="grid border-b last:border-0 cursor-pointer"
+                  style={{
+                    gridTemplateColumns: '28px 1fr 116px 1fr 128px 104px 40px',
+                    padding: '13px 28px',
+                    borderColor: 'rgba(23,24,28,0.05)',
+                    background: panelLead?.id === lead.id ? `${TEAL}0d` : 'transparent',
+                    transition: 'background .15s',
+                  }}
+                  onMouseEnter={e => { if (panelLead?.id !== lead.id) e.currentTarget.style.background = 'rgba(23,24,28,0.02)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = panelLead?.id === lead.id ? `${TEAL}0d` : 'transparent'; }}
                 >
-                  <span className="text-[12px] text-black/25 self-center">{idx + 1}</span>
+                  <span style={{ fontSize: 12, color: 'rgba(23,24,28,0.25)', alignSelf: 'center' }}>{idx + 1}</span>
 
                   <div className="flex items-center gap-3 min-w-0">
                     <Avatar
@@ -362,21 +373,21 @@ export function Leads() {
                       className="h-9 w-9 text-[11px] shrink-0"
                     />
                     <div className="min-w-0">
-                      <p className="text-[13px] font-semibold text-black leading-tight truncate">{lead.name}</p>
-                      <p className="text-[11.5px] text-black/35 truncate">{lead.email}</p>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: '#17181c', lineHeight: 1.3 }} className="truncate">{lead.name}</p>
+                      <p style={{ fontSize: 11.5, color: 'rgba(23,24,28,0.4)' }} className="truncate">{lead.email}</p>
                     </div>
                   </div>
 
-                  <span className="text-[12px] text-black/45 self-center font-mono truncate">{lead.code}</span>
-                  <span className="text-[13px] font-medium text-black/70 self-center truncate pr-3 min-w-0">{lead.designation}</span>
-                  <span className="text-[13px] text-black/50 self-center truncate">{lead.phone}</span>
-                  <span className="text-[13px] text-black/50 self-center">{lead.joined}</span>
+                  <span style={{ fontSize: 12, color: 'rgba(23,24,28,0.5)', alignSelf: 'center', fontFamily: 'monospace' }} className="truncate">{lead.code}</span>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(23,24,28,0.7)', alignSelf: 'center' }} className="truncate pr-3 min-w-0">{lead.designation}</span>
+                  <span style={{ fontSize: 13, color: 'rgba(23,24,28,0.55)', alignSelf: 'center' }} className="truncate">{lead.phone}</span>
+                  <span style={{ fontSize: 13, color: 'rgba(23,24,28,0.55)', alignSelf: 'center' }}>{lead.joined}</span>
 
                   <button
                     onClick={(e) => e.stopPropagation()}
-                    className="self-center flex items-center justify-center text-black/20 hover:text-black/50 transition-colors"
+                    style={{ alignSelf: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(23,24,28,0.2)' }}
                   >
-                    <MoreVertical className="h-4 w-4" />
+                    <MoreVertical style={{ width: 16, height: 16 }} />
                   </button>
                 </motion.div>
               ))}
