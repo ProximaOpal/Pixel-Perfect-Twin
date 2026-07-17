@@ -3,7 +3,7 @@
  * ProgressNotes, ProposalDoc). Placed directly below the "Nexus" brand word.
  */
 import { Link, useLocation } from 'wouter';
-import { Home, Users, ClipboardList, FileText, GitBranch, NotebookPen, Settings } from 'lucide-react';
+import { Home, Users, ClipboardList, FileText, GitBranch, NotebookPen } from 'lucide-react';
 
 const NAV_ITEMS = [
   { href: '/',               label: 'Home',           icon: Home          },
@@ -12,7 +12,6 @@ const NAV_ITEMS = [
   { href: '/proposal-doc',   label: 'Proposal Doc',   icon: FileText      },
   { href: '/timeline',       label: 'Timeline',       icon: GitBranch     },
   { href: '/progress-notes', label: 'Progress Notes', icon: NotebookPen   },
-  { href: '/settings',       label: 'Settings',       icon: Settings      },
 ] as const;
 
 export function PanelNav() {

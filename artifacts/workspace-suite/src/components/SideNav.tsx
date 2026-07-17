@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'wouter';
 import {
-  Home, Users, ClipboardList, FileText, GitBranch, NotebookPen, Settings,
+  Home, Users, ClipboardList, FileText, GitBranch, NotebookPen,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -39,19 +39,6 @@ export function SideNav() {
         })}
       </div>
 
-      {/* Settings at bottom */}
-      <div className="sidenav-bottom">
-        <div className="sidenav-item">
-          <Link
-            href="/settings"
-            className={`sidenav-icon${location === '/settings' ? ' active' : ''}`}
-            aria-label="Settings"
-          >
-            <Settings size={18} />
-          </Link>
-          <span className="sidenav-tooltip">Settings</span>
-        </div>
-      </div>
     </nav>
   );
 }

@@ -5,7 +5,6 @@ import {
   ClipboardList,
   FileText,
   GitBranch,
-  Settings,
   NotebookPen,
 } from 'lucide-react';
 
@@ -53,20 +52,7 @@ export function AppNav() {
           })}
         </nav>
 
-        {/* Settings gear — right side */}
-        <div className="ml-auto shrink-0">
-          <Link
-            href="/settings"
-            className={`flex h-8 w-8 items-center justify-center transition-colors ${
-              location === '/settings'
-                ? 'bg-[#FF5A45] text-white'
-                : 'text-black/35 hover:text-black hover:bg-black/4'
-            }`}
-            title="Settings"
-          >
-            <Settings className="h-4 w-4" />
-          </Link>
-        </div>
+        <div className="ml-auto shrink-0" />
       </div>
     </header>
   );

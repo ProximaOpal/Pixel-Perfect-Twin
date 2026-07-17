@@ -21,6 +21,7 @@ const SOURCE_TYPES = [
   'HeadBox','Booker Venue','Event Agency','Event Listing Platform',
   'Recommendation/referral','Other','Wedding Planner/Agent',
 ];
+void SOURCE_TYPES; // kept for auto-fill logic, question removed from wizard
 const UPGRADES: { label: string; price: number; type: 'flat'|'perGuest' }[] = [
   { label:'Live DJ',             price:500,  type:'flat' },
   { label:'Saxophonist',         price:550,  type:'flat' },
@@ -92,27 +93,26 @@ function calcFinancials(data: FormData) {
 
 /* ── Step metadata ── */
 const STEPS = [
-  { n:1, label:'Event Core',    desc:'Source, vessel, event type, and date.',        tags:['#EVENT-CORE','#STEP-1-OF-6'] },
-  { n:2, label:'Guest Count',   desc:'How many guests are attending?',               tags:['#GUESTS','#STEP-2-OF-6'] },
-  { n:3, label:'Schedule',      desc:'Embarkation, departure, return, disembark.',   tags:['#SCHEDULE','#STEP-3-OF-6'] },
-  { n:4, label:'Catering',      desc:'Which menu type is required?',                 tags:['#CATERING','#STEP-4-OF-6'] },
-  { n:5, label:'Financials',    desc:'Repeat client status and base cost.',          tags:['#FINANCIALS','#STEP-5-OF-6'] },
-  { n:6, label:'Upgrades',      desc:'Additional add-ons and extras.',               tags:['#UPGRADES','#STEP-6-OF-6'] },
+  { n:1, label:'Event Core',    desc:'Vessel, event type, and date.',              tags:['#EVENT-CORE','#STEP-1-OF-6'] },
+  { n:2, label:'Guest Count',   desc:'How many guests are attending?',             tags:['#GUESTS','#STEP-2-OF-6'] },
+  { n:3, label:'Schedule',      desc:'Embarkation, departure, return, disembark.', tags:['#SCHEDULE','#STEP-3-OF-6'] },
+  { n:4, label:'Catering',      desc:'Which menu type is required?',               tags:['#CATERING','#STEP-4-OF-6'] },
+  { n:5, label:'Financials',    desc:'Repeat client status and base cost.',        tags:['#FINANCIALS','#STEP-5-OF-6'] },
+  { n:6, label:'Upgrades',      desc:'Additional add-ons and extras.',             tags:['#UPGRADES','#STEP-6-OF-6'] },
 ];
 
 /* ── Question definitions ── */
 interface Question { id: string; type: 'single'|'multi'|'date'|'number'|'schedule'|'bool'|'cost'|'upgrades'; eyebrow: string; title: string; step: number; submitLabel: string; options?: string[]; }
 const QUESTIONS: Question[] = [
-  { id:'source',          step:1, type:'single',   eyebrow:'QUESTION 1', title:'Which source did this enquiry come from?',  options:SOURCE_TYPES,  submitLabel:'Continue' },
-  { id:'vesselType',      step:1, type:'multi',    eyebrow:'QUESTION 2', title:'Which vessel(s) are you quoting for?',      options:VESSEL_TYPES,  submitLabel:'Continue' },
-  { id:'eventType',       step:1, type:'single',   eyebrow:'QUESTION 3', title:'What type of event is this?',              options:EVENT_TYPES,   submitLabel:'Continue' },
-  { id:'eventDate',       step:1, type:'date',     eyebrow:'QUESTION 4', title:'When is the event taking place?',                                 submitLabel:'Continue' },
-  { id:'guestCount',      step:2, type:'number',   eyebrow:'QUESTION 5', title:'How many guests are expected?',                                   submitLabel:'Continue' },
-  { id:'schedule',        step:3, type:'schedule', eyebrow:'QUESTION 6', title:'What are the schedule timings?',                                  submitLabel:'Continue' },
-  { id:'menuType',        step:4, type:'multi',    eyebrow:'QUESTION 7', title:'What menu type is required?',              options:MENU_TYPES,    submitLabel:'Continue' },
-  { id:'repeatClient',    step:5, type:'bool',     eyebrow:'QUESTION 8', title:'Is this a repeat client?',                                        submitLabel:'Continue' },
-  { id:'totalCost',       step:5, type:'cost',     eyebrow:'QUESTION 9', title:'What is the base cost for this event?',                           submitLabel:'Continue' },
-  { id:'selectedUpgrades',step:6, type:'upgrades', eyebrow:'QUESTION 10',title:'Select any upgrades to include.',                                 submitLabel:'Generate Proposal' },
+  { id:'vesselType',      step:1, type:'multi',    eyebrow:'QUESTION 1', title:'Which vessel(s) are you quoting for?',      options:VESSEL_TYPES,  submitLabel:'Continue' },
+  { id:'eventType',       step:1, type:'single',   eyebrow:'QUESTION 2', title:'What type of event is this?',              options:EVENT_TYPES,   submitLabel:'Continue' },
+  { id:'eventDate',       step:1, type:'date',     eyebrow:'QUESTION 3', title:'When is the event taking place?',                                 submitLabel:'Continue' },
+  { id:'guestCount',      step:2, type:'number',   eyebrow:'QUESTION 4', title:'How many guests are expected?',                                   submitLabel:'Continue' },
+  { id:'schedule',        step:3, type:'schedule', eyebrow:'QUESTION 5', title:'What are the schedule timings?',                                  submitLabel:'Continue' },
+  { id:'menuType',        step:4, type:'multi',    eyebrow:'QUESTION 6', title:'What menu type is required?',              options:MENU_TYPES,    submitLabel:'Continue' },
+  { id:'repeatClient',    step:5, type:'bool',     eyebrow:'QUESTION 7', title:'Is this a repeat client?',                                        submitLabel:'Continue' },
+  { id:'totalCost',       step:5, type:'cost',     eyebrow:'QUESTION 8', title:'What is the base cost for this event?',                           submitLabel:'Continue' },
+  { id:'selectedUpgrades',step:6, type:'upgrades', eyebrow:'QUESTION 9', title:'Select any upgrades to include.',                                 submitLabel:'Generate Proposal' },
 ];
 
 /* ── Generation overlay meta ── */
@@ -238,6 +238,7 @@ export function Forms() {
       const saved = await addProposal({ id:`proposal-${Date.now()}`, createdAt:new Date().toISOString(), eventDate:data.eventDate, title:`${data.eventType||'Event'} Proposal — ${data.vesselType.join(', ')||'Vessel TBC'}`, vesselType:data.vesselType.join(', '), eventType:data.eventType, guestCount:data.guestCount, grandTotal:fin.grand, pdfDataUrl, leadName:quoteLead?.name, leadEmail:quoteLead?.email });
       if (!saved) throw new Error('PDF too large to store — clear older proposals and try again.');
       clearQuoteLead(); setStage('done');
+      sessionStorage.setItem('nexus_just_generated', 'true');
       setTimeout(() => navigate('/proposal-doc'), 1200);
     } catch(err) { setErrorMessage(err instanceof Error ? err.message : 'Failed to generate the proposal.'); setStage('error'); }
   };
@@ -312,7 +313,7 @@ export function Forms() {
           <div
             ref={scrollRef}
             className={`pn-scroll-area${fading?' fading':''}`}
-            style={{ flex:1, minHeight:0, overflowY:'auto', padding:'14px 40px 20px' }}
+            style={{ flex:1, minHeight:0, overflowY:'auto', padding:'14px 40px 20px', display:'flex', flexDirection:'column', alignItems:'center' }}
           >
 
             {/* ── BUILD QUOTE: one question at a time ── */}
@@ -330,7 +331,7 @@ export function Forms() {
 
                   {/* SINGLE SELECT */}
                   {currentQ.type==='single' && (
-                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:18 }}>
+                    <div style={{ display:'grid', gridTemplateColumns: currentQ.id==='eventType' ? '1fr 1fr 1fr' : '1fr 1fr', gap:8, marginBottom:18 }}>
                       {(currentQ.options??[]).map(opt => {
                         const sel = (data[currentQ.id as keyof FormData] as string)===opt;
                         return (
@@ -377,11 +378,11 @@ export function Forms() {
                   {/* SCHEDULE */}
                   {currentQ.type==='schedule' && (
                     <div style={{ marginBottom:10 }}>
-                      <div className="grid grid-cols-4 gap-3 mb-4">
+                      <div className="grid grid-cols-2 gap-3 mb-4">
                         {([['Embarkation','embarkation'],['Departure','departure'],['Return','returnTime'],['Disembarkation','disembarkation']] as [string,keyof FormData][]).map(([label,key])=>(
                           <div key={key}>
                             <label className="mb-1 block text-[11px] font-semibold text-gray-700">{label}</label>
-                            <input type="time" value={data[key] as string} onChange={e=>set(key,e.target.value)} className={inputCls} style={{ padding:'8px 10px' }} />
+                            <input type="time" value={data[key] as string} onChange={e=>set(key,e.target.value)} className={inputCls} style={{ padding:'8px 12px', minWidth:0 }} />
                           </div>
                         ))}
                       </div>

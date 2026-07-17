@@ -143,3 +143,13 @@ export function addNote(leadKey: string, note: LeadNote): LeadNote[] {
   saveStore(store);
   return updated;
 }
+
+/** Load every note from every lead, sorted newest-first. */
+export function loadAllNotes(): LeadNote[] {
+  const store = loadStore();
+  const all: LeadNote[] = [];
+  for (const notes of Object.values(store)) {
+    all.push(...notes);
+  }
+  return all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}

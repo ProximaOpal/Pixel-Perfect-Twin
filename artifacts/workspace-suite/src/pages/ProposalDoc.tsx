@@ -171,17 +171,17 @@ export function ProposalDoc() {
     return () => { cancelled = true; unsubscribe(); };
   }, []);
 
-  // Auto-select newest generated proposal on arrival
-  const generatedIds = useRef<Set<string>>(new Set());
+  // Auto-open the newest proposal ONLY when navigating here right after generation.
+  // The sessionStorage flag is set in Forms.tsx just before navigate('/proposal-doc').
+  const shouldAutoOpen = useRef(sessionStorage.getItem('nexus_just_generated') === 'true');
   useEffect(() => {
-    const newest = generated[0];
-    if (newest && !generatedIds.current.has(newest.id)) {
-      generatedIds.current.add(newest.id);
-      if (generatedIds.current.size === generated.length) return;
-      setActiveId(newest.id);
-    } else {
-      generated.forEach((p) => generatedIds.current.add(p.id));
-    }
+    // Clear the flag on mount so normal page visits are unaffected.
+    if (shouldAutoOpen.current) sessionStorage.removeItem('nexus_just_generated');
+  }, []);
+  useEffect(() => {
+    if (!shouldAutoOpen.current || generated.length === 0) return;
+    setActiveId(generated[0].id);
+    shouldAutoOpen.current = false;
   }, [generated]);
 
   const generatedFiles = generated.map(proposalToFile);
