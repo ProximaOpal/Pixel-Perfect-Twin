@@ -105,19 +105,19 @@ function ContactView({ lead, onNotes }: { lead: Lead; onNotes: () => void }) {
 
   return (
     <div className="relative flex h-full w-full">
-      {/* Left: deep white panel */}
-      <div className="relative flex w-1/2 flex-col bg-white overflow-hidden">
-        {/* Content */}
-        <div className="mt-auto px-10 pb-8 ml-4">
-          <h2 className="text-[28px] font-black leading-[1.15] text-[#1a1a1a] tracking-tight">
-            {lead.name.split(' ').slice(0, 1).join(' ')}<br />
-            <span className="text-[#1a1a1a]/80">{lead.name.split(' ').slice(1).join(' ') || lead.designation}</span>
-          </h2>
-          <p className="mt-3 max-w-[200px] text-[11px] leading-relaxed text-[#1a1a1a]/50">
-            {lead.designation} — {lead.sector}.{lead.source ? ` Sourced via ${lead.source}.` : ''}
-          </p>
-          {/* Quick-connect row — each brand keeps its own color coding */}
-          <div className="mt-5 flex items-center gap-3">
+      {/* Left: deep white panel — content fully centred */}
+      <div className="relative flex w-1/2 flex-col items-center justify-center bg-white overflow-hidden px-8">
+        {/* Name + subtitle */}
+        <h2 className="text-[24px] font-black leading-tight text-[#1a1a1a] tracking-tight text-center whitespace-nowrap">
+          {lead.name}
+        </h2>
+        <p className="mt-2 text-[11px] leading-relaxed text-[#1a1a1a]/50 text-center max-w-[210px]">
+          {lead.designation} — {lead.sector}.{lead.source ? ` Sourced via ${lead.source}.` : ''}
+        </p>
+
+        {/* All 6 action buttons — two centred rows */}
+        <div className="mt-6 flex flex-col items-center gap-2.5">
+          <div className="flex items-center gap-2.5">
             <a
               href={GOOGLE_MEET_URL}
               target="_blank"
@@ -152,8 +152,7 @@ function ContactView({ lead, onNotes }: { lead: Lead; onNotes: () => void }) {
               <Linkedin className="h-3 w-3" /> LinkedIn
             </a>
           </div>
-
-          <div className="mt-3 flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <a
               href={gmailDraftUrl(lead.email)}
               target="_blank"
@@ -177,7 +176,6 @@ function ContactView({ lead, onNotes }: { lead: Lead; onNotes: () => void }) {
               <FileText className="h-3 w-3" /> Notes
             </button>
           </div>
-
         </div>
       </div>
 
@@ -273,13 +271,13 @@ function CompanyView({ lead }: { lead: Lead }) {
           {lead.id || '24'}
         </div>
 
-        {/* Content */}
-        <div className="mt-auto px-10 pb-8 ml-4">
-          <h2 className="text-[32px] font-black leading-[1.1] text-[#1a1a1a] tracking-tight">
-            The Story<span className="text-[#1a1a1a]">.</span>
+        {/* Content — fully centred vertically and horizontally */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center px-10 text-center">
+          <h2 className="text-[28px] font-black leading-[1.1] text-[#1a1a1a] tracking-tight">
+            {lead.company || 'Company'}<span className="text-[#1a1a1a]">.</span>
           </h2>
           <p className="mt-3 max-w-[200px] text-[11px] leading-relaxed text-[#1a1a1a]/50">
-            {lead.company} — {lead.sector}. Reference {lead.referenceNumber}. Joined {lead.joined}.
+            {lead.sector}. Reference {lead.referenceNumber}. Joined {lead.joined}.
           </p>
           {lead.linkedin && (
             <a
