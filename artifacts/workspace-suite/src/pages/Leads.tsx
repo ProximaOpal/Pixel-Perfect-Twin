@@ -1,71 +1,54 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { soundClick, soundOpen, soundClose, soundTab, soundRefresh } from '@/lib/sounds';
-import {
-  Search, Bell, ChevronDown, MoreVertical, Plus, X, RefreshCw, AlertCircle,
-} from 'lucide-react';
+import { Search, ArrowRight, Plus, MoreVertical, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { LeadPanel, type Lead } from '@/components/LeadPanel';
+import { TimelinePanel } from '@/components/TimelinePanel';
 import { useActiveLead } from '@/context/ActiveLeadContext';
 import { Avatar } from '@/components/Avatar';
 import { personAvatarUrl } from '@/lib/avatar';
+import { PanelNav } from '@/components/PanelNav';
+import { soundClick, soundOpen, soundClose, soundTab } from '@/lib/sounds';
+import './Home.css';
+import './ProgressNotes.css';
 
 // ── Webhook ──────────────────────────────────────────────────────────────────
 const WEBHOOK_URL = 'https://meeraworkflows.app.n8n.cloud/webhook/LeadDataFetch';
 
 interface RawLead {
-  enquiryDate:         string;
-  name:                string;
-  jobRole:             string;
-  companyName:         string;
-  companySector:       string;
-  email:               string;
-  phone:               string;
-  referenceNumber:     string;
-  source:              string;
-  bestTimeToCall:      string;
-  market:              string;
-  eventType:           string;
-  yearOfEvent:         string;
-  fullEventDate:       string;
-  eventDateFlexible:   string;
-  requestedEventTimes: string;
-  groupSize:           string;
-  budget:              string;
-  howHeard:            string;
-  status:              string;
+  enquiryDate: string; name: string; jobRole: string; companyName: string;
+  companySector: string; email: string; phone: string; referenceNumber: string;
+  source: string; bestTimeToCall: string; market: string; eventType: string;
+  yearOfEvent: string; fullEventDate: string; eventDateFlexible: string;
+  requestedEventTimes: string; groupSize: string; budget: string;
+  howHeard: string; status: string;
 }
 
-function toInitials(name: string): string {
-  return name.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
+function toInitials(name: string) {
+  return name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
 }
 
 function mapRaw(raw: RawLead, index: number): Lead {
   const name = raw.name || '—';
   return {
-    id:              index + 1,
-    name,
-    email:           raw.email           || '—',
-    code:            raw.referenceNumber || `#${index + 1}`,
-    designation:     raw.jobRole         || '—',
-    phone:           raw.phone           || '—',
-    joined:          raw.enquiryDate     || '—',
-    color:           '#0894ce',
-    initials:        toInitials(name),
-    sector:          raw.companySector   || '—',
+    id: index + 1, name,
+    email: raw.email || '—',
+    code: raw.referenceNumber || `#${index + 1}`,
+    designation: raw.jobRole || '—',
+    phone: raw.phone || '—',
+    joined: raw.enquiryDate || '—',
+    color: '#0894ce',
+    initials: toInitials(name),
+    sector: raw.companySector || '—',
     referenceNumber: raw.referenceNumber || '—',
-    source:          raw.source          || '—',
-    company:         raw.companyName     || '—',
-    status:          raw.status.toLowerCase().trim(),
-    market:               raw.market              || '',
-    eventType:            raw.eventType           || '',
-    yearOfEvent:          raw.yearOfEvent         || '',
-    fullEventDate:        raw.fullEventDate       || '',
-    eventDateFlexible:    raw.eventDateFlexible   || '',
-    requestedEventTimes:  raw.requestedEventTimes || '',
-    groupSize:            raw.groupSize           || '',
-    budget:               raw.budget              || '',
-    bestTimeToCall:       raw.bestTimeToCall      || '',
-    howHeard:             raw.howHeard            || '',
+    source: raw.source || '—',
+    company: raw.companyName || '—',
+    status: raw.status.toLowerCase().trim(),
+    market: raw.market || '', eventType: raw.eventType || '',
+    yearOfEvent: raw.yearOfEvent || '', fullEventDate: raw.fullEventDate || '',
+    eventDateFlexible: raw.eventDateFlexible || '',
+    requestedEventTimes: raw.requestedEventTimes || '',
+    groupSize: raw.groupSize || '', budget: raw.budget || '',
+    bestTimeToCall: raw.bestTimeToCall || '', howHeard: raw.howHeard || '',
   };
 }
 
@@ -83,320 +66,295 @@ async function fetchLeads(): Promise<Lead[]> {
 
 const TABS = ['Live', 'Booked', 'Dead', 'Blacklisted'] as const;
 
-/* Brand palette — matches the Home page navy / teal / mint system */
-const NAVY   = '#0a1628';
-const TEAL   = '#0894ce';
-const MINT   = '#00f78e';
+// ── Status dot colour ────────────────────────────────────────────────────────
+const STATUS_COLOR: Record<string, string> = {
+  live: '#22c55e', booked: '#0894ce', dead: '#ef4444', blacklisted: '#6b7280',
+};
 
 export function Leads() {
   const { setActiveLead } = useActiveLead();
-  const [activeTab, setActiveTab]     = useState(0);
-  const [leads, setLeads]             = useState<Lead[]>([]);
-  const [status, setStatus]           = useState<'loading' | 'ok' | 'error'>('loading');
-  const [panelLead, setPanelLead]     = useState<Lead | null>(null);
-  const [query, setQuery]             = useState('');
-  const searchRef                     = useRef<HTMLInputElement>(null);
+  const [activeTab, setActiveTab]       = useState(0);
+  const [leads, setLeads]               = useState<Lead[]>([]);
+  const [fetchStatus, setFetchStatus]   = useState<'loading' | 'ok' | 'error'>('loading');
+  const [panelLead, setPanelLead]       = useState<Lead | null>(null);
+  const [timelineLead, setTimelineLead] = useState<Lead | null>(null);
+  const [search, setSearch]             = useState('');
+  const [fading, setFading]             = useState(false);
+  const cursorRef                       = useRef<HTMLDivElement>(null);
+
+  // ── fake cursor (matches Home/ProgressNotes feel) ──
+  useEffect(() => {
+    const el = cursorRef.current; if (!el) return;
+    const HOVER = '.nhome-nav-card, .pn-fab, .pn-mode-btn';
+    const onMove  = (e: MouseEvent) => { el.style.transform = `translate(${e.clientX}px,${e.clientY}px)`; el.classList.toggle('hover', !!(e.target as Element)?.closest?.(HOVER)); };
+    const onLeave = () => { el.style.transform = 'translate(-999px,-999px)'; };
+    const onDown  = (e: MouseEvent) => { if ((e.target as Element)?.closest?.(HOVER)) el.classList.add('press'); };
+    const onUp    = () => el.classList.remove('press');
+    window.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseleave', onLeave);
+    window.addEventListener('mousedown', onDown);
+    window.addEventListener('mouseup', onUp);
+    return () => { window.removeEventListener('mousemove', onMove); document.removeEventListener('mouseleave', onLeave); window.removeEventListener('mousedown', onDown); window.removeEventListener('mouseup', onUp); };
+  }, []);
 
   const load = async () => {
-    setStatus('loading');
-    try {
-      setLeads(await fetchLeads());
-      setStatus('ok');
-    } catch {
-      setStatus('error');
-    }
+    setFetchStatus('loading');
+    try { setLeads(await fetchLeads()); setFetchStatus('ok'); }
+    catch { setFetchStatus('error'); }
   };
-
   useEffect(() => { load(); }, []);
 
-  const tabKey    = TABS[activeTab].toLowerCase();
-  const tabFiltered = leads.filter((l) => (l.status ?? '').toLowerCase() === tabKey);
-  const visible   = query.trim()
-    ? tabFiltered.filter((l) =>
-        [l.name, l.email, l.code, l.designation, l.company, l.sector, l.source]
-          .some((v) => v.toLowerCase().includes(query.toLowerCase())))
-    : tabFiltered;
+  function switchTab(i: number) {
+    if (i === activeTab) return;
+    setFading(true);
+    setTimeout(() => { setActiveTab(i); setFading(false); soundTab(); }, 220);
+  }
+
+  const tabKey  = TABS[activeTab].toLowerCase();
+  const tabLeads = leads.filter(l => (l.status ?? '').toLowerCase() === tabKey);
+  const visible  = search.trim()
+    ? tabLeads.filter(l => [l.name, l.email, l.designation, l.company, l.source]
+        .some(v => v.toLowerCase().includes(search.toLowerCase())))
+    : tabLeads;
+
+  const progressPct = fetchStatus === 'ok' && leads.length > 0
+    ? Math.min(100, Math.round((visible.length / Math.max(leads.length, 1)) * 100))
+    : 12;
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: '#f5f4fa' }}>
-      <div className="flex flex-1 flex-col overflow-hidden">
+    <div className="nexus-home">
+      <div className="nhome-stage">
 
-        {/* ── Header ── */}
-        <div
-          className="relative flex items-center shrink-0 border-b"
-          style={{ background: NAVY, borderColor: 'rgba(255,255,255,0.08)', padding: '10px 28px' }}
-        >
-          {/* Left: search */}
-          <div
-            className="flex items-center gap-2 shrink-0"
-            style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 8, padding: '7px 12px', width: 220 }}
-          >
-            <Search style={{ width: 14, height: 14, color: 'rgba(255,255,255,0.4)', flexShrink: 0 }} />
-            <input
-              ref={searchRef}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search leads…"
-              style={{
-                flex: 1, background: 'transparent', border: 'none', outline: 'none',
-                fontSize: 13, color: '#fff',
-              }}
-              // eslint-disable-next-line react/no-unknown-property
-              className="placeholder:text-white/30"
-            />
-            {query && (
-              <button onClick={() => { setQuery(''); soundClick(); }} style={{ color: 'rgba(255,255,255,0.3)', lineHeight: 0 }}>
-                <X style={{ width: 13, height: 13 }} />
-              </button>
-            )}
-          </div>
+        {/* ── LEFT PANEL ────────────────────────────────────────────────── */}
+        <aside className="nhome-panel-left">
+          <div className="nhome-kaleidoscope" />
+          <div className="nhome-left-inner">
 
-          {/* Centre: title — absolutely centred in the bar */}
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none select-none">
-            <h1 style={{ fontSize: 17, fontWeight: 800, color: '#fff', letterSpacing: '-0.3px', whiteSpace: 'nowrap' }}>
-              Leads Database
+            <div className="nhome-top-row">
+              <div className="nhome-brand">Nexus<span className="nhome-brand-dot" /></div>
+            </div>
+
+            <PanelNav />
+
+            <div className="nhome-progress-track">
+              <div className="nhome-progress-fill" style={{ width: `${progressPct}%`, transition: 'width .65s cubic-bezier(.65,0,.35,1)' }} />
+            </div>
+
+            <div className="nhome-tags">
+              <span className="nhome-tag">#LEADS</span>
+              {fetchStatus === 'ok' && leads.length > 0 && (
+                <span className="nhome-tag">{leads.length} LEADS</span>
+              )}
+              {fetchStatus === 'loading' && <span className="nhome-tag">#LOADING</span>}
+            </div>
+
+            <h1 className="nhome-headline" style={{ marginTop: 16 }}>
+              Leads<br /><span>Database.</span>
             </h1>
-            {status === 'ok' && leads.length > 0 && (
-              <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.35)', marginTop: 1 }}>
-                {leads.length}
-              </span>
-            )}
-          </div>
+            <p className="nhome-subtext">
+              All your leads in one place. Click a lead to open their profile, or ⋮ to view their progress timeline.
+            </p>
 
-          {/* Right: controls */}
-          <div className="ml-auto flex items-center gap-3 shrink-0">
-            {/* Refresh */}
-            <button
-              onClick={() => { load(); soundRefresh(); }}
-              disabled={status === 'loading'}
-              title="Refresh"
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                width: 32, height: 32, borderRadius: 7,
-                background: 'rgba(255,255,255,0.08)', border: 'none', cursor: 'pointer',
-                color: 'rgba(255,255,255,0.5)', transition: 'background .18s',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(8,148,206,0.25)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
-            >
-              <RefreshCw style={{ width: 13, height: 13 }} className={status === 'loading' ? 'animate-spin' : ''} />
-            </button>
-
-            {/* Add Lead */}
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={soundClick}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                background: TEAL, color: '#fff',
-                border: 'none', borderRadius: 8,
-                padding: '8px 16px', fontSize: 13, fontWeight: 700,
-                cursor: 'pointer', whiteSpace: 'nowrap',
-              }}
-            >
-              <Plus style={{ width: 14, height: 14 }} />
-              Add Lead
-            </motion.button>
-
-            <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.12)' }} />
-
-            {/* Bell */}
-            <div style={{ position: 'relative' }}>
-              <Bell style={{ width: 17, height: 17, color: 'rgba(255,255,255,0.5)' }} />
-              <span style={{ position: 'absolute', top: -1, right: -1, width: 6, height: 6, borderRadius: '50%', background: MINT }} />
+            <div className="nhome-byline">
+              <div className="by">LEADS DATABASE</div>
+              <div className="date">SALES WORKFLOW TRACKER</div>
             </div>
+          </div>
+        </aside>
 
-            {/* Avatar */}
-            <div className="flex items-center gap-2 cursor-pointer">
-              <Avatar
-                src={personAvatarUrl({ name: 'Alief Vinicius' })}
-                alt="Alief Vinicius"
-                fallbackText="AV"
-                className="h-8 w-8 text-[11px] shrink-0"
+        {/* ── RIGHT PANEL ───────────────────────────────────────────────── */}
+        <main className="nhome-panel-right" style={{ position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+
+          {/* Header: search + tab toggle */}
+          <div className="nhome-panel-right-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', paddingBottom: 0 }}>
+            <label className="nhome-search-bar" style={{ width: '100%' }}>
+              <Search size={16} style={{ flexShrink: 0, color: 'var(--ink-soft)' }} />
+              <input
+                type="text"
+                placeholder="Search leads…"
+                value={search}
+                onChange={e => { setSearch(e.target.value); }}
               />
-              <span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.75)', whiteSpace: 'nowrap' }}>
-                Alief Vinicius
-              </span>
-              <ChevronDown style={{ width: 13, height: 13, color: 'rgba(255,255,255,0.35)' }} />
+            </label>
+
+            {/* 4-tab toggle — full width, indicator spans 1/4 */}
+            <div
+              className="pn-mode-toggle"
+              style={{ width: '100%', marginTop: 0, marginBottom: 4, marginLeft: 0, marginRight: 0 }}
+            >
+              <span
+                className="pn-mode-indicator"
+                style={{
+                  width: 'calc(25% - 3px)',
+                  transform: `translateX(calc(${activeTab} * (100% + 4px)))`,
+                }}
+              />
+              {TABS.map((tab, i) => (
+                <button
+                  key={tab}
+                  className={`pn-mode-btn${activeTab === i ? ' active' : ''}`}
+                  style={{ flex: 1, padding: '9px 0' }}
+                  onClick={() => switchTab(i)}
+                >
+                  {tab}
+                  {fetchStatus === 'ok' && leads.filter(l => (l.status ?? '').toLowerCase() === tab.toLowerCase()).length > 0 && (
+                    <span style={{
+                      marginLeft: 6, fontSize: 10, fontWeight: 700,
+                      background: activeTab === i ? 'rgba(255,255,255,.22)' : 'rgba(23,24,28,.08)',
+                      color: activeTab === i ? '#fff' : 'rgba(23,24,28,.35)',
+                      padding: '1px 6px', borderRadius: 4,
+                    }}>
+                      {leads.filter(l => (l.status ?? '').toLowerCase() === tab.toLowerCase()).length}
+                    </span>
+                  )}
+                </button>
+              ))}
             </div>
           </div>
-        </div>
 
-        {/* ── Tabs ── */}
-        <div
-          className="flex shrink-0 border-b"
-          style={{ background: '#fff', borderColor: 'rgba(23,24,28,0.08)', paddingLeft: 28 }}
-        >
-          {TABS.map((tab, i) => {
-            const count = leads.filter(l => (l.status ?? '').toLowerCase() === tab.toLowerCase()).length;
-            const isActive = activeTab === i;
-            return (
-              <button
-                key={tab}
-                onClick={() => { setActiveTab(i); soundTab(); }}
-                className="relative"
-                style={{
-                  padding: '10px 20px 10px',
-                  fontSize: 13,
-                  fontWeight: 500,
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: isActive ? NAVY : 'rgba(23,24,28,0.4)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  transition: 'color .18s',
-                }}
-              >
-                {tab}
-                {status === 'ok' && count > 0 && (
-                  <span style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    padding: '2px 6px',
-                    borderRadius: 4,
-                    background: isActive ? `${TEAL}20` : 'rgba(23,24,28,0.06)',
-                    color: isActive ? TEAL : 'rgba(23,24,28,0.35)',
-                  }}>
-                    {count}
-                  </span>
-                )}
-                {isActive && (
-                  <motion.span
-                    layoutId="leads-tab-line"
-                    style={{
-                      position: 'absolute', bottom: 0, left: 0, right: 0,
-                      height: 2.5, background: TEAL,
-                    }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 36 }}
-                  />
-                )}
-              </button>
-            );
-          })}
-        </div>
+          {/* Scroll area */}
+          <div
+            className={`pn-scroll-area${fading ? ' fading' : ''}`}
+            style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 52px 80px', display: 'flex', flexDirection: 'column' }}
+          >
 
-        {/* ── Body ── */}
-        <div className="flex-1 overflow-auto" style={{ background: '#fff' }}>
-
-          {/* Loading skeleton */}
-          <AnimatePresence>
-            {status === 'loading' && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="divide-y divide-black/5">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className="grid grid-cols-[40px_1fr_140px_180px_150px_140px_40px] px-6 py-[13px]">
-                    <div className="h-4 w-5 bg-black/6 animate-pulse self-center" />
-                    <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 bg-black/6 animate-pulse shrink-0" />
-                      <div className="space-y-1.5">
-                        <div className="h-3 w-32 bg-black/6 animate-pulse" />
-                        <div className="h-2.5 w-44 bg-black/4 animate-pulse" />
+            {/* Loading skeletons */}
+            <AnimatePresence>
+              {fetchStatus === 'loading' && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: 12, background: '#ebebf4', marginBottom: 10 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(23,24,28,.08)' }} className="animate-pulse" />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ height: 12, width: '40%', background: 'rgba(23,24,28,.08)', borderRadius: 4, marginBottom: 6 }} className="animate-pulse" />
+                        <div style={{ height: 10, width: '60%', background: 'rgba(23,24,28,.05)', borderRadius: 4 }} className="animate-pulse" />
                       </div>
                     </div>
-                    {[100, 140, 110, 80].map((w) => (
-                      <div key={w} className="h-3 bg-black/5 animate-pulse self-center" style={{ width: w }} />
-                    ))}
-                    <div />
-                  </div>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Error */}
-          {status === 'error' && (
-            <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
-              <AlertCircle className="h-8 w-8 text-black/20" />
-              <p className="text-[13px] font-medium text-black/50">Could not load leads</p>
-              <p className="text-[12px] text-black/30">Check your connection and try again.</p>
-              <button
-                onClick={load}
-                style={{ marginTop: 4, background: TEAL, color: '#fff', border: 'none', borderRadius: 7, padding: '8px 18px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
-              >
-                Retry
-              </button>
-            </div>
-          )}
-
-          {/* Table */}
-          {status === 'ok' && (
-            <>
-              {/* Column headers */}
-              <div
-                className="grid sticky top-0 z-10 border-b"
-                style={{ gridTemplateColumns: '28px 1fr 116px 1fr 128px 104px 40px', padding: '10px 28px', background: '#fff', borderColor: 'rgba(23,24,28,0.08)' }}
-              >
-                <div />
-                <span style={{ fontSize: 11.5, fontWeight: 500, color: 'rgba(23,24,28,0.35)' }}>Basic Info</span>
-                <span style={{ fontSize: 11.5, fontWeight: 500, color: 'rgba(23,24,28,0.35)' }}>Reference</span>
-                <span style={{ fontSize: 11.5, fontWeight: 500, color: 'rgba(23,24,28,0.35)' }}>Role</span>
-                <span style={{ fontSize: 11.5, fontWeight: 500, color: 'rgba(23,24,28,0.35)' }}>Phone</span>
-                <span style={{ fontSize: 11.5, fontWeight: 500, color: 'rgba(23,24,28,0.35)' }}>Enquiry Date</span>
-                <div />
-              </div>
-
-              {/* Empty */}
-              {visible.length === 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '64px 0', fontSize: 13, color: 'rgba(23,24,28,0.3)' }}>
-                  {query ? `No leads match "${query}"` : `No ${TABS[activeTab].toLowerCase()} leads`}
-                </div>
+                  ))}
+                </motion.div>
               )}
+            </AnimatePresence>
 
-              {/* Rows */}
-              {visible.map((lead, idx) => (
-                <motion.div
-                  key={lead.id}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: Math.min(idx * 0.025, 0.4), duration: 0.18 }}
-                  onClick={() => { setPanelLead(lead); setActiveLead(lead); soundOpen(); }}
-                  className="grid border-b last:border-0 cursor-pointer"
-                  style={{
-                    gridTemplateColumns: '28px 1fr 116px 1fr 128px 104px 40px',
-                    padding: '13px 28px',
-                    borderColor: 'rgba(23,24,28,0.05)',
-                    background: panelLead?.id === lead.id ? `${TEAL}0d` : 'transparent',
-                    transition: 'background .15s',
-                  }}
-                  onMouseEnter={e => { if (panelLead?.id !== lead.id) e.currentTarget.style.background = 'rgba(23,24,28,0.02)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = panelLead?.id === lead.id ? `${TEAL}0d` : 'transparent'; }}
+            {/* Error */}
+            {fetchStatus === 'error' && (
+              <div className="pn-empty">
+                <AlertCircle size={36} style={{ opacity: .22 }} />
+                <p className="title">Could not load leads</p>
+                <p className="sub">Check your connection and try again.</p>
+                <button
+                  onClick={load}
+                  style={{ marginTop: 18, background: '#0894ce', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 22px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
                 >
-                  <span style={{ fontSize: 12, color: 'rgba(23,24,28,0.25)', alignSelf: 'center' }}>{idx + 1}</span>
+                  Retry
+                </button>
+              </div>
+            )}
 
-                  <div className="flex items-center gap-3 min-w-0">
+            {/* Empty state */}
+            {fetchStatus === 'ok' && visible.length === 0 && (
+              <div className="pn-empty">
+                <CheckCircle2 size={36} style={{ opacity: .22 }} />
+                <p className="title">{search ? `No leads match "${search}"` : `No ${TABS[activeTab].toLowerCase()} leads`}</p>
+                <p className="sub">{search ? 'Try a different search term' : 'Leads in this status will appear here'}</p>
+              </div>
+            )}
+
+            {/* Lead cards */}
+            {fetchStatus === 'ok' && visible.map((lead, idx) => (
+              <motion.div
+                key={lead.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: Math.min(idx * 0.04, 0.5), duration: 0.2 }}
+              >
+                {/* Card — full width, no maxWidth */}
+                <div
+                  className="nhome-nav-card"
+                  style={{ width: '100%', maxWidth: 'none', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 14 }}
+                >
+                  {/* Avatar */}
+                  <div
+                    className="nhome-nav-card-icon"
+                    style={{ background: `${lead.color}18`, flexShrink: 0 }}
+                    onClick={() => { setPanelLead(lead); setActiveLead(lead); soundOpen(); }}
+                  >
                     <Avatar
                       src={personAvatarUrl(lead)}
                       alt={lead.name}
                       fallbackText={lead.initials}
-                      className="h-9 w-9 text-[11px] shrink-0"
+                      className="h-[22px] w-[22px] text-[9px]"
                     />
-                    <div className="min-w-0">
-                      <p style={{ fontSize: 13, fontWeight: 600, color: '#17181c', lineHeight: 1.3 }} className="truncate">{lead.name}</p>
-                      <p style={{ fontSize: 11.5, color: 'rgba(23,24,28,0.4)' }} className="truncate">{lead.email}</p>
-                    </div>
                   </div>
 
-                  <span style={{ fontSize: 12, color: 'rgba(23,24,28,0.5)', alignSelf: 'center', fontFamily: 'monospace' }} className="truncate">{lead.code}</span>
-                  <span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(23,24,28,0.7)', alignSelf: 'center' }} className="truncate pr-3 min-w-0">{lead.designation}</span>
-                  <span style={{ fontSize: 13, color: 'rgba(23,24,28,0.55)', alignSelf: 'center' }} className="truncate">{lead.phone}</span>
-                  <span style={{ fontSize: 13, color: 'rgba(23,24,28,0.55)', alignSelf: 'center' }}>{lead.joined}</span>
-
-                  <button
-                    onClick={(e) => e.stopPropagation()}
-                    style={{ alignSelf: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(23,24,28,0.2)' }}
+                  {/* Text — clickable to open panel */}
+                  <div
+                    className="nhome-nav-card-text"
+                    style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
+                    onClick={() => { setPanelLead(lead); setActiveLead(lead); soundOpen(); }}
                   >
-                    <MoreVertical style={{ width: 16, height: 16 }} />
+                    <p className="nhome-nav-card-title" style={{ color: '#17181c' }}>{lead.name}</p>
+                    <p className="nhome-nav-card-desc">
+                      {[lead.company !== '—' ? lead.company : null, lead.designation !== '—' ? lead.designation : null].filter(Boolean).join(' · ')}
+                      {lead.source && lead.source !== '—' && (
+                        <> &nbsp;·&nbsp; <span style={{ color: '#0894ce' }}>{lead.source}</span></>
+                      )}
+                    </p>
+                  </div>
+
+                  {/* Status dot */}
+                  <span style={{
+                    width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+                    background: STATUS_COLOR[lead.status?.toLowerCase() ?? ''] ?? '#d1d5db',
+                  }} />
+
+                  {/* Three-dots → Timeline */}
+                  <button
+                    onClick={e => { e.stopPropagation(); setTimelineLead(lead); soundClick(); }}
+                    title="View progress timeline"
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+                      background: 'transparent', border: 'none', cursor: 'pointer',
+                      color: 'rgba(23,24,28,.28)', transition: 'background .18s, color .18s',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(23,24,28,.08)'; e.currentTarget.style.color = '#17181c'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(23,24,28,.28)'; }}
+                  >
+                    <MoreVertical size={15} />
                   </button>
-                </motion.div>
-              ))}
-            </>
+
+                  {/* Arrow → Lead panel */}
+                  <div
+                    className="nhome-nav-card-arrow"
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => { setPanelLead(lead); setActiveLead(lead); soundOpen(); }}
+                  >
+                    <ArrowRight size={13} color="var(--ink)" strokeWidth={2.2} />
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* FAB — Add Lead */}
+          {fetchStatus !== 'loading' && (
+            <button className="pn-fab" onClick={soundClick} title="Add Lead">
+              <Plus size={20} color="#0c3524" />
+            </button>
           )}
-        </div>
+
+          {/* Timeline overlay (renders inside the right panel) */}
+          <TimelinePanel lead={timelineLead} onClose={() => { setTimelineLead(null); soundClose(); }} />
+        </main>
       </div>
 
+      {/* LeadPanel slide-in */}
       <LeadPanel lead={panelLead} onClose={() => { setPanelLead(null); soundClose(); }} />
+
+      {/* Cursor decoration */}
+      <div className="nhome-cursor" ref={cursorRef}>
+        <div className="nhome-cursor-ring" />
+      </div>
     </div>
   );
 }

@@ -7,7 +7,6 @@ import { Home } from '@/pages/Home';
 import { Leads } from '@/pages/Leads';
 import { Forms as QuoteBuilder } from '@/pages/Forms';
 import { ProposalDoc } from '@/pages/ProposalDoc';
-import { Timeline } from '@/pages/Timeline';
 import { Apps } from '@/pages/Apps';
 import { ProgressNotes } from '@/pages/ProgressNotes';
 import NotFound from '@/pages/NotFound';
@@ -22,7 +21,6 @@ function Router() {
         <Route path="/leads" component={Leads} />
         <Route path="/quote-builder" component={QuoteBuilder} />
         <Route path="/proposal-doc" component={ProposalDoc} />
-        <Route path="/timeline" component={Timeline} />
         <Route path="/apps" component={Apps} />
         <Route path="/progress-notes" component={ProgressNotes} />
         <Route component={NotFound} />
