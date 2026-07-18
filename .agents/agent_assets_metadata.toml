@@ -9,6 +9,6 @@ title = "Workspace Suite — Source Code Export"
 
 [[outputs]]
 id = "QBRJToSGKAI4dU92yzG2B"
-uri = "file://attached_assets/frontend_code_export.txt"
+uri = "file://attached_assets/asset_025_frontend_code_export.txt"
 type = "text"
 title = "Frontend code export (all src files)"
