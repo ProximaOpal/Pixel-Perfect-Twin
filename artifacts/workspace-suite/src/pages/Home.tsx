@@ -38,6 +38,9 @@ const LOGIN_USERS = [
   { id: 'lily-may',  name: 'Lily-May',  initials: 'LM',  color: '#f59e0b' },
   { id: 'elizabeth', name: 'Elizabeth', initials: 'E',   color: '#22c55e' },
   { id: 'katherine', name: 'Katherine', initials: 'K',   color: '#0894ce' },
+  { id: 'april',     name: 'April',     initials: 'A',   color: '#14b8a6' },
+  { id: 'arianne',   name: 'Arianne',   initials: 'Ar',  color: '#f43f5e' },
+  { id: 'sapphire',  name: 'Sapphire',  initials: 'S',   color: '#3b82f6' },
 ] as const;
 
 export function Home() {

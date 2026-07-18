@@ -447,10 +447,13 @@ function NoteView({ lead, onBack }: { lead: Lead; onBack: () => void }) {
 }
 
 const REPS = [
-  { name: 'Natasha',   initial: 'N', color: '#f59e0b' }, // orange
-  { name: 'Lily-May',  initial: 'L', color: '#a855f7' }, // purple
-  { name: 'Elizabeth', initial: 'E', color: '#0894ce' }, // blue
-  { name: 'Katherine', initial: 'K', color: '#00f78e' }, // luminous green
+  { name: 'Natasha',   initial: 'N',  color: '#f59e0b' }, // orange
+  { name: 'Lily-May',  initial: 'L',  color: '#a855f7' }, // purple
+  { name: 'Elizabeth', initial: 'E',  color: '#0894ce' }, // blue
+  { name: 'Katherine', initial: 'K',  color: '#00f78e' }, // luminous green
+  { name: 'April',     initial: 'A',  color: '#14b8a6' }, // teal
+  { name: 'Arianne',   initial: 'Ar', color: '#f43f5e' }, // rose
+  { name: 'Sapphire',  initial: 'S',  color: '#3b82f6' }, // sapphire blue
 ] as const;
 
 /* ─── Main export: centered overlay ─── */
