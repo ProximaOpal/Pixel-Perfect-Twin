@@ -30,6 +30,8 @@ export type QuoteFinancials = {
   margin: number;
 };
 
+export type QuoteVersion = 'V1' | 'V2' | 'V3';
+
 export type BuiltQuote = {
   id: string;
   createdAt: string;
@@ -43,12 +45,20 @@ export type BuiltQuote = {
   leadCompany?: string;
   leadId?: number;
   referenceNumber?: string;
+  /** Package option version on approved quotes. */
+  version?: QuoteVersion;
   /** Fields prefilled from n8n that must stay locked in the wizard + editor. */
   lockedFromN8n?: {
     eventType: boolean;
     repeatClient: boolean;
   };
 };
+
+export function nextQuoteVersion(current?: QuoteVersion | null): QuoteVersion {
+  if (current === 'V1') return 'V2';
+  if (current === 'V2') return 'V3';
+  return 'V1';
+}
 
 const STORAGE_KEY = 'nexus_built_quotes';
 const EVENT = 'nexus:quotes-updated';

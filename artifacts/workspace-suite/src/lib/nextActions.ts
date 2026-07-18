@@ -103,6 +103,7 @@ export const NEXT_ACTION_CATEGORIES: NextActionCategory[] = [
     color: '#3e4f86',
     icon: ClipboardList,
     actions: [
+      'Cost To Be Created',
       'Add notes for costs',
       'Costs Created (ready to go in doc)',
       'Costs created (ready to go in condensed doc)',

@@ -11,11 +11,12 @@ import { QuoteLibrary } from '@/components/QuoteLibrary';
 import { PanelNav } from '@/components/PanelNav';
 import { soundClick } from '@/lib/sounds';
 import { toast } from '@/hooks/use-toast';
+import { N8N_URLS, syncQuoteStatus, syncLeadUpdate } from '@/lib/n8nSync';
+import { sheetsTargetLabel } from '@/lib/sheetsMode';
 import './Home.css';
 import './ProgressNotes.css';
 
-/* ── Webhook ── */
-const QUOTE_WEBHOOK_URL = 'https://meeraworkflows.app.n8n.cloud/webhook/QuoteBuilder';
+const QUOTE_WEBHOOK_URL = N8N_URLS.quoteBuilder;
 
 /* ── Constants ── */
 const SOURCE_TYPES = [
@@ -284,11 +285,29 @@ export function Forms() {
     };
     saveQuote(quote);
     soundClick();
+    void syncQuoteStatus({
+      referenceNumber: quote.referenceNumber,
+      email: quote.leadEmail,
+      leadName: quote.leadName,
+      quoteId: quote.id,
+      status: 'built',
+      title: quote.title,
+      grandTotal: quote.financials.grandTotal,
+    });
+    void syncLeadUpdate({
+      referenceNumber: quote.referenceNumber,
+      email: quote.leadEmail,
+      leadName: quote.leadName,
+      quoteBuilt: true,
+    });
     clearQuoteLead();
     setMode('built');
     setQIdx(0);
     scrollRef.current?.scrollTo({ top: 0 });
-    toast({ title: 'Quote saved', description: 'Added to Built Quotes for review.' });
+    toast({
+      title: 'Quote saved',
+      description: `Built Quotes · ${sheetsTargetLabel()}`,
+    });
   }
 
   const currentQ    = QUESTIONS[qIdx];
@@ -381,7 +400,7 @@ export function Forms() {
         id: `proposal-${Date.now()}`,
         createdAt: new Date().toISOString(),
         eventDate: form.eventDate,
-        title: `${form.eventType || 'Event'} Proposal — ${form.vesselType.join(', ') || 'Vessel TBC'}`,
+        title: `${form.eventType || 'Event'} Proposal — ${form.vesselType.join(', ') || 'Vessel TBC'}${q.version ? ` (${q.version})` : ''}`,
         vesselType: form.vesselType.join(', '),
         eventType: form.eventType,
         guestCount: form.guestCount,
@@ -389,6 +408,9 @@ export function Forms() {
         pdfDataUrl,
         leadName: q.leadName,
         leadEmail: q.leadEmail,
+        quoteId: q.id,
+        referenceNumber: q.referenceNumber,
+        version: q.version,
       });
       if (!saved) throw new Error('PDF too large to store — clear older proposals and try again.');
       setStage('done');

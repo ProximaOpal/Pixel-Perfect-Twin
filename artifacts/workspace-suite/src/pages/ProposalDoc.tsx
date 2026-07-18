@@ -7,7 +7,11 @@ import {
   Maximize2, Mail, HardDrive, Box, MessageCircle, Trash2, PenSquare,
 } from 'lucide-react';
 import { loadProposals, subscribeProposals, deleteProposal, type GeneratedProposal } from '@/lib/proposalStore';
+import { loadQuotes, nextQuoteVersion, saveQuote, type BuiltQuote } from '@/lib/quoteDraftStore';
+import { setQuoteLead } from '@/lib/quoteLeadStore';
 import { PanelNav } from '@/components/PanelNav';
+import { toast } from '@/hooks/use-toast';
+import { soundClick } from '@/lib/sounds';
 import './Home.css';
 
 /* ─── Real document pages from the uploaded PDF ─── */
@@ -30,6 +34,9 @@ type ProposalFile = {
   vesselType?: string;
   guestCount?: string;
   grandTotal?: number;
+  quoteId?: string;
+  referenceNumber?: string;
+  version?: string;
 };
 
 function proposalToFile(p: GeneratedProposal): ProposalFile {
@@ -38,7 +45,7 @@ function proposalToFile(p: GeneratedProposal): ProposalFile {
     title: p.title,
     kind: 'generated',
     sizeLabel: 'PDF',
-    description: `Generated for ${p.guestCount || '—'} guests aboard ${p.vesselType || 'a vessel TBC'}. Grand total £${p.grandTotal.toFixed(2)}.`,
+    description: `Generated for ${p.guestCount || '—'} guests aboard ${p.vesselType || 'a vessel TBC'}. Grand total £${p.grandTotal.toFixed(2)}${p.version ? ` · ${p.version}` : ''}.`,
     pdfDataUrl: p.pdfDataUrl,
     leadName: p.leadName,
     leadEmail: p.leadEmail,
@@ -46,6 +53,9 @@ function proposalToFile(p: GeneratedProposal): ProposalFile {
     vesselType: p.vesselType,
     guestCount: p.guestCount,
     grandTotal: p.grandTotal,
+    quoteId: p.quoteId,
+    referenceNumber: p.referenceNumber,
+    version: p.version,
   };
 }
 
@@ -522,7 +532,51 @@ export function ProposalDoc() {
                   <Share2 className="h-3.5 w-3.5" /> Share
                 </button>
                 <button
-                  onClick={() => navigate('/quote-builder')}
+                  onClick={() => {
+                    // Edit from a generated PDF creates a new quote version (V1→V2→V3).
+                    if (active.kind === 'generated' && active.quoteId) {
+                      const quotes = loadQuotes();
+                      const source = quotes.find(q => q.id === active.quoteId);
+                      if (source) {
+                        const version = nextQuoteVersion(source.version);
+                        const now = new Date().toISOString();
+                        const revised: BuiltQuote = {
+                          ...source,
+                          id: `quote-${Date.now()}`,
+                          createdAt: now,
+                          updatedAt: now,
+                          status: 'built',
+                          version,
+                          title: `${source.form.eventType || 'Event'} Quote — ${source.form.vesselType.join(', ') || 'Vessel TBC'} (${version})`,
+                        };
+                        saveQuote(revised);
+                        setQuoteLead({
+                          id: source.leadId ?? 0,
+                          name: source.leadName ?? active.leadName ?? 'Lead',
+                          email: source.leadEmail ?? active.leadEmail ?? '',
+                          phone: '',
+                          designation: '',
+                          company: source.leadCompany ?? '',
+                          referenceNumber: source.referenceNumber ?? active.referenceNumber ?? '',
+                          initials: (source.leadName ?? 'L').slice(0, 2).toUpperCase(),
+                          color: '#0894ce',
+                          source: source.form.source,
+                          eventType: source.form.eventType,
+                          groupSize: source.form.guestCount,
+                          fullEventDate: source.form.eventDate,
+                        });
+                        soundClick();
+                        toast({
+                          title: `New version ${version}`,
+                          description: 'Opening Quote Builder to revise this package option.',
+                        });
+                        navigate('/quote-builder');
+                        return;
+                      }
+                    }
+                    soundClick();
+                    navigate('/quote-builder');
+                  }}
                   className="flex shrink-0 items-center justify-center gap-1.5 rounded-[10px] bg-black px-4 py-2.5 text-[11.5px] font-bold text-white hover:bg-black/80 transition-colors"
                 >
                   <PenSquare className="h-3.5 w-3.5" /> Edit

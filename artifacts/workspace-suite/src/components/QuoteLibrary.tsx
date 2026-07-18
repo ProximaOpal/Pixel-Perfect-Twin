@@ -15,10 +15,15 @@ import {
   timeAgo,
   type BuiltQuote,
   type QuoteFormSnapshot,
+  type QuoteVersion,
 } from '@/lib/quoteDraftStore';
 import { VESSEL_TYPES, MENU_TYPES } from '@/lib/formOptions';
 import { soundClick } from '@/lib/sounds';
 import { toast } from '@/hooks/use-toast';
+import { syncQuoteStatus, syncLeadUpdate } from '@/lib/n8nSync';
+import { sheetsTargetLabel } from '@/lib/sheetsMode';
+
+const VERSIONS: QuoteVersion[] = ['V1', 'V2', 'V3'];
 
 type ListMode = 'built' | 'approved';
 
@@ -55,10 +60,47 @@ export function QuoteLibrary({ mode, onBuildProposal, onStartBuilding }: Props) 
     soundClick();
   }
 
-  function approve(q: BuiltQuote) {
-    saveQuote({ ...q, status: 'approved', updatedAt: new Date().toISOString() });
+  function approve(q: BuiltQuote, version: QuoteVersion = 'V1') {
+    const next = { ...q, status: 'approved' as const, version, updatedAt: new Date().toISOString() };
+    saveQuote(next);
     soundClick();
-    toast({ title: 'Quote approved', description: 'Moved to Approved Quotes.' });
+    void syncQuoteStatus({
+      referenceNumber: q.referenceNumber,
+      email: q.leadEmail,
+      leadName: q.leadName,
+      quoteId: q.id,
+      status: 'approved',
+      version,
+      title: q.title,
+      grandTotal: q.financials.grandTotal,
+    });
+    void syncLeadUpdate({
+      referenceNumber: q.referenceNumber,
+      email: q.leadEmail,
+      leadName: q.leadName,
+      quoteApproved: true,
+      quoteVersion: version,
+    });
+    toast({
+      title: 'Quote approved',
+      description: `${version} · ${sheetsTargetLabel()}`,
+    });
+  }
+
+  function setVersion(q: BuiltQuote, version: QuoteVersion) {
+    saveQuote({ ...q, version, updatedAt: new Date().toISOString() });
+    soundClick();
+    void syncQuoteStatus({
+      referenceNumber: q.referenceNumber,
+      email: q.leadEmail,
+      leadName: q.leadName,
+      quoteId: q.id,
+      status: q.status,
+      version,
+      title: q.title,
+      grandTotal: q.financials.grandTotal,
+    });
+    toast({ title: `Version ${version}`, description: sheetsTargetLabel() });
   }
 
   function saveEdits() {
@@ -156,6 +198,7 @@ export function QuoteLibrary({ mode, onBuildProposal, onStartBuilding }: Props) 
                   <p className="nhome-nav-card-desc">
                     {timeAgo(q.updatedAt)}
                     {q.leadName ? ` · ${q.leadName}` : ''}
+                    {approved && q.version ? ` · ${q.version}` : ''}
                     {' · '}£{q.financials.grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                   </p>
                 </div>
@@ -165,43 +208,71 @@ export function QuoteLibrary({ mode, onBuildProposal, onStartBuilding }: Props) 
                   onClick={e => e.stopPropagation()}
                 >
                   {mode === 'built' && (
-                    <button
-                      type="button"
-                      onClick={() => approve(q)}
-                      style={{
-                        border: 'none',
-                        borderRadius: 8,
-                        padding: '6px 10px',
-                        fontSize: 11,
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        background: 'rgba(245,158,11,.18)',
-                        color: '#b45309',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      Approve
-                    </button>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      {VERSIONS.map(v => (
+                        <button
+                          key={v}
+                          type="button"
+                          onClick={() => approve(q, v)}
+                          title={`Approve as ${v}`}
+                          style={{
+                            border: 'none',
+                            borderRadius: 8,
+                            padding: '6px 8px',
+                            fontSize: 10,
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            background: 'rgba(245,158,11,.18)',
+                            color: '#b45309',
+                          }}
+                        >
+                          {v}
+                        </button>
+                      ))}
+                    </div>
                   )}
                   {mode === 'approved' && (
-                    <button
-                      type="button"
-                      onClick={() => { soundClick(); onBuildProposal(q); }}
-                      style={{
-                        border: 'none',
-                        borderRadius: 8,
-                        padding: '6px 10px',
-                        fontSize: 11,
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        background: '#00f78e',
-                        color: '#0c3524',
-                        whiteSpace: 'nowrap',
-                        boxShadow: '0 4px 12px rgba(0,247,142,.28)',
-                      }}
-                    >
-                      Build Proposal
-                    </button>
+                    <>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        {VERSIONS.map(v => (
+                          <button
+                            key={v}
+                            type="button"
+                            onClick={() => setVersion(q, v)}
+                            style={{
+                              border: q.version === v ? 'none' : '1px solid rgba(23,24,28,.12)',
+                              borderRadius: 8,
+                              padding: '4px 7px',
+                              fontSize: 10,
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              background: q.version === v ? '#0894ce' : '#fff',
+                              color: q.version === v ? '#fff' : '#17181c',
+                            }}
+                          >
+                            {v}
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { soundClick(); onBuildProposal(q); }}
+                        style={{
+                          border: 'none',
+                          borderRadius: 8,
+                          padding: '6px 10px',
+                          fontSize: 11,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          background: '#00f78e',
+                          color: '#0c3524',
+                          whiteSpace: 'nowrap',
+                          boxShadow: '0 4px 12px rgba(0,247,142,.28)',
+                        }}
+                      >
+                        Build Proposal
+                      </button>
+                    </>
                   )}
                   <button
                     type="button"
@@ -339,13 +410,13 @@ export function QuoteLibrary({ mode, onBuildProposal, onStartBuilding }: Props) 
                   {editing.status === 'built' && (
                     <button
                       type="button"
-                      onClick={() => { approve(editing); setEditing(null); setDraft(null); }}
+                      onClick={() => { approve(editing, editing.version ?? 'V1'); setEditing(null); setDraft(null); }}
                       style={{
                         border: 'none', borderRadius: 10, padding: '10px 14px', fontWeight: 700,
                         fontSize: 13, cursor: 'pointer', background: 'rgba(245,158,11,.18)', color: '#b45309',
                       }}
                     >
-                      Approve
+                      Approve as {editing.version ?? 'V1'}
                     </button>
                   )}
                   {editing.status === 'approved' && (

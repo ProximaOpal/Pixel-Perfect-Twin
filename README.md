@@ -2,7 +2,7 @@
 
 Lead management and sales workspace: capture leads, build quotes, review proposals, track progress notes, and browse bespoke packages.
 
-**n8n is the automation database and backend engine** for live CRM data (leads fetch + quote generation). The local Express/Postgres service is optional and not used by the UI.
+**Google Sheets is the source of truth.** **n8n** is the automation engine (read + write). There is no Postgres database in this project.
 
 ## Quick start
 
@@ -12,40 +12,51 @@ pnpm dev:web
 # → http://localhost:5173
 ```
 
-Or both frontend + optional local API:
-
-```bash
-pnpm install
-pnpm dev
-```
-
-## Data pipeline (n8n)
+## Data pipeline (Sheets via n8n)
 
 ```
-Frontend Leads ──POST──► meeraworkflows.app.n8n.cloud/webhook/LeadDataFetch
-Frontend Quotes ─POST──► meeraworkflows.app.n8n.cloud/webhook/QuoteBuilder
+Frontend ──POST──► LeadDataFetch     → read Enquiry sheet
+Frontend ──POST──► LeadUpdate        → Demo: Nexus Ops / Live: Enquiry
+Frontend ──POST──► NoteAppend        → Nexus Ops Notes
+Frontend ──POST──► QuoteStatus       → Nexus Ops Quotes
+Frontend ──POST──► QuoteBuilder      → stargtm PDF
 ```
 
 | Flow | Endpoint |
 |------|----------|
 | Load leads | `POST …/webhook/LeadDataFetch` |
+| Lead field write-back | `POST …/webhook/LeadUpdate` |
+| Append progress note | `POST …/webhook/NoteAppend` |
+| Quote built/approved | `POST …/webhook/QuoteStatus` |
 | Generate proposal PDF | `POST …/webhook/QuoteBuilder` |
 
-Progress notes stay in browser `localStorage`. Generated proposals stay in IndexedDB.
+Import the workflow from [`n8n/nexus-sheets-workflow.json`](./n8n/nexus-sheets-workflow.json) (see [`n8n/README.md`](./n8n/README.md)).
 
-## Product tour
+### Live / Demo mode
 
-After first login, Nexus offers a guided tour of every page. Replay via the compass icon in the left panel nav.
+Left-panel toggle (**DEMO** by default):
+
+- **DEMO** → writes to `Nexus Ops*` tabs (safe for trials)
+- **LIVE** → writes into Enquiry - Lead Data (2026)
+
+## Product features (MVP)
+
+- Login users + Assign a Rep (incl. April / Arianne / Sapphire)
+- Progress Notes, Status, Next Action (incl. **Cost To Be Created**)
+- Package abbreviation + **Viva Tag**
+- Quote Builder → Built → Approve as **V1 / V2 / V3** → Proposal PDF
+- Proposal Doc **Edit** creates a new quote version
+- Help (?) with natural-language page tours
 
 ## Key paths
 
 | Path | What |
 |------|------|
 | `artifacts/workspace-suite/src/pages/` | Frontend pages |
-| `artifacts/workspace-suite/src/components/LeadPanel.tsx` | Lead overlay (Assign a Rep, Build a Quote) |
-| `artifacts/workspace-suite/src/tutorial/` | Product tour |
-| `codebase.txt` | Full source dump for LLM notebooks (`pnpm codebase`) |
+| `artifacts/workspace-suite/src/lib/n8nSync.ts` | Sheets write-back client |
+| `n8n/` | Importable workflow + setup notes |
+| `netlify.toml` | Static SPA deploy |
 
-## Design tokens
+## Deploy
 
-Home page palette (`.nexus-home` in `Home.css`): mint `#00f78e`, mint-deep, teal labels, blue `#0894ce`, ink, navy1–3. Assign-a-Rep accents: orange / purple / blue / luminous green.
+Netlify builds `pnpm run build:web` and publishes `artifacts/workspace-suite/dist/public`.

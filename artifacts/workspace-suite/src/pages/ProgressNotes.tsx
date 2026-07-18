@@ -19,6 +19,9 @@ import { personAvatarUrl } from '@/lib/avatar';
 import { soundClick } from '@/lib/sounds';
 import { toast } from '@/hooks/use-toast';
 import { PanelNav } from '@/components/PanelNav';
+import { getLeadExtras, setLeadExtras } from '@/lib/leadExtras';
+import { syncLeadUpdate, syncNoteAppend } from '@/lib/n8nSync';
+import { sheetsTargetLabel } from '@/lib/sheetsMode';
 import './Home.css';
 import './ProgressNotes.css';
 
@@ -57,6 +60,7 @@ export function ProgressNotes() {
   const [refresh, setRefresh]     = useState(0);
   const [fading, setFading]       = useState(false);
   const [openActionCat, setOpenActionCat] = useState<NextActionCategoryId | null>(null);
+  const [packageAbbrev, setPackageAbbrev] = useState('');
   const cursorRef                 = useRef<HTMLDivElement>(null);
 
   void refresh;
@@ -118,13 +122,60 @@ export function ProgressNotes() {
     }
   }
 
+  useEffect(() => {
+    if (!activeLead) {
+      setPackageAbbrev('');
+      return;
+    }
+    const extras = getLeadExtras({
+      referenceNumber: activeLead.referenceNumber,
+      email: activeLead.email,
+      id: activeLead.id,
+    });
+    setPackageAbbrev(extras.packageAbbreviation ?? '');
+  }, [activeLead?.id]);
+
   function saveNote() {
     if (!noteText.trim() || !leadKey) return;
-    addNote(leadKey, { id: `${Date.now()}-${Math.random().toString(36).slice(2,8)}`, text: noteText.trim(), tag: detectTag(noteText.trim()) ?? 'initial', createdAt: new Date().toISOString() });
+    const text = noteText.trim();
+    const tag = detectTag(text) ?? 'initial';
+    addNote(leadKey, { id: `${Date.now()}-${Math.random().toString(36).slice(2,8)}`, text, tag, createdAt: new Date().toISOString() });
     setRefresh(r => r + 1);
     setNoteText(''); setShowAdd(false);
     soundClick();
-    toast({ title: 'Note saved', description: activeLead ? `Added for ${activeLead.name}` : 'Progress note saved.' });
+    if (activeLead) {
+      void syncNoteAppend({
+        referenceNumber: activeLead.referenceNumber,
+        email: activeLead.email,
+        leadName: activeLead.name,
+        note: text,
+        tag,
+      });
+    }
+    toast({
+      title: 'Note saved',
+      description: activeLead ? `${activeLead.name} · ${sheetsTargetLabel()}` : 'Progress note saved.',
+    });
+  }
+
+  function savePackageAbbrev() {
+    if (!activeLead) {
+      toast({ title: 'Select a lead first', description: 'Open a lead before setting a package abbreviation.' });
+      return;
+    }
+    const value = packageAbbrev.trim();
+    setLeadExtras(
+      { referenceNumber: activeLead.referenceNumber, email: activeLead.email, id: activeLead.id },
+      { packageAbbreviation: value },
+    );
+    void syncLeadUpdate({
+      referenceNumber: activeLead.referenceNumber,
+      email: activeLead.email,
+      leadName: activeLead.name,
+      packageAbbreviation: value,
+    });
+    soundClick();
+    toast({ title: 'Package abbreviation saved', description: `${value || '(cleared)'} · ${sheetsTargetLabel()}` });
   }
 
   const currentNextAction = leadKey ? getNextAction(leadKey) : null;
@@ -140,7 +191,15 @@ export function ProgressNotes() {
     setNextAction(leadKey, { categoryId, action, updatedAt: new Date().toISOString() });
     setRefresh(r => r + 1);
     soundClick();
-    toast({ title: 'Next action set', description: action });
+    if (activeLead) {
+      void syncLeadUpdate({
+        referenceNumber: activeLead.referenceNumber,
+        email: activeLead.email,
+        leadName: activeLead.name,
+        nextAction: action,
+      });
+    }
+    toast({ title: 'Next action set', description: `${action} · ${sheetsTargetLabel()}` });
   }
 
   const currentNote = detailIdx !== null ? filtered[detailIdx] : null;
@@ -359,7 +418,16 @@ export function ProgressNotes() {
                           if (!activeLead) return;
                           setActiveLead({ ...activeLead, status: label.toLowerCase() });
                           soundClick();
-                          toast({ title: 'Status updated', description: `${activeLead.name} → ${label}` });
+                          void syncLeadUpdate({
+                            referenceNumber: activeLead.referenceNumber,
+                            email: activeLead.email,
+                            leadName: activeLead.name,
+                            status: label.toLowerCase(),
+                          });
+                          toast({
+                            title: 'Status updated',
+                            description: `${activeLead.name} → ${label} · ${sheetsTargetLabel()}`,
+                          });
                         }}
                       >
                         <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -372,6 +440,39 @@ export function ProgressNotes() {
                       </button>
                     );
                   })}
+
+                  {/* Package abbreviation — short structured field alongside narrative notes */}
+                  <div style={{ marginTop: 22 }}>
+                    <p className="pn-eyebrow">PACKAGE ABBREVIATION</p>
+                    <h2 className="pn-q-title" style={{ fontSize: 18 }}>Short code for this enquiry</h2>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                      <input
+                        type="text"
+                        value={packageAbbrev}
+                        onChange={e => setPackageAbbrev(e.target.value)}
+                        disabled={!activeLead}
+                        placeholder="e.g. WEOTT-CORP"
+                        style={{
+                          flex: 1,
+                          border: '1px solid rgba(23,24,28,.12)',
+                          borderRadius: 10,
+                          padding: '10px 12px',
+                          fontSize: 13,
+                          color: '#17181c',
+                          background: activeLead ? '#fff' : '#f5f5f7',
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="pn-submit-btn"
+                        style={{ width: 'auto', padding: '10px 16px', margin: 0 }}
+                        disabled={!activeLead}
+                        onClick={savePackageAbbrev}
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
 
                   {!activeLead && (
                     <div style={{ marginTop: 18, padding: '14px 16px', background: '#eef6ff', borderRadius: 12, fontSize: 12.5, color: '#0894ce', fontWeight: 600, textAlign: 'center' }}>

@@ -12,7 +12,9 @@ import './Home.css';
 import './ProgressNotes.css';
 
 // n8n is the automation database + backend engine for leads.
-const LEAD_FETCH_URL = 'https://meeraworkflows.app.n8n.cloud/webhook/LeadDataFetch';
+import { N8N_URLS } from '@/lib/n8nSync';
+
+const LEAD_FETCH_URL = N8N_URLS.leadFetch;
 
 interface RawLead {
   enquiryDate: string;

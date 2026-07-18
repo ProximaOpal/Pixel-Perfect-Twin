@@ -23,6 +23,10 @@ export type GeneratedProposal = {
   // exact lead's inbox instead of a blank compose window.
   leadName?: string;
   leadEmail?: string;
+  /** Optional link back to the approved quote that produced this PDF. */
+  quoteId?: string;
+  referenceNumber?: string;
+  version?: string;
 };
 
 const DB_NAME = 'nexus-proposals';

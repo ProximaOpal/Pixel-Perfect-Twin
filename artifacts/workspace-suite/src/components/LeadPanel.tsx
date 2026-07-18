@@ -11,6 +11,9 @@ import { soundClick } from '@/lib/sounds';
 import { personAvatarUrl, companyAvatarUrl } from '@/lib/avatar';
 import { setQuoteLead } from '@/lib/quoteLeadStore';
 import { toast } from '@/hooks/use-toast';
+import { getLeadExtras, setLeadExtras } from '@/lib/leadExtras';
+import { syncLeadUpdate } from '@/lib/n8nSync';
+import { sheetsTargetLabel } from '@/lib/sheetsMode';
 
 const NOTE_ICONS: Record<NoteTag, typeof Search> = {
   initial:      Zap,
@@ -462,9 +465,19 @@ export function LeadPanel({ lead, onClose }: { lead: Lead | null; onClose: () =>
   const [view, setView] = useState<'contact' | 'company' | 'note'>('contact');
   const [showReps, setShowReps] = useState(false);
   const [assignedRep, setAssignedRep] = useState<string | null>(null);
+  const [vivaTag, setVivaTag] = useState(false);
 
   useEffect(() => {
-    if (lead) { setView('contact'); setShowReps(false); setAssignedRep(null); }
+    if (!lead) return;
+    setView('contact');
+    setShowReps(false);
+    const extras = getLeadExtras({
+      referenceNumber: lead.referenceNumber,
+      email: lead.email,
+      id: lead.id,
+    });
+    setAssignedRep(extras.assignedRep ?? null);
+    setVivaTag(Boolean(extras.vivaTag));
   }, [lead?.id]);
 
   const showCompany = view === 'company';
@@ -575,7 +588,20 @@ export function LeadPanel({ lead, onClose }: { lead: Lead | null; onClose: () =>
                               setAssignedRep(rep.name);
                               setShowReps(false);
                               soundClick();
-                              toast({ title: 'Rep assigned', description: `${rep.name} → ${lead.name}` });
+                              setLeadExtras(
+                                { referenceNumber: lead.referenceNumber, email: lead.email, id: lead.id },
+                                { assignedRep: rep.name },
+                              );
+                              void syncLeadUpdate({
+                                referenceNumber: lead.referenceNumber,
+                                email: lead.email,
+                                leadName: lead.name,
+                                assignedRep: rep.name,
+                              });
+                              toast({
+                                title: 'Rep assigned',
+                                description: `${rep.name} → ${lead.name} · ${sheetsTargetLabel()}`,
+                              });
                             }}
                             className="flex items-center gap-2.5 rounded-full bg-white px-3 py-2 text-left shadow-md transition-transform hover:scale-[1.02]"
                             style={{
@@ -608,6 +634,42 @@ export function LeadPanel({ lead, onClose }: { lead: Lead | null; onClose: () =>
                 >
                   <UserCheck className="h-3.5 w-3.5" />
                   {assignedRep ? `Rep: ${assignedRep}` : 'Assign a Rep'}
+                </button>
+
+                {/* Viva Tag — on/off */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !vivaTag;
+                    setVivaTag(next);
+                    soundClick();
+                    setLeadExtras(
+                      { referenceNumber: lead.referenceNumber, email: lead.email, id: lead.id },
+                      { vivaTag: next },
+                    );
+                    void syncLeadUpdate({
+                      referenceNumber: lead.referenceNumber,
+                      email: lead.email,
+                      leadName: lead.name,
+                      vivaTag: next,
+                    });
+                    toast({
+                      title: next ? 'Viva Tag on' : 'Viva Tag off',
+                      description: `${lead.name} · ${sheetsTargetLabel()}`,
+                    });
+                  }}
+                  title="Toggle Viva Tag for this lead"
+                  className="flex items-center gap-2 rounded-[10px] px-5 py-2.5 text-[12px] font-bold shadow-lg transition-all hover:scale-[1.02]"
+                  style={{
+                    background: vivaTag ? '#a855f7' : 'rgba(255,255,255,0.92)',
+                    color: vivaTag ? '#fff' : '#17181c',
+                    boxShadow: vivaTag
+                      ? '0 8px 22px rgba(168,85,247,.35)'
+                      : '0 8px 22px rgba(0,0,0,.16)',
+                  }}
+                >
+                  <TagIcon className="h-3.5 w-3.5" />
+                  {vivaTag ? 'Viva Tag · On' : 'Viva Tag'}
                 </button>
 
                 {/* Build a Quote */}

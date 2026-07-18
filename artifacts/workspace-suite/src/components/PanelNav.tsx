@@ -5,6 +5,7 @@
 import { Link, useLocation } from 'wouter';
 import { Home, Users, NotebookPen, ClipboardList, FileText, Sparkles } from 'lucide-react';
 import { HelpMenu } from '@/components/HelpMenu';
+import { SheetsModeToggle } from '@/components/SheetsModeToggle';
 import { playHomeIntro } from '@/lib/homeIntro';
 
 const NAV_ITEMS = [
@@ -56,6 +57,7 @@ export function PanelNav() {
         );
       })}
       <HelpMenu />
+      <SheetsModeToggle />
     </div>
   );
 }
