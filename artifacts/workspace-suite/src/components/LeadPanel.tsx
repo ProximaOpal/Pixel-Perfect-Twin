@@ -439,14 +439,14 @@ function NoteView({ lead, onBack }: { lead: Lead; onBack: () => void }) {
 /* ─── Main export: centered overlay ─── */
 export function LeadPanel({ lead, onClose }: { lead: Lead | null; onClose: () => void }) {
   const [, navigate] = useLocation();
-  const [view, setView] = useState<'contact' | 'company' | 'note'>('contact');
+  const [view, setView] = useState<'contact' | 'company' | 'note'>('company');
   const [showReps, setShowReps] = useState(false);
   const [assignedRep, setAssignedRep] = useState<string | null>(null);
   const [vivaTag, setVivaTag] = useState(false);
 
   useEffect(() => {
     if (!lead) return;
-    setView('contact');
+    setView('company');
     setShowReps(false);
     const extras = getLeadExtras({
       referenceNumber: lead.referenceNumber,
@@ -657,18 +657,9 @@ export function LeadPanel({ lead, onClose }: { lead: Lead | null; onClose: () =>
               </div>
             )}
 
-            {/* Toggle + close */}
+            {/* Toggle — Company first, then Contact */}
             {view !== 'note' && (
               <div className="absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 bg-[#111]/80 px-3 py-1.5 backdrop-blur-sm">
-                <button
-                  onClick={() => setView('contact')}
-                  className={`flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold uppercase tracking-widest transition-colors ${
-                    !showCompany ? 'bg-[#00f78e] text-[#0a0a0a]' : 'text-white/40 hover:text-white'
-                  }`}
-                >
-                  <div className="h-3 w-3 rounded-full border border-current" />
-                  Contact
-                </button>
                 <button
                   onClick={() => setView('company')}
                   className={`flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold uppercase tracking-widest transition-colors ${
@@ -677,6 +668,15 @@ export function LeadPanel({ lead, onClose }: { lead: Lead | null; onClose: () =>
                 >
                   <div className="h-3 w-3 border border-current" />
                   Company
+                </button>
+                <button
+                  onClick={() => setView('contact')}
+                  className={`flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold uppercase tracking-widest transition-colors ${
+                    !showCompany ? 'bg-[#00f78e] text-[#0a0a0a]' : 'text-white/40 hover:text-white'
+                  }`}
+                >
+                  <div className="h-3 w-3 rounded-full border border-current" />
+                  Contact
                 </button>
               </div>
             )}

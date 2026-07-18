@@ -15,6 +15,10 @@ export function Avatar({
   className = '',
   rounded = true,
   objectFit = 'cover',
+  /** When true, show a neutral blank instead of initials text. */
+  hideFallbackText = false,
+  /** Fires with the URL that successfully loaded, or null if all failed. */
+  onResolvedSrc,
 }: {
   /** Single source (legacy). Prefer `sources`. */
   src?: string;
@@ -25,20 +29,31 @@ export function Avatar({
   className?: string;
   rounded?: boolean;
   objectFit?: 'cover' | 'contain';
+  hideFallbackText?: boolean;
+  onResolvedSrc?: (url: string | null) => void;
 }) {
   const list = (sources?.length ? sources : src ? [src] : []).filter(Boolean);
   const [index, setIndex] = useState(0);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     setIndex(0);
+    setLoaded(false);
   }, [list.join('|')]);
 
-  const current = list[index];
+  const exhausted = index >= list.length;
+  const current = !exhausted ? list[index] : undefined;
 
-  if (!current || index >= list.length) {
+  useEffect(() => {
+    if (!onResolvedSrc) return;
+    if (loaded && current) onResolvedSrc(current);
+    else if (exhausted) onResolvedSrc(null);
+  }, [loaded, current, exhausted, onResolvedSrc]);
+
+  if (!current || exhausted) {
     return (
       <div
-        style={{ backgroundColor: `#${colorForName(alt || fallbackText)}` }}
+        style={{ backgroundColor: hideFallbackText ? '#eef1f4' : `#${colorForName(alt || fallbackText)}` }}
         className={cn(
           'flex items-center justify-center text-white font-bold select-none',
           rounded && 'rounded-full',
@@ -46,7 +61,7 @@ export function Avatar({
         )}
         aria-label={alt}
       >
-        {fallbackText}
+        {hideFallbackText ? null : fallbackText}
       </div>
     );
   }
@@ -57,7 +72,11 @@ export function Avatar({
       src={current}
       alt={alt}
       referrerPolicy="no-referrer"
-      onError={() => setIndex(i => i + 1)}
+      onLoad={() => setLoaded(true)}
+      onError={() => {
+        setLoaded(false);
+        setIndex(i => i + 1);
+      }}
       className={cn(
         objectFit === 'contain' ? 'object-contain' : 'object-cover',
         rounded && 'rounded-full',
