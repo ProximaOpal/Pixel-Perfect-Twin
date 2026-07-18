@@ -53,11 +53,11 @@ export function Home() {
 
   /* ── Landing → login wipe ───────────────────────────────────────────── */
   useEffect(() => {
-    if (phase !== 'landing') return;
+    if (localStorage.getItem('nexus_active_user')) return;
     const t1 = setTimeout(() => setPhase('wiping'), 2400);
     const t2 = setTimeout(() => setPhase('login'),  3000);
     return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [phase]);
+  }, []);
 
   function handleLogin(userId: string) {
     localStorage.setItem('nexus_active_user', userId);
