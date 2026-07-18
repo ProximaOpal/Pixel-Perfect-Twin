@@ -17,7 +17,11 @@ export function getSheetsMode(): SheetsMode {
 }
 
 export function setSheetsMode(mode: SheetsMode): void {
-  localStorage.setItem(STORAGE_KEY, mode);
+  try {
+    localStorage.setItem(STORAGE_KEY, mode);
+  } catch (err) {
+    console.warn('[nexus] sheets mode localStorage write failed', err);
+  }
   window.dispatchEvent(new CustomEvent(EVENT, { detail: mode }));
 }
 

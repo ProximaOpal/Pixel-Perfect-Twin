@@ -11,8 +11,8 @@ import { soundClick } from '@/lib/sounds';
 import { personAvatarUrl, companyAvatarUrl } from '@/lib/avatar';
 import { setQuoteLead } from '@/lib/quoteLeadStore';
 import { toast } from '@/hooks/use-toast';
-import { getLeadExtras, setLeadExtras } from '@/lib/leadExtras';
-import { syncLeadUpdate } from '@/lib/n8nSync';
+import { getLeadExtras } from '@/lib/leadExtras';
+import { persistLeadUpdate } from '@/lib/persistLead';
 import { sheetsTargetLabel } from '@/lib/sheetsMode';
 
 const NOTE_ICONS: Record<NoteTag, typeof Search> = {
@@ -588,13 +588,10 @@ export function LeadPanel({ lead, onClose }: { lead: Lead | null; onClose: () =>
                               setAssignedRep(rep.name);
                               setShowReps(false);
                               soundClick();
-                              setLeadExtras(
-                                { referenceNumber: lead.referenceNumber, email: lead.email, id: lead.id },
-                                { assignedRep: rep.name },
-                              );
-                              void syncLeadUpdate({
+                              persistLeadUpdate({
                                 referenceNumber: lead.referenceNumber,
                                 email: lead.email,
+                                id: lead.id,
                                 leadName: lead.name,
                                 assignedRep: rep.name,
                               });
@@ -643,13 +640,10 @@ export function LeadPanel({ lead, onClose }: { lead: Lead | null; onClose: () =>
                     const next = !vivaTag;
                     setVivaTag(next);
                     soundClick();
-                    setLeadExtras(
-                      { referenceNumber: lead.referenceNumber, email: lead.email, id: lead.id },
-                      { vivaTag: next },
-                    );
-                    void syncLeadUpdate({
+                    persistLeadUpdate({
                       referenceNumber: lead.referenceNumber,
                       email: lead.email,
+                      id: lead.id,
                       leadName: lead.name,
                       vivaTag: next,
                     });

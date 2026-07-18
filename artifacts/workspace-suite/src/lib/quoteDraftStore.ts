@@ -74,7 +74,11 @@ function readAll(): BuiltQuote[] {
 }
 
 function writeAll(rows: BuiltQuote[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
+  } catch (err) {
+    console.warn('[nexus] quotes localStorage write failed', err);
+  }
   window.dispatchEvent(new Event(EVENT));
 }
 

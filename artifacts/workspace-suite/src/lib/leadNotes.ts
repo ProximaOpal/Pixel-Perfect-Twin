@@ -129,7 +129,12 @@ function loadStore(): NotesStore {
 }
 
 function saveStore(store: NotesStore) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+    window.dispatchEvent(new Event('nexus:notes-updated'));
+  } catch (err) {
+    console.warn('[nexus] notes localStorage write failed', err);
+  }
 }
 
 export function loadNotes(leadKey: string): LeadNote[] {

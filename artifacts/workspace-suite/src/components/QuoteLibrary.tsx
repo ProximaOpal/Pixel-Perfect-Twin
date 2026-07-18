@@ -20,7 +20,8 @@ import {
 import { VESSEL_TYPES, MENU_TYPES } from '@/lib/formOptions';
 import { soundClick } from '@/lib/sounds';
 import { toast } from '@/hooks/use-toast';
-import { syncQuoteStatus, syncLeadUpdate } from '@/lib/n8nSync';
+import { syncQuoteStatus } from '@/lib/n8nSync';
+import { persistLeadUpdate } from '@/lib/persistLead';
 import { sheetsTargetLabel } from '@/lib/sheetsMode';
 
 const VERSIONS: QuoteVersion[] = ['V1', 'V2', 'V3'];
@@ -74,11 +75,13 @@ export function QuoteLibrary({ mode, onBuildProposal, onStartBuilding }: Props) 
       title: q.title,
       grandTotal: q.financials.grandTotal,
     });
-    void syncLeadUpdate({
+    persistLeadUpdate({
       referenceNumber: q.referenceNumber,
       email: q.leadEmail,
+      id: q.leadId,
       leadName: q.leadName,
       quoteApproved: true,
+      quoteBuilt: true,
       quoteVersion: version,
     });
     toast({

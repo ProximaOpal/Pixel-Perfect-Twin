@@ -161,7 +161,12 @@ export function getNextAction(leadKey: string): StoredNextAction | null {
 export function setNextAction(leadKey: string, value: StoredNextAction): void {
   const map = readMap();
   map[leadKey] = value;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
+    window.dispatchEvent(new Event('nexus:next-actions-updated'));
+  } catch (err) {
+    console.warn('[nexus] next-actions localStorage write failed', err);
+  }
 }
 
 export function findCategoryForAction(action: string): NextActionCategory | undefined {

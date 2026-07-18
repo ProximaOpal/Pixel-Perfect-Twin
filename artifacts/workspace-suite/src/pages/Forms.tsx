@@ -11,7 +11,8 @@ import { QuoteLibrary } from '@/components/QuoteLibrary';
 import { PanelNav } from '@/components/PanelNav';
 import { soundClick } from '@/lib/sounds';
 import { toast } from '@/hooks/use-toast';
-import { N8N_URLS, syncQuoteStatus, syncLeadUpdate } from '@/lib/n8nSync';
+import { N8N_URLS, syncQuoteStatus } from '@/lib/n8nSync';
+import { persistLeadUpdate } from '@/lib/persistLead';
 import { sheetsTargetLabel } from '@/lib/sheetsMode';
 import './Home.css';
 import './ProgressNotes.css';
@@ -294,9 +295,10 @@ export function Forms() {
       title: quote.title,
       grandTotal: quote.financials.grandTotal,
     });
-    void syncLeadUpdate({
+    persistLeadUpdate({
       referenceNumber: quote.referenceNumber,
       email: quote.leadEmail,
+      id: quote.leadId,
       leadName: quote.leadName,
       quoteBuilt: true,
     });

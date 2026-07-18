@@ -13,6 +13,8 @@ import './ProgressNotes.css';
 
 // n8n is the automation database + backend engine for leads.
 import { N8N_URLS } from '@/lib/n8nSync';
+import { applyLeadExtrasToLead, subscribeLeadExtras } from '@/lib/leadExtras';
+import { cacheLeads, loadCachedLeads } from '@/lib/leadCache';
 
 const LEAD_FETCH_URL = N8N_URLS.leadFetch;
 
@@ -75,7 +77,7 @@ function mapRaw(raw: RawLead, index: number): Lead {
   };
 }
 
-/** Fetch leads directly from the n8n LeadDataFetch webhook. */
+/** Fetch leads directly from the n8n LeadDataFetch webhook, then merge local overrides. */
 async function fetchLeads(): Promise<Lead[]> {
   const res = await fetch(LEAD_FETCH_URL, {
     method: 'POST',
@@ -85,7 +87,9 @@ async function fetchLeads(): Promise<Lead[]> {
   if (!res.ok) throw new Error(`n8n LeadDataFetch responded ${res.status}`);
   const data = await res.json();
   const rows: RawLead[] = Array.isArray(data?.leads) ? data.leads : [];
-  return rows.map(mapRaw);
+  const mapped = rows.map(mapRaw).map(l => applyLeadExtrasToLead(l));
+  cacheLeads(mapped);
+  return mapped;
 }
 
 const TABS = ['Live', 'Booked', 'Dead', 'Blacklisted'] as const;
@@ -98,8 +102,10 @@ const STATUS_COLOR: Record<string, string> = {
 export function Leads() {
   const { setActiveLead } = useActiveLead();
   const [activeTab, setActiveTab]       = useState(0);
-  const [leads, setLeads]               = useState<Lead[]>([]);
-  const [fetchStatus, setFetchStatus]   = useState<'loading' | 'ok' | 'error'>('loading');
+  const [leads, setLeads]               = useState<Lead[]>(() => loadCachedLeads());
+  const [fetchStatus, setFetchStatus]   = useState<'loading' | 'ok' | 'error'>(() =>
+    loadCachedLeads().length > 0 ? 'ok' : 'loading',
+  );
   const [panelLead, setPanelLead]       = useState<Lead | null>(null);
   const [timelineLead, setTimelineLead] = useState<Lead | null>(null);
   const [search, setSearch]             = useState('');
@@ -122,11 +128,27 @@ export function Leads() {
   }, []);
 
   const load = async () => {
-    setFetchStatus('loading');
-    try { setLeads(await fetchLeads()); setFetchStatus('ok'); }
-    catch { setFetchStatus('error'); }
+    if (leads.length === 0) setFetchStatus('loading');
+    try {
+      setLeads(await fetchLeads());
+      setFetchStatus('ok');
+    } catch {
+      const cached = loadCachedLeads();
+      if (cached.length > 0) {
+        setLeads(cached);
+        setFetchStatus('ok');
+      } else {
+        setFetchStatus('error');
+      }
+    }
   };
   useEffect(() => { load(); }, []);
+
+  // Re-apply local overrides when extras change (status, viva, rep, etc.).
+  useEffect(() => subscribeLeadExtras(() => {
+    setLeads(prev => prev.map(l => applyLeadExtrasToLead(l)));
+    setPanelLead(prev => (prev ? applyLeadExtrasToLead(prev) : prev));
+  }), []);
 
   function switchTab(i: number) {
     if (i === activeTab) return;
@@ -302,7 +324,12 @@ export function Leads() {
                   <div
                     className="nhome-nav-card-icon"
                     style={{ background: `${lead.color}18`, flexShrink: 0 }}
-                    onClick={() => { setPanelLead(lead); setActiveLead(lead); soundOpen(); }}
+                    onClick={() => {
+                      const enriched = applyLeadExtrasToLead(lead);
+                      setPanelLead(enriched);
+                      setActiveLead(enriched);
+                      soundOpen();
+                    }}
                   >
                     <Avatar
                       src={personAvatarUrl(lead)}
@@ -316,7 +343,12 @@ export function Leads() {
                   <div
                     className="nhome-nav-card-text"
                     style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
-                    onClick={() => { setPanelLead(lead); setActiveLead(lead); soundOpen(); }}
+                    onClick={() => {
+                      const enriched = applyLeadExtrasToLead(lead);
+                      setPanelLead(enriched);
+                      setActiveLead(enriched);
+                      soundOpen();
+                    }}
                   >
                     <p className="nhome-nav-card-title" style={{ color: '#17181c' }}>{lead.name}</p>
                     <p className="nhome-nav-card-desc">
@@ -354,7 +386,12 @@ export function Leads() {
                   <div
                     className="nhome-nav-card-arrow"
                     style={{ cursor: 'pointer' }}
-                    onClick={() => { setPanelLead(lead); setActiveLead(lead); soundOpen(); }}
+                    onClick={() => {
+                      const enriched = applyLeadExtrasToLead(lead);
+                      setPanelLead(enriched);
+                      setActiveLead(enriched);
+                      soundOpen();
+                    }}
                   >
                     <ArrowRight size={13} color="var(--ink)" strokeWidth={2.2} />
                   </div>

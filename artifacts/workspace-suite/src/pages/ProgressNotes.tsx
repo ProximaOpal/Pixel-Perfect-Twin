@@ -19,8 +19,9 @@ import { personAvatarUrl } from '@/lib/avatar';
 import { soundClick } from '@/lib/sounds';
 import { toast } from '@/hooks/use-toast';
 import { PanelNav } from '@/components/PanelNav';
-import { getLeadExtras, setLeadExtras } from '@/lib/leadExtras';
-import { syncLeadUpdate, syncNoteAppend } from '@/lib/n8nSync';
+import { getLeadExtras } from '@/lib/leadExtras';
+import { persistLeadUpdate } from '@/lib/persistLead';
+import { syncNoteAppend } from '@/lib/n8nSync';
 import { sheetsTargetLabel } from '@/lib/sheetsMode';
 import './Home.css';
 import './ProgressNotes.css';
@@ -164,13 +165,10 @@ export function ProgressNotes() {
       return;
     }
     const value = packageAbbrev.trim();
-    setLeadExtras(
-      { referenceNumber: activeLead.referenceNumber, email: activeLead.email, id: activeLead.id },
-      { packageAbbreviation: value },
-    );
-    void syncLeadUpdate({
+    persistLeadUpdate({
       referenceNumber: activeLead.referenceNumber,
       email: activeLead.email,
+      id: activeLead.id,
       leadName: activeLead.name,
       packageAbbreviation: value,
     });
@@ -192,9 +190,10 @@ export function ProgressNotes() {
     setRefresh(r => r + 1);
     soundClick();
     if (activeLead) {
-      void syncLeadUpdate({
+      persistLeadUpdate({
         referenceNumber: activeLead.referenceNumber,
         email: activeLead.email,
+        id: activeLead.id,
         leadName: activeLead.name,
         nextAction: action,
       });
@@ -416,14 +415,16 @@ export function ProgressNotes() {
                         disabled={!activeLead}
                         onClick={() => {
                           if (!activeLead) return;
-                          setActiveLead({ ...activeLead, status: label.toLowerCase() });
-                          soundClick();
-                          void syncLeadUpdate({
+                          const status = label.toLowerCase();
+                          setActiveLead({ ...activeLead, status });
+                          persistLeadUpdate({
                             referenceNumber: activeLead.referenceNumber,
                             email: activeLead.email,
+                            id: activeLead.id,
                             leadName: activeLead.name,
-                            status: label.toLowerCase(),
+                            status,
                           });
+                          soundClick();
                           toast({
                             title: 'Status updated',
                             description: `${activeLead.name} → ${label} · ${sheetsTargetLabel()}`,
