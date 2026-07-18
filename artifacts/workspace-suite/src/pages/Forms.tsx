@@ -1,12 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, ArrowRight, Check, Loader2, FileCheck2, AlertTriangle, X, FileText } from 'lucide-react';
+import { ArrowRight, Check, Loader2, FileCheck2, AlertTriangle, X } from 'lucide-react';
 import { addProposal } from '@/lib/proposalStore';
 import { VESSEL_TYPES, EVENT_TYPES, MENU_TYPES } from '@/lib/formOptions';
 import { ItineraryWatch } from '@/components/ItineraryWatch';
 import { getQuoteLead, clearQuoteLead, type QuoteLead } from '@/lib/quoteLeadStore';
+import { saveQuote, type BuiltQuote } from '@/lib/quoteDraftStore';
+import { QuoteLibrary } from '@/components/QuoteLibrary';
 import { PanelNav } from '@/components/PanelNav';
+import { soundClick } from '@/lib/sounds';
 import './Home.css';
 import './ProgressNotes.css';
 
@@ -85,7 +88,12 @@ type FormData = {
   menuType: string[]; repeatClient: boolean; totalCost: string; selectedUpgrades: string[];
 };
 type GenerationStage = 'idle'|'preparing'|'sending'|'generating'|'done'|'error';
-type ViewMode = 'build'|'built';
+type ViewMode = 'build' | 'built' | 'approved';
+const VIEW_MODES: { id: ViewMode; label: string }[] = [
+  { id: 'build', label: 'Build Quote' },
+  { id: 'built', label: 'Built Quotes' },
+  { id: 'approved', label: 'Approved Quotes' },
+];
 
 /* ── Pricing ── */
 function calcBaseCostBreakdown(data: FormData) {
@@ -136,7 +144,7 @@ const QUESTIONS: Question[] = [
   { id:'menuType',        step:4, type:'multi',    eyebrow:'QUESTION 6', title:'What menu type is required?',              options:MENU_TYPES,    submitLabel:'Continue' },
   { id:'repeatClient',    step:5, type:'bool',     eyebrow:'QUESTION 7', title:'Is this a repeat client?',                                        submitLabel:'Continue' },
   { id:'totalCost',       step:5, type:'cost',     eyebrow:'QUESTION 8', title:'What is the base cost for this event?',                           submitLabel:'Continue' },
-  { id:'selectedUpgrades',step:6, type:'upgrades', eyebrow:'QUESTION 9', title:'Select any upgrades to include.',                                 submitLabel:'Generate Proposal' },
+  { id:'selectedUpgrades',step:6, type:'upgrades', eyebrow:'QUESTION 9', title:'Select any upgrades to include.',                                 submitLabel:'Save Quote' },
 ];
 
 /* ── Generation overlay meta ── */
@@ -192,10 +200,12 @@ export function Forms() {
   const [errorMessage, setErrorMessage] = useState('');
   const [baseCostAuto, setBaseCostAuto] = useState(true);
   const [quoteLead]                   = useState<QuoteLead|null>(() => getQuoteLead());
+  const [proposalQuote, setProposalQuote] = useState<BuiltQuote | null>(null);
   // When n8n already supplied an event type, only show that locked option.
   const eventTypeLocked = Boolean(quoteLead?.eventType && data.eventType);
   const cursorRef                     = useRef<HTMLDivElement>(null);
   const scrollRef                     = useRef<HTMLDivElement>(null);
+  const modeIndex = VIEW_MODES.findIndex(m => m.id === mode);
 
   const set = (key: keyof FormData, val: unknown) => setData(prev => ({ ...prev, [key]: val }));
   const fin  = calcFinancials(data);
@@ -225,12 +235,50 @@ export function Forms() {
     setFading(true);
     setTimeout(() => { cb(); setFading(false); scrollRef.current?.scrollTo({ top:0 }); }, 240);
   }
-  function goNext() { if (qIdx < QUESTIONS.length-1) fade(() => setQIdx(i=>i+1)); else handleGenerate(); }
+  function goNext() {
+    if (qIdx < QUESTIONS.length - 1) fade(() => setQIdx(i => i + 1));
+    else handleSaveQuote();
+  }
 
   const toggleMulti = (key: keyof FormData, val: string) => {
     const arr = data[key] as string[];
     set(key, arr.includes(val) ? arr.filter(v=>v!==val) : [...arr, val]);
   };
+
+  /** Wizard finish — save a built quote (no PDF yet) and open Built Quotes. */
+  function handleSaveQuote() {
+    const f = calcFinancials(data);
+    const now = new Date().toISOString();
+    const quote: BuiltQuote = {
+      id: `quote-${Date.now()}`,
+      createdAt: now,
+      updatedAt: now,
+      status: 'built',
+      title: `${data.eventType || 'Event'} Quote — ${data.vesselType.join(', ') || 'Vessel TBC'}`,
+      form: { ...data },
+      financials: {
+        baseCost: f.baseCost,
+        contingency: f.contingency,
+        marginAmount: f.marginAmount,
+        costToClient: f.costToClient,
+        vat: f.vat,
+        grandTotal: f.grand,
+        upgradeTotal: f.upgradeTotal,
+        margin: f.margin,
+      },
+      leadName: quoteLead?.name,
+      leadEmail: quoteLead?.email,
+      leadCompany: quoteLead?.company,
+      leadId: quoteLead?.id,
+      referenceNumber: quoteLead?.referenceNumber,
+    };
+    saveQuote(quote);
+    soundClick();
+    clearQuoteLead();
+    setMode('built');
+    setQIdx(0);
+    scrollRef.current?.scrollTo({ top: 0 });
+  }
 
   const currentQ    = QUESTIONS[qIdx];
   const currentStep = currentQ.step;
@@ -247,40 +295,98 @@ export function Forms() {
     }
   }
 
-  /* ── Generate ── */
-  const handleGenerate = async () => {
-    setErrorMessage(''); setStage('preparing');
+  /* ── Build Proposal PDF from an approved quote (n8n) ── */
+  const handleBuildProposal = async (quote?: BuiltQuote | null) => {
+    const q = quote ?? proposalQuote;
+    if (!q) return;
+    setProposalQuote(q);
+    setErrorMessage('');
+    setStage('preparing');
+    const form = q.form;
     const payload = {
-      ...data,
-      financials: { baseCost:fin.baseCost, contingency:fin.contingency, marginAmount:fin.marginAmount, costToClient:fin.costToClient, vat:fin.vat, grandTotal:fin.grand, upgradeTotal:fin.upgradeTotal },
-      lead: quoteLead ? { id:quoteLead.id, name:quoteLead.name, email:quoteLead.email, phone:quoteLead.phone, designation:quoteLead.designation, company:quoteLead.company, referenceNumber:quoteLead.referenceNumber } : null,
+      ...form,
+      financials: {
+        baseCost: q.financials.baseCost,
+        contingency: q.financials.contingency,
+        marginAmount: q.financials.marginAmount,
+        costToClient: q.financials.costToClient,
+        vat: q.financials.vat,
+        grandTotal: q.financials.grandTotal,
+        upgradeTotal: q.financials.upgradeTotal,
+      },
+      lead: q.leadId
+        ? {
+            id: q.leadId,
+            name: q.leadName,
+            email: q.leadEmail,
+            company: q.leadCompany,
+            referenceNumber: q.referenceNumber,
+          }
+        : null,
     };
     await new Promise(r => setTimeout(r, 500));
     setStage('sending');
     try {
-      const res = await fetch(QUOTE_WEBHOOK_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
-      if (!res.ok) throw new Error(`Webhook responded ${res.status}`);
+      const res = await fetch(QUOTE_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error(`n8n QuoteBuilder responded ${res.status}`);
       setStage('generating');
       const contentType = res.headers.get('content-type') ?? '';
       let pdfDataUrl = '';
       if (contentType.includes('application/pdf') || contentType.includes('octet-stream')) {
         const blob = await res.blob();
-        pdfDataUrl = await new Promise<string>((resolve,reject) => { const r2=new FileReader(); r2.onload=()=>resolve(r2.result as string); r2.onerror=reject; r2.readAsDataURL(blob); });
+        pdfDataUrl = await new Promise<string>((resolve, reject) => {
+          const r2 = new FileReader();
+          r2.onload = () => resolve(r2.result as string);
+          r2.onerror = reject;
+          r2.readAsDataURL(blob);
+        });
       } else {
-        const json = await res.json().catch(()=>null);
-        const b64: string|undefined = json?.pdfBase64??json?.pdf??json?.fileUrl??json?.pdfUrl??json?.url;
-        if (b64?.startsWith('data:')) { pdfDataUrl=b64; }
-        else if (b64) {
-          if (/^[A-Za-z0-9+/=]+$/.test(b64)&&b64.length>100) { pdfDataUrl=`data:application/pdf;base64,${b64}`; }
-          else { const fr=await fetch(b64); const bl=await fr.blob(); pdfDataUrl=await new Promise<string>((resolve,reject)=>{ const r2=new FileReader(); r2.onload=()=>resolve(r2.result as string); r2.onerror=reject; r2.readAsDataURL(bl); }); }
-        } else { throw new Error('Webhook did not return a PDF.'); }
+        const json = await res.json().catch(() => null);
+        const b64: string | undefined = json?.pdfBase64 ?? json?.pdf ?? json?.fileUrl ?? json?.pdfUrl ?? json?.url;
+        if (b64?.startsWith('data:')) {
+          pdfDataUrl = b64;
+        } else if (b64) {
+          if (/^[A-Za-z0-9+/=]+$/.test(b64) && b64.length > 100) {
+            pdfDataUrl = `data:application/pdf;base64,${b64}`;
+          } else {
+            const fr = await fetch(b64);
+            const bl = await fr.blob();
+            pdfDataUrl = await new Promise<string>((resolve, reject) => {
+              const r2 = new FileReader();
+              r2.onload = () => resolve(r2.result as string);
+              r2.onerror = reject;
+              r2.readAsDataURL(bl);
+            });
+          }
+        } else {
+          throw new Error('n8n did not return a PDF.');
+        }
       }
-      const saved = await addProposal({ id:`proposal-${Date.now()}`, createdAt:new Date().toISOString(), eventDate:data.eventDate, title:`${data.eventType||'Event'} Proposal — ${data.vesselType.join(', ')||'Vessel TBC'}`, vesselType:data.vesselType.join(', '), eventType:data.eventType, guestCount:data.guestCount, grandTotal:fin.grand, pdfDataUrl, leadName:quoteLead?.name, leadEmail:quoteLead?.email });
+      const saved = await addProposal({
+        id: `proposal-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        eventDate: form.eventDate,
+        title: `${form.eventType || 'Event'} Proposal — ${form.vesselType.join(', ') || 'Vessel TBC'}`,
+        vesselType: form.vesselType.join(', '),
+        eventType: form.eventType,
+        guestCount: form.guestCount,
+        grandTotal: q.financials.grandTotal,
+        pdfDataUrl,
+        leadName: q.leadName,
+        leadEmail: q.leadEmail,
+      });
       if (!saved) throw new Error('PDF too large to store — clear older proposals and try again.');
-      clearQuoteLead(); setStage('done');
+      setStage('done');
       sessionStorage.setItem('nexus_just_generated', 'true');
       setTimeout(() => navigate('/proposal-doc'), 1200);
-    } catch(err) { setErrorMessage(err instanceof Error ? err.message : 'Failed to generate the proposal.'); setStage('error'); }
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to generate the proposal.');
+      setStage('error');
+    }
   };
 
   /* ════════════════════════════════════════════════════════════
@@ -306,19 +412,37 @@ export function Forms() {
             </div>
             <PanelNav />
 
-            {/* progress — based on question index */}
+            {/* progress — based on question index (build mode) */}
             <div className="nhome-progress-track">
-              <div className="nhome-progress-fill" style={{ width:`${progressPct}%`, transition:'width .65s cubic-bezier(.65,0,.35,1)' }} />
+              <div
+                className="nhome-progress-fill"
+                style={{
+                  width: mode === 'build' ? `${progressPct}%` : mode === 'built' ? '66%' : '100%',
+                  transition: 'width .65s cubic-bezier(.65,0,.35,1)',
+                }}
+              />
             </div>
 
-            {/* tags = step tags */}
             <div className="nhome-tags">
-              {stepMeta.tags.map(t => <span key={t} className="nhome-tag">{t}</span>)}
+              {(mode === 'build'
+                ? stepMeta.tags
+                : mode === 'built'
+                  ? ['#BUILT-QUOTES', '#REVIEW']
+                  : ['#APPROVED', '#PROPOSALS']
+              ).map(t => <span key={t} className="nhome-tag">{t}</span>)}
             </div>
 
-            {/* headline = step name (like "Raven Notebooks") */}
-            <h1 className="nhome-headline">{stepMeta.label}<span>.</span></h1>
-            <p className="nhome-subtext">{stepMeta.desc}</p>
+            <h1 className="nhome-headline">
+              {mode === 'build' ? stepMeta.label : mode === 'built' ? 'Built Quotes' : 'Approved'}
+              <span>.</span>
+            </h1>
+            <p className="nhome-subtext">
+              {mode === 'build'
+                ? stepMeta.desc
+                : mode === 'built'
+                  ? 'Review saved quotes, edit details, and approve when ready.'
+                  : 'Build a proposal PDF from an approved quote via n8n.'}
+            </p>
 
             {/* byline */}
             <div className="nhome-byline">
@@ -334,16 +458,28 @@ export function Forms() {
           {/* header: mode toggle only (search bar removed) */}
           <div className="nhome-panel-right-header" style={{ paddingTop: 20 }}>
 
-            {/* toggle: Build Quote | Built Quotes */}
-            <div className="pn-mode-toggle" data-tour="quote-mode">
-              <span className="pn-mode-indicator" style={{ transform: mode==='built' ? 'translateX(100%)' : 'translateX(0)' }} />
-              {(['build','built'] as ViewMode[]).map(m => (
+            {/* toggle: Build Quote | Built Quotes | Approved Quotes */}
+            <div
+              className="pn-mode-toggle"
+              data-tour="quote-mode"
+              style={{ width: '100%', maxWidth: 460, marginLeft: 'auto', marginRight: 'auto' }}
+            >
+              <span
+                className="pn-mode-indicator"
+                style={{
+                  width: 'calc(33.333% - 3px)',
+                  transform: `translateX(calc(${Math.max(0, modeIndex)} * (100% + 4.5px)))`,
+                }}
+              />
+              {VIEW_MODES.map(m => (
                 <button
-                  key={m}
-                  className={`pn-mode-btn${mode===m?' active':''}`}
-                  onClick={() => { if(m!==mode) setMode(m); }}
+                  key={m.id}
+                  type="button"
+                  className={`pn-mode-btn${mode === m.id ? ' active' : ''}`}
+                  style={{ flex: 1, padding: '9px 8px', fontSize: 12 }}
+                  onClick={() => { if (m.id !== mode) setMode(m.id); }}
                 >
-                  {m==='build' ? 'Build Quote' : 'Built Quotes'}
+                  {m.label}
                 </button>
               ))}
             </div>
@@ -539,32 +675,21 @@ export function Forms() {
                     disabled={!isReady(currentQ)}
                     onClick={goNext}
                   >
-                    {currentQ.submitLabel==='Generate Proposal'
-                      ? <span style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>Generate Proposal <ArrowRight size={15}/></span>
-                      : 'Continue'
-                    }
+                    {currentQ.submitLabel === 'Save Quote'
+                      ? <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>Save Quote <ArrowRight size={15} /></span>
+                      : 'Continue'}
                   </button>
                 </motion.div>
               </AnimatePresence>
             )}
 
-            {/* ── BUILT QUOTES: proposals as nav cards ── */}
-            {mode==='built' && (
-              <div style={{ maxWidth:460 }}>
-                <p className="pn-eyebrow">BUILT QUOTES</p>
-                <h2 className="pn-q-title">Your generated proposals</h2>
-                <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'60px 0', color:'rgba(23,24,28,.28)', textAlign:'center' }}>
-                  <FileText size={40} style={{ opacity:.25, marginBottom:14 }} />
-                  <p style={{ margin:0, fontSize:14, fontWeight:600 }}>No built quotes yet</p>
-                  <p style={{ margin:'6px 0 0', fontSize:12 }}>Complete the Build Quote form and generate a proposal to see it here.</p>
-                  <button
-                    onClick={()=>setMode('build')}
-                    style={{ marginTop:18, background:'#00f78e', color:'#0c3524', border:'none', borderRadius:10, padding:'10px 22px', fontWeight:700, fontSize:13, cursor:'pointer', boxShadow:'0 6px 14px rgba(0,247,142,.28)' }}
-                  >
-                    Start Building
-                  </button>
-                </div>
-              </div>
+            {/* ── BUILT / APPROVED QUOTE LIBRARIES ── */}
+            {(mode === 'built' || mode === 'approved') && (
+              <QuoteLibrary
+                mode={mode}
+                onStartBuilding={() => setMode('build')}
+                onBuildProposal={q => { void handleBuildProposal(q); }}
+              />
             )}
           </div>
         </main>
@@ -613,7 +738,7 @@ export function Forms() {
                   {stage==='error' && (
                     <div className="relative z-10 mt-7 flex items-center justify-center gap-3">
                       <button onClick={()=>setStage('idle')} className="flex items-center gap-1.5 rounded-full border border-[#e3e6e4] px-4 py-2 text-[12.5px] font-semibold text-gray-500 transition-colors hover:bg-gray-50"><X className="h-3.5 w-3.5"/>Close</button>
-                      <button onClick={handleGenerate} className="rounded-full bg-[#00f78e] px-5 py-2 text-[12.5px] font-bold text-[#0c3524] transition-colors hover:bg-[#06c97a]">Retry</button>
+                      <button onClick={() => void handleBuildProposal(proposalQuote)} className="rounded-full bg-[#00f78e] px-5 py-2 text-[12.5px] font-bold text-[#0c3524] transition-colors hover:bg-[#06c97a]">Retry</button>
                     </div>
                   )}
                 </div>
@@ -638,7 +763,12 @@ export function Forms() {
                   <div className="rounded-[14px] border border-gray-100 bg-white p-4">
                     <p className="mb-2.5 text-[10.5px] font-bold uppercase tracking-[0.14em] text-[#7c8a82]">Quote Snapshot</p>
                     <div className="flex flex-col gap-1.5 text-[12px]">
-                      {[['Vessel',data.vesselType.join(', ')||'—'],['Event',data.eventType||'—'],['Guests',data.guestCount||'—'],['Base Cost',`£${fin.baseCost.toFixed(2)}`]].map(([label,val])=>(
+                      {([
+                        ['Vessel', (proposalQuote?.form.vesselType ?? data.vesselType).join(', ') || '—'],
+                        ['Event', proposalQuote?.form.eventType || data.eventType || '—'],
+                        ['Guests', proposalQuote?.form.guestCount || data.guestCount || '—'],
+                        ['Base Cost', `£${(proposalQuote?.financials.baseCost ?? fin.baseCost).toFixed(2)}`],
+                      ] as [string, string][]).map(([label, val]) => (
                         <div key={label} className="flex items-center justify-between">
                           <span className="text-gray-400">{label}</span>
                           <span className={`font-semibold ${label==='Base Cost'?'text-[#00c06a]':'text-gray-700'}`}>{val}</span>
@@ -646,7 +776,7 @@ export function Forms() {
                       ))}
                       <div className="mt-1.5 flex items-center justify-between border-t border-gray-100 pt-1.5">
                         <span className="text-gray-500">Grand Total</span>
-                        <span className="font-black text-[#00c06a]">£{fin.grand.toFixed(2)}</span>
+                        <span className="font-black text-[#00c06a]">£{(proposalQuote?.financials.grandTotal ?? fin.grand).toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
