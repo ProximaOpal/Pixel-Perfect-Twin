@@ -67,6 +67,10 @@ function matchEventType(raw?: string): string {
   const lower = t.toLowerCase();
   const exact = EVENT_TYPES.find(e => e.toLowerCase() === lower);
   if (exact) return exact;
+  // Prefer specific wedding / corporate matches before broad includes.
+  if (lower === 'wedding' || lower === 'wedding event') {
+    return EVENT_TYPES.find(e => e === 'Wedding Reception') ?? 'Wedding Reception';
+  }
   const starts = EVENT_TYPES.find(e => lower.startsWith(e.toLowerCase()) || e.toLowerCase().startsWith(lower));
   if (starts) return starts;
   const includes = EVENT_TYPES.find(e => e.toLowerCase().includes(lower) || lower.includes(e.toLowerCase()));
@@ -201,8 +205,9 @@ export function Forms() {
   const [baseCostAuto, setBaseCostAuto] = useState(true);
   const [quoteLead]                   = useState<QuoteLead|null>(() => getQuoteLead());
   const [proposalQuote, setProposalQuote] = useState<BuiltQuote | null>(null);
-  // When n8n already supplied an event type, only show that locked option.
-  const eventTypeLocked = Boolean(quoteLead?.eventType && data.eventType);
+  // Prefills from n8n lead → lock event type + repeat client (blue, non-editable).
+  const eventTypeLocked = Boolean(quoteLead && data.eventType);
+  const repeatClientLocked = Boolean(quoteLead);
   const cursorRef                     = useRef<HTMLDivElement>(null);
   const scrollRef                     = useRef<HTMLDivElement>(null);
   const modeIndex = VIEW_MODES.findIndex(m => m.id === mode);
@@ -271,6 +276,10 @@ export function Forms() {
       leadCompany: quoteLead?.company,
       leadId: quoteLead?.id,
       referenceNumber: quoteLead?.referenceNumber,
+      lockedFromN8n: {
+        eventType: Boolean(quoteLead && data.eventType),
+        repeatClient: Boolean(quoteLead),
+      },
     };
     saveQuote(quote);
     soundClick();
@@ -506,24 +515,33 @@ export function Forms() {
                 >
                   <h2 className="pn-q-title">{currentQ.title}</h2>
 
-                  {/* SINGLE SELECT */}
+                  {/* SINGLE SELECT — event type from n8n shows one locked blue card */}
                   {currentQ.type==='single' && (() => {
                     const isEventQ = currentQ.id === 'eventType';
-                    const options = isEventQ && eventTypeLocked
-                      ? [data.eventType]
-                      : (currentQ.options ?? []);
-                    const cols = isEventQ && eventTypeLocked
-                      ? '1fr'
-                      : isEventQ
-                        ? '1fr 1fr 1fr'
-                        : '1fr 1fr';
+                    if (isEventQ && eventTypeLocked) {
+                      return (
+                        <div style={{ marginBottom: 18, width: '100%' }}>
+                          <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 600, color: '#0894ce' }}>
+                            Locked from n8n · cannot be changed
+                          </p>
+                          <div
+                            className="pn-text-opt selected"
+                            style={{
+                              width: '100%', maxWidth: 'none', margin: 0, padding: '14px 18px',
+                              fontSize: '13.5px', cursor: 'default', pointerEvents: 'none',
+                              background: '#0894ce', color: '#fff',
+                            }}
+                          >
+                            <span>{data.eventType}</span>
+                            <span className="pn-text-opt-dot"><Check size={9} color="#0894ce" strokeWidth={3} /></span>
+                          </div>
+                        </div>
+                      );
+                    }
+                    const options = currentQ.options ?? [];
+                    const cols = isEventQ ? '1fr 1fr 1fr' : '1fr 1fr';
                     return (
                       <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 8, marginBottom: 18, width: '100%' }}>
-                        {isEventQ && eventTypeLocked && (
-                          <p style={{ gridColumn: '1 / -1', margin: '0 0 4px', fontSize: 12, fontWeight: 600, color: '#0894ce' }}>
-                            Pre-filled from n8n lead data
-                          </p>
-                        )}
                         {options.map(opt => {
                           const sel = (data[currentQ.id as keyof FormData] as string) === opt;
                           return (
@@ -531,11 +549,8 @@ export function Forms() {
                               key={opt}
                               type="button"
                               className={`pn-text-opt${sel ? ' selected' : ''}`}
-                              style={{ width: 'auto', maxWidth: 'none', margin: 0, padding: '10px 12px', fontSize: '12.5px', cursor: isEventQ && eventTypeLocked ? 'default' : 'pointer' }}
-                              onClick={() => {
-                                if (isEventQ && eventTypeLocked) return;
-                                set(currentQ.id as keyof FormData, opt);
-                              }}
+                              style={{ width: 'auto', maxWidth: 'none', margin: 0, padding: '10px 12px', fontSize: '12.5px' }}
+                              onClick={() => set(currentQ.id as keyof FormData, opt)}
                             >
                               {opt}
                               {sel && <span className="pn-text-opt-dot"><Check size={9} color="#0894ce" strokeWidth={3} /></span>}
@@ -594,23 +609,43 @@ export function Forms() {
                     </div>
                   )}
 
-                  {/* BOOL — repeat client (pre-selected from n8n source when available) */}
+                  {/* BOOL — repeat client (locked blue card when prefilled from n8n) */}
                   {currentQ.type==='bool' && (
-                    <div style={{ marginBottom:18 }}>
-                      {quoteLead?.source && (
-                        <p style={{ margin: '0 0 10px', fontSize: 12, fontWeight: 600, color: '#0894ce' }}>
-                          Pre-filled from n8n source: {quoteLead.source}
-                        </p>
+                    <div style={{ marginBottom: 18 }}>
+                      {repeatClientLocked ? (
+                        <>
+                          <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 600, color: '#0894ce' }}>
+                            Locked from n8n{quoteLead?.source ? ` · ${quoteLead.source}` : ''} · cannot be changed
+                          </p>
+                          <div
+                            className="pn-text-opt selected"
+                            style={{
+                              margin: 0, cursor: 'default', pointerEvents: 'none',
+                              background: '#0894ce', color: '#fff',
+                            }}
+                          >
+                            <span>
+                              <span style={{ display: 'block' }}>
+                                {data.repeatClient ? 'Yes — repeat client' : 'No — new client'}
+                              </span>
+                              <span style={{ fontSize: 11, opacity: 0.85 }}>
+                                {data.repeatClient ? '15% margin applied' : '25% margin applied'}
+                              </span>
+                            </span>
+                            <span className="pn-text-opt-dot"><Check size={9} color="#0894ce" strokeWidth={3} /></span>
+                          </div>
+                        </>
+                      ) : (
+                        [{ label: 'Yes — repeat client', val: true, hint: '15% margin applied' }, { label: 'No — new client', val: false, hint: '25% margin applied' }].map(({ label, val, hint }) => {
+                          const sel = data.repeatClient === val;
+                          return (
+                            <button key={String(val)} type="button" className={`pn-text-opt${sel ? ' selected' : ''}`} onClick={() => set('repeatClient', val)}>
+                              <span><span style={{ display: 'block' }}>{label}</span><span style={{ fontSize: 11, opacity: .65 }}>{hint}</span></span>
+                              {sel && <span className="pn-text-opt-dot"><Check size={9} color="#0894ce" strokeWidth={3} /></span>}
+                            </button>
+                          );
+                        })
                       )}
-                      {[{ label:'Yes — repeat client', val:true, hint:'15% margin applied' },{ label:'No — new client', val:false, hint:'25% margin applied' }].map(({label,val,hint})=>{
-                        const sel = data.repeatClient===val;
-                        return (
-                          <button key={String(val)} type="button" className={`pn-text-opt${sel?' selected':''}`} onClick={()=>set('repeatClient',val)}>
-                            <span><span style={{ display:'block' }}>{label}</span><span style={{ fontSize:11, opacity:.65 }}>{hint}</span></span>
-                            {sel && <span className="pn-text-opt-dot"><Check size={9} color="#0894ce" strokeWidth={3}/></span>}
-                          </button>
-                        );
-                      })}
                     </div>
                   )}
 

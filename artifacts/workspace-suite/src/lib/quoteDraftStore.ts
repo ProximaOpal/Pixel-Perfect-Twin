@@ -43,6 +43,11 @@ export type BuiltQuote = {
   leadCompany?: string;
   leadId?: number;
   referenceNumber?: string;
+  /** Fields prefilled from n8n that must stay locked in the wizard + editor. */
+  lockedFromN8n?: {
+    eventType: boolean;
+    repeatClient: boolean;
+  };
 };
 
 const STORAGE_KEY = 'nexus_built_quotes';

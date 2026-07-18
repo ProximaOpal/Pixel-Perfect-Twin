@@ -1,11 +1,12 @@
 /**
  * Built Quotes / Approved Quotes lists + edit overlay.
  * Cards match Progress Notes (nhome-nav-card) styling.
+ * Event type + repeat client stay locked (blue) when prefilled from n8n.
  */
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ArrowRight, Check, CheckCircle2, ClipboardList, FileText, Pencil, X,
+  ArrowRight, Check, CheckCircle2, ClipboardList, FileText, Lock, Pencil, X,
 } from 'lucide-react';
 import {
   loadQuotes,
@@ -15,6 +16,7 @@ import {
   type BuiltQuote,
   type QuoteFormSnapshot,
 } from '@/lib/quoteDraftStore';
+import { VESSEL_TYPES, MENU_TYPES } from '@/lib/formOptions';
 import { soundClick } from '@/lib/sounds';
 
 type ListMode = 'built' | 'approved';
@@ -24,6 +26,16 @@ type Props = {
   onBuildProposal: (quote: BuiltQuote) => void;
   onStartBuilding: () => void;
 };
+
+const UPGRADES = [
+  'Live DJ',
+  'Saxophonist',
+  'Photo Booth',
+  'Close-up Magician',
+  'Branded Vessel Flag',
+  'Unlimited Drinks',
+  'Drink Tokens',
+];
 
 export function QuoteLibrary({ mode, onBuildProposal, onStartBuilding }: Props) {
   const [quotes, setQuotes] = useState<BuiltQuote[]>(() => loadQuotes());
@@ -49,10 +61,17 @@ export function QuoteLibrary({ mode, onBuildProposal, onStartBuilding }: Props) 
 
   function saveEdits() {
     if (!editing || !draft) return;
-    const title = `${draft.eventType || 'Event'} Quote — ${draft.vesselType.join(', ') || 'Vessel TBC'}`;
+    // Never unlock n8n-locked fields on save.
+    const locked = editing.lockedFromN8n;
+    const form: QuoteFormSnapshot = {
+      ...draft,
+      eventType: locked?.eventType ? editing.form.eventType : draft.eventType,
+      repeatClient: locked?.repeatClient ? editing.form.repeatClient : draft.repeatClient,
+    };
+    const title = `${form.eventType || 'Event'} Quote — ${form.vesselType.join(', ') || 'Vessel TBC'}`;
     saveQuote({
       ...editing,
-      form: draft,
+      form,
       title,
       updatedAt: new Date().toISOString(),
     });
@@ -60,6 +79,21 @@ export function QuoteLibrary({ mode, onBuildProposal, onStartBuilding }: Props) 
     setDraft(null);
     soundClick();
   }
+
+  function toggleInList(key: 'vesselType' | 'menuType' | 'selectedUpgrades', value: string) {
+    if (!draft) return;
+    const arr = draft[key];
+    const next = arr.includes(value) ? arr.filter(v => v !== value) : [...arr, value];
+    setDraft({ ...draft, [key]: next });
+  }
+
+  // Prefer explicit lock flags; fall back to "came from an n8n lead".
+  const eventLocked = Boolean(
+    (editing?.lockedFromN8n?.eventType ?? Boolean(editing?.leadId)) && editing?.form.eventType,
+  );
+  const repeatLocked = Boolean(
+    editing?.lockedFromN8n?.repeatClient ?? Boolean(editing?.leadId),
+  );
 
   return (
     <div style={{ width: '100%', maxWidth: 460 }}>
@@ -130,21 +164,20 @@ export function QuoteLibrary({ mode, onBuildProposal, onStartBuilding }: Props) 
                   {mode === 'built' && (
                     <button
                       type="button"
-                      onClick={() => (approved ? undefined : approve(q))}
-                      disabled={approved}
+                      onClick={() => approve(q)}
                       style={{
                         border: 'none',
                         borderRadius: 8,
                         padding: '6px 10px',
                         fontSize: 11,
                         fontWeight: 700,
-                        cursor: approved ? 'default' : 'pointer',
-                        background: approved ? 'rgba(0,247,142,.22)' : 'rgba(245,158,11,.18)',
-                        color: approved ? '#06c97a' : '#b45309',
+                        cursor: 'pointer',
+                        background: 'rgba(245,158,11,.18)',
+                        color: '#b45309',
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      {approved ? 'Approved' : 'Approve'}
+                      Approve
                     </button>
                   )}
                   {mode === 'approved' && (
@@ -236,26 +269,44 @@ export function QuoteLibrary({ mode, onBuildProposal, onStartBuilding }: Props) 
               </div>
 
               <div className="overflow-y-auto px-5 py-4" style={{ maxHeight: 'calc(min(86vh,720px) - 140px)' }}>
-                <Field label="Event type" value={draft.eventType} onChange={v => setDraft({ ...draft, eventType: v })} />
+                {/* Locked event type */}
+                <LockedChip
+                  label="Event type"
+                  value={draft.eventType || '—'}
+                  locked={eventLocked}
+                />
+
+                {/* Locked repeat client */}
+                <LockedChip
+                  label="Repeat client"
+                  value={draft.repeatClient ? 'Yes — repeat client (15%)' : 'No — new client (25%)'}
+                  locked={repeatLocked}
+                />
+
                 <Field label="Event date" value={draft.eventDate} onChange={v => setDraft({ ...draft, eventDate: v })} type="date" />
                 <Field label="Guest count" value={draft.guestCount} onChange={v => setDraft({ ...draft, guestCount: v })} type="number" />
-                <Field
-                  label="Vessels (comma-separated)"
-                  value={draft.vesselType.join(', ')}
-                  onChange={v => setDraft({
-                    ...draft,
-                    vesselType: v.split(',').map(s => s.trim()).filter(Boolean),
-                  })}
+
+                <MultiDropdown
+                  label="Vessels"
+                  options={VESSEL_TYPES}
+                  selected={draft.vesselType}
+                  onToggle={v => toggleInList('vesselType', v)}
                 />
-                <Field
-                  label="Menu (comma-separated)"
-                  value={draft.menuType.join(', ')}
-                  onChange={v => setDraft({
-                    ...draft,
-                    menuType: v.split(',').map(s => s.trim()).filter(Boolean),
-                  })}
+                <MultiDropdown
+                  label="Menu type"
+                  options={MENU_TYPES}
+                  selected={draft.menuType}
+                  onToggle={v => toggleInList('menuType', v)}
                 />
+                <MultiDropdown
+                  label="Upgrades"
+                  options={UPGRADES}
+                  selected={draft.selectedUpgrades}
+                  onToggle={v => toggleInList('selectedUpgrades', v)}
+                />
+
                 <Field label="Base cost (£)" value={draft.totalCost} onChange={v => setDraft({ ...draft, totalCost: v })} type="number" />
+
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                   <Field label="Embarkation" value={draft.embarkation} onChange={v => setDraft({ ...draft, embarkation: v })} type="time" />
                   <Field label="Departure" value={draft.departure} onChange={v => setDraft({ ...draft, departure: v })} type="time" />
@@ -263,30 +314,12 @@ export function QuoteLibrary({ mode, onBuildProposal, onStartBuilding }: Props) 
                   <Field label="Disembarkation" value={draft.disembarkation} onChange={v => setDraft({ ...draft, disembarkation: v })} type="time" />
                 </div>
 
-                <label className="pn-text-opt" style={{ marginTop: 8, cursor: 'pointer' }}>
-                  <span>
-                    <span style={{ display: 'block' }}>Repeat client</span>
-                    <span style={{ fontSize: 11, opacity: 0.65 }}>
-                      {draft.repeatClient ? '15% margin' : '25% margin'}
-                    </span>
-                  </span>
-                  <input
-                    type="checkbox"
-                    checked={draft.repeatClient}
-                    onChange={e => setDraft({ ...draft, repeatClient: e.target.checked })}
-                    style={{ width: 18, height: 18 }}
-                  />
-                </label>
-
                 <div style={{ marginTop: 16, borderRadius: 12, background: '#f0fdf5', padding: 14 }}>
                   <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: '#5ac69a', letterSpacing: '0.1em' }}>
                     SNAPSHOT TOTALS
                   </p>
                   <p style={{ margin: '8px 0 0', fontSize: 22, fontWeight: 800, color: '#0c3524' }}>
                     £{editing.financials.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                  </p>
-                  <p style={{ margin: '4px 0 0', fontSize: 12, color: 'rgba(23,24,28,.45)' }}>
-                    Totals refresh when you rebuild financials in the wizard; edits here update the quote record.
                   </p>
                 </div>
               </div>
@@ -340,6 +373,114 @@ export function QuoteLibrary({ mode, onBuildProposal, onStartBuilding }: Props) 
           </>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+function LockedChip({ label, value, locked }: { label: string; value: string; locked: boolean }) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, fontSize: 11.5, fontWeight: 700, color: locked ? '#0894ce' : 'rgba(23,24,28,.45)' }}>
+        {locked && <Lock size={11} />}
+        {label}{locked ? ' · locked from n8n' : ''}
+      </span>
+      <div
+        className="pn-text-opt selected"
+        style={{
+          margin: 0,
+          cursor: 'default',
+          pointerEvents: 'none',
+          background: '#0894ce',
+          color: '#fff',
+          opacity: locked ? 1 : 0.85,
+        }}
+      >
+        <span>{value}</span>
+        <span className="pn-text-opt-dot"><Check size={9} color="#0894ce" strokeWidth={3} /></span>
+      </div>
+    </div>
+  );
+}
+
+function MultiDropdown({
+  label,
+  options,
+  selected,
+  onToggle,
+}: {
+  label: string;
+  options: string[];
+  selected: string[];
+  onToggle: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ marginBottom: 14, position: 'relative' }}>
+      <span style={{ display: 'block', marginBottom: 5, fontSize: 11.5, fontWeight: 700, color: 'rgba(23,24,28,.45)' }}>
+        {label}
+      </span>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: '100%',
+          textAlign: 'left',
+          borderRadius: 10,
+          border: '1px solid #e3e6e4',
+          background: '#fff',
+          padding: '11px 14px',
+          fontSize: 13,
+          fontWeight: 500,
+          color: '#17181c',
+          cursor: 'pointer',
+        }}
+      >
+        {selected.length > 0 ? selected.join(', ') : `Select ${label.toLowerCase()}…`}
+      </button>
+      {open && (
+        <div
+          style={{
+            marginTop: 6,
+            borderRadius: 12,
+            border: '1px solid #e3e6e4',
+            background: '#fff',
+            boxShadow: '0 12px 32px rgba(23,24,28,.12)',
+            maxHeight: 200,
+            overflowY: 'auto',
+            padding: 6,
+          }}
+        >
+          {options.map(opt => {
+            const on = selected.includes(opt);
+            return (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => onToggle(opt)}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 8,
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '10px 12px',
+                  background: on ? 'rgba(8,148,206,.12)' : 'transparent',
+                  color: '#17181c',
+                  fontSize: 13,
+                  fontWeight: on ? 700 : 500,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                }}
+              >
+                {opt}
+                {on && <Check size={14} color="#0894ce" strokeWidth={2.5} />}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
