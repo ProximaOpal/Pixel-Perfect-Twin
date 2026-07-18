@@ -16,13 +16,13 @@ import { persistLeadUpdate } from '@/lib/persistLead';
 import { sheetsTargetLabel } from '@/lib/sheetsMode';
 import {
   UPGRADES,
-  buildStargtmPayload,
   calcBaseCostBreakdown,
   calcFinancials,
   financialsToSheetRow,
   isPeakPeriod,
   parseGuestCount as parseGuestsNumber,
 } from '@/lib/quoteFinance';
+import { buildQuoteBuilderPayload } from '@/lib/quoteBuilderPayload';
 import './Home.css';
 import './ProgressNotes.css';
 
@@ -232,10 +232,12 @@ export function Forms() {
         upgradeTotal: f.upgradeTotal,
         margin: f.margin,
       },
+      leadId: quoteLead?.id,
       leadName: quoteLead?.name,
       leadEmail: quoteLead?.email,
+      leadPhone: quoteLead?.phone,
+      leadDesignation: quoteLead?.designation,
       leadCompany: quoteLead?.company,
-      leadId: quoteLead?.id,
       referenceNumber: quoteLead?.referenceNumber,
       lockedFromN8n: {
         eventType: Boolean(quoteLead && data.eventType),
@@ -297,58 +299,8 @@ export function Forms() {
     setProposalQuote(q);
     setErrorMessage('');
     setStage('preparing');
-    const form = q.form;
-    // Recalculate from Quote Sheet rates so edited quotes stay accurate.
-    const f = calcFinancials(form);
-    const lead = {
-      id: q.leadId,
-      name: q.leadName,
-      email: q.leadEmail,
-      company: q.leadCompany,
-      referenceNumber: q.referenceNumber,
-      phone: undefined as string | undefined,
-    };
-    const stargtm = buildStargtmPayload({
-      form,
-      financials: {
-        costToClient: f.costToClient,
-        vat: f.vat,
-        grandTotal: f.grandTotal,
-        subtotal: f.subtotal,
-      },
-      lead,
-    });
-    // Dual-shape payload:
-    // - stargtm fields (lead/calculations/selectedUpgrades ids) work even if n8n is passthrough
-    // - form + financials let the n8n transform / Sheets audit rebuild from Quote Sheet rates
-    const payload = {
-      ...stargtm,
-      form,
-      eventType: form.eventType,
-      eventDate: form.eventDate,
-      guestCount: form.guestCount,
-      embarkation: form.embarkation,
-      disembarkation: form.disembarkation,
-      vesselType: form.vesselType,
-      menuType: form.menuType,
-      repeatClient: form.repeatClient,
-      totalCost: form.totalCost,
-      financials: {
-        baseCost: f.baseCost,
-        contingency: f.contingency,
-        marginAmount: f.marginAmount,
-        costToClient: f.costToClient,
-        subtotal: f.subtotal,
-        vat: f.vat,
-        grandTotal: f.grandTotal,
-        upgradeTotal: f.upgradeTotal,
-        margin: f.margin,
-      },
-      nexusLead: lead,
-      calculations: stargtm.calculations,
-      selectedUpgradeLabels: form.selectedUpgrades,
-      selectedUpgrades: stargtm.selectedUpgrades,
-    };
+    // Exact production contract — same fields as the live QuoteBuilder body.
+    const payload = buildQuoteBuilderPayload(q);
     await new Promise(r => setTimeout(r, 500));
     setStage('sending');
     try {
@@ -394,31 +346,36 @@ export function Forms() {
       const saved = await addProposal({
         id: `proposal-${Date.now()}`,
         createdAt: new Date().toISOString(),
-        eventDate: form.eventDate,
-        title: `${form.eventType || 'Event'} Proposal — ${form.vesselType.join(', ') || 'Vessel TBC'}${q.version ? ` (${q.version})` : ''}`,
-        vesselType: form.vesselType.join(', '),
-        eventType: form.eventType,
-        guestCount: form.guestCount,
-        grandTotal: f.grandTotal,
+        eventDate: payload.eventDate,
+        title: `${payload.eventType || 'Event'} Proposal — ${payload.vesselType.join(', ') || 'Vessel TBC'}${q.version ? ` (${q.version})` : ''}`,
+        vesselType: payload.vesselType.join(', '),
+        eventType: payload.eventType,
+        guestCount: payload.guestCount,
+        grandTotal: payload.financials.grandTotal,
         pdfDataUrl,
-        leadName: q.leadName,
-        leadEmail: q.leadEmail,
+        leadName: payload.lead.name || q.leadName,
+        leadEmail: payload.lead.email || q.leadEmail,
         quoteId: q.id,
-        referenceNumber: q.referenceNumber,
+        referenceNumber: payload.lead.referenceNumber || q.referenceNumber,
         version: q.version,
       });
       if (!saved) throw new Error('PDF too large to store — clear older proposals and try again.');
-      // Persist recalculated financials back onto the quote draft.
-      saveQuote({ ...q, financials: {
-        baseCost: f.baseCost,
-        contingency: f.contingency,
-        marginAmount: f.marginAmount,
-        costToClient: f.costToClient,
-        vat: f.vat,
-        grandTotal: f.grandTotal,
-        upgradeTotal: f.upgradeTotal,
-        margin: f.margin,
-      }, updatedAt: new Date().toISOString() });
+      // Persist recalculated financials (+ full lead) back onto the quote draft.
+      saveQuote({
+        ...q,
+        financials: {
+          ...payload.financials,
+          margin: calcFinancials(q.form).margin,
+        },
+        leadId: payload.lead.id || q.leadId,
+        leadName: payload.lead.name || q.leadName,
+        leadEmail: payload.lead.email || q.leadEmail,
+        leadPhone: payload.lead.phone || q.leadPhone,
+        leadDesignation: payload.lead.designation || q.leadDesignation,
+        leadCompany: payload.lead.company || q.leadCompany,
+        referenceNumber: payload.lead.referenceNumber || q.referenceNumber,
+        updatedAt: new Date().toISOString(),
+      });
       setStage('done');
       sessionStorage.setItem('nexus_just_generated', 'true');
       setTimeout(() => navigate('/proposal-doc'), 1200);

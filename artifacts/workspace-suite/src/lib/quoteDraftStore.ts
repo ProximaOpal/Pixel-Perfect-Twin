@@ -40,10 +40,13 @@ export type BuiltQuote = {
   title: string;
   form: QuoteFormSnapshot;
   financials: QuoteFinancials;
+  /** Full lead snapshot required by QuoteBuilder webhook on Build Proposal. */
+  leadId?: number;
   leadName?: string;
   leadEmail?: string;
+  leadPhone?: string;
+  leadDesignation?: string;
   leadCompany?: string;
-  leadId?: number;
   referenceNumber?: string;
   /** Package option version on approved quotes. */
   version?: QuoteVersion;

@@ -7,7 +7,7 @@ Import `nexus-sheets-workflow.json` into your n8n cloud instance.
 | Path | Purpose |
 |------|---------|
 | `POST /webhook/LeadDataFetch` | Read slim leads from Enquiry sheet |
-| `POST /webhook/QuoteBuilder` | Transform Quote Sheet financials → stargtm PDF |
+| `POST /webhook/QuoteBuilder` | Build Proposal — expects flat quote body (see below) → stargtm PDF |
 | `POST /webhook/LeadUpdate` | Status, rep, next action, package abbrev, viva tag, quote flags |
 | `POST /webhook/NoteAppend` | Append progress notes |
 | `POST /webhook/QuoteStatus` | Built / approved + V1–V3 + full financial stack |
@@ -38,7 +38,47 @@ stargtm mapping:
 
 Upgrade prices match the printed proposal catalogue (Drink Tokens £7.50, Unlimited Drinks 4 hrs £50/guest, etc.).
 
-**Re-import the workflow** after pulling so live n8n gets the Transform node. Until then, the frontend also posts a stargtm-shaped payload so PDFs still receive correct totals.
+**Re-import the workflow** after pulling so live n8n gets the Transform node.
+
+### QuoteBuilder body (frontend → n8n)
+
+Every **Build Proposal** press sends this shape (lead fields always present):
+
+```json
+{
+  "vesselType": ["WEOTT I (Rose)"],
+  "eventType": "Summer Event",
+  "source": "Form Submit (Sales)",
+  "eventDate": "2026-07-16",
+  "guestCount": "23",
+  "embarkation": "10:00",
+  "departure": "12:00",
+  "returnTime": "17:00",
+  "disembarkation": "18:00",
+  "menuType": ["Summer Barbecue"],
+  "repeatClient": true,
+  "totalCost": "4395.00",
+  "selectedUpgrades": ["Drink Tokens", "Unlimited Drinks"],
+  "financials": {
+    "baseCost": 4395,
+    "contingency": 98.89,
+    "marginAmount": 674.08,
+    "costToClient": 5167.97,
+    "vat": 1033.59,
+    "grandTotal": 6201.56,
+    "upgradeTotal": 1150
+  },
+  "lead": {
+    "id": 4,
+    "name": "Izobe Spiff",
+    "email": "Izobeobozuwa@yahoo.com",
+    "phone": "2348051333288",
+    "designation": "People & Operations Administrator",
+    "company": "Firebird",
+    "referenceNumber": "WE.18797"
+  }
+}
+```
 
 ## Avatars (people + companies)
 
