@@ -199,7 +199,7 @@ export function ProgressNotes() {
               />
             </label>
 
-            <div className="pn-mode-toggle" style={{ marginTop: 14, marginBottom: 4 }}>
+            <div className="pn-mode-toggle" data-tour="notes-mode" style={{ marginTop: 14, marginBottom: 4 }}>
               <span
                 className="pn-mode-indicator"
                 style={{ transform: mode === 'status' ? 'translateX(100%)' : 'translateX(0)' }}
@@ -219,6 +219,7 @@ export function ProgressNotes() {
           {/* scroll area */}
           <div
             className={`pn-scroll-area${fading ? ' fading' : ''}`}
+            data-tour="notes-list"
             style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 40px 80px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
           >
             <div style={{ width: '100%', maxWidth: 460 }}>
@@ -332,7 +333,7 @@ export function ProgressNotes() {
 
           {/* FAB */}
           {mode === 'notes' && detailIdx === null && !showAdd && (
-            <button className="pn-fab" onClick={handleFabClick} title="Add Progress Note">
+            <button className="pn-fab" data-tour="notes-fab" onClick={handleFabClick} title="Add Progress Note">
               <Plus size={20} color="#0c3524" />
             </button>
           )}

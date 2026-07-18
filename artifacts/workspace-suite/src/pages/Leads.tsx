@@ -167,7 +167,7 @@ export function Leads() {
 
           {/* Header: search + tab toggle */}
           <div className="nhome-panel-right-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', paddingBottom: 0 }}>
-            <label className="nhome-search-bar" style={{ width: '100%' }}>
+            <label className="nhome-search-bar" data-tour="leads-search" style={{ width: '100%' }}>
               <Search size={16} style={{ flexShrink: 0, color: 'var(--ink-soft)' }} />
               <input
                 type="text"
@@ -180,6 +180,7 @@ export function Leads() {
             {/* 4-tab toggle — full width, indicator spans 1/4 */}
             <div
               className="pn-mode-toggle"
+              data-tour="leads-tabs"
               style={{ width: '100%', marginTop: 0, marginBottom: 4, marginLeft: 0, marginRight: 0 }}
             >
               <span
@@ -215,6 +216,7 @@ export function Leads() {
           {/* Scroll area */}
           <div
             className={`pn-scroll-area${fading ? ' fading' : ''}`}
+            data-tour="leads-list"
             style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 52px 80px', display: 'flex', flexDirection: 'column' }}
           >
 
@@ -309,6 +311,7 @@ export function Leads() {
 
                   {/* Three-dots → Timeline */}
                   <button
+                    data-tour={idx === 0 ? 'leads-timeline-btn' : undefined}
                     onClick={e => { e.stopPropagation(); setTimelineLead(lead); soundClick(); }}
                     title="View progress timeline"
                     style={{
@@ -338,7 +341,7 @@ export function Leads() {
 
           {/* FAB — Add Lead */}
           {fetchStatus !== 'loading' && (
-            <button className="pn-fab" onClick={soundClick} title="Add Lead">
+            <button className="pn-fab" data-tour="leads-fab" onClick={soundClick} title="Add Lead">
               <Plus size={20} color="#0c3524" />
             </button>
           )}

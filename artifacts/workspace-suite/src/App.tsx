@@ -3,6 +3,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Route, Switch, Router as WouterRouter } from 'wouter';
 import { ActiveLeadProvider } from '@/context/ActiveLeadContext';
+import { TutorialProvider, TutorialOverlay } from '@/tutorial';
 import { Home } from '@/pages/Home';
 import { Leads } from '@/pages/Leads';
 import { Forms as QuoteBuilder } from '@/pages/Forms';
@@ -37,7 +38,10 @@ function App() {
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
           <ActiveLeadProvider>
-            <Router />
+            <TutorialProvider>
+              <Router />
+              <TutorialOverlay />
+            </TutorialProvider>
           </ActiveLeadProvider>
         </WouterRouter>
         <Toaster />

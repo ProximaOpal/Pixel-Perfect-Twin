@@ -3,7 +3,8 @@
  * Shows "Nexus" branding + horizontal icon nav.
  */
 import { Link, useLocation } from 'wouter';
-import { Home, Users, ClipboardList, FileText, GitBranch, NotebookPen, Settings } from 'lucide-react';
+import { Home, Users, ClipboardList, FileText, GitBranch, NotebookPen, Settings, Compass } from 'lucide-react';
+import { useTutorial } from '@/tutorial';
 
 const NAV_ITEMS = [
   { href: '/',               label: 'Home',           icon: Home          },
@@ -17,6 +18,7 @@ const NAV_ITEMS = [
 
 export function TopNav() {
   const [location] = useLocation();
+  const { start, active: tourActive } = useTutorial();
   return (
     <div style={{
       display: 'flex',
@@ -75,6 +77,29 @@ export function TopNav() {
             </Link>
           );
         })}
+        <button
+          type="button"
+          data-tour="tour-trigger"
+          aria-label="Start product tour"
+          title="Product tour"
+          onClick={() => { if (!tourActive) start(); }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 30,
+            height: 30,
+            borderRadius: 8,
+            border: 0,
+            cursor: 'pointer',
+            background: tourActive ? '#FF5A45' : 'rgba(23,24,28,0.06)',
+            color: tourActive ? '#fff' : 'rgba(23,24,28,0.50)',
+            transition: 'background .18s, color .18s',
+            flexShrink: 0,
+          }}
+        >
+          <Compass size={13} />
+        </button>
       </div>
     </div>
   );

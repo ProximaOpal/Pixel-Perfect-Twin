@@ -3,7 +3,8 @@
  * ProgressNotes, ProposalDoc, Bespoke). Placed directly below the "Nexus" brand word.
  */
 import { Link, useLocation } from 'wouter';
-import { Home, Users, NotebookPen, ClipboardList, FileText, Sparkles } from 'lucide-react';
+import { Home, Users, NotebookPen, ClipboardList, FileText, Sparkles, Compass } from 'lucide-react';
+import { useTutorial } from '@/tutorial';
 
 const NAV_ITEMS = [
   { href: '/',               label: 'Home',           icon: Home          },
@@ -16,16 +17,19 @@ const NAV_ITEMS = [
 
 export function PanelNav() {
   const [location] = useLocation();
+  const { start, active } = useTutorial();
+
   return (
-    <div style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
+    <div data-tour="panel-nav" style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
       {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-        const active = location === href;
+        const activeLink = location === href;
         return (
           <Link
             key={href}
             href={href}
             aria-label={label}
             title={label}
+            data-tour={`nav-${href === '/' ? 'home' : href.slice(1)}`}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -33,8 +37,8 @@ export function PanelNav() {
               width: 30,
               height: 30,
               borderRadius: 8,
-              background: active ? 'rgba(0,247,142,0.22)' : 'rgba(255,255,255,0.10)',
-              color: active ? '#00f78e' : 'rgba(255,255,255,0.55)',
+              background: activeLink ? 'rgba(0,247,142,0.22)' : 'rgba(255,255,255,0.10)',
+              color: activeLink ? '#00f78e' : 'rgba(255,255,255,0.55)',
               transition: 'background .2s, color .2s',
               flexShrink: 0,
               textDecoration: 'none',
@@ -44,6 +48,31 @@ export function PanelNav() {
           </Link>
         );
       })}
+      <button
+        type="button"
+        data-tour="tour-trigger"
+        aria-label="Start product tour"
+        title="Product tour"
+        onClick={() => {
+          if (!active) start();
+        }}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 30,
+          height: 30,
+          borderRadius: 8,
+          border: 0,
+          cursor: 'pointer',
+          background: active ? 'rgba(255,90,69,0.28)' : 'rgba(255,255,255,0.10)',
+          color: active ? '#FF5A45' : 'rgba(255,255,255,0.55)',
+          transition: 'background .2s, color .2s',
+          flexShrink: 0,
+        }}
+      >
+        <Compass size={13} />
+      </button>
     </div>
   );
 }

@@ -295,7 +295,7 @@ export function Forms() {
           <div className="nhome-panel-right-header" style={{ paddingTop: 20 }}>
 
             {/* toggle: Build Quote | Built Quotes */}
-            <div className="pn-mode-toggle">
+            <div className="pn-mode-toggle" data-tour="quote-mode">
               <span className="pn-mode-indicator" style={{ transform: mode==='built' ? 'translateX(100%)' : 'translateX(0)' }} />
               {(['build','built'] as ViewMode[]).map(m => (
                 <button
@@ -313,6 +313,7 @@ export function Forms() {
           <div
             ref={scrollRef}
             className={`pn-scroll-area${fading?' fading':''}`}
+            data-tour="quote-wizard"
             style={{ flex:1, minHeight:0, overflowY:'auto', padding:'14px 40px 20px', display:'flex', flexDirection:'column', alignItems:'center' }}
           >
 

@@ -163,7 +163,7 @@ export function Bespoke() {
         {/* ── RIGHT PANEL ── */}
         <main className="nhome-panel-right">
           <div className="nhome-panel-right-header">
-            <label className="nhome-search-bar">
+            <label className="nhome-search-bar" data-tour="bespoke-search">
               <Search size={16} style={{ flexShrink: 0, color: 'var(--ink-soft)' }} />
               <input
                 type="text"
@@ -176,7 +176,7 @@ export function Bespoke() {
 
           <p className="nhome-section-label">BESPOKE PACKAGES</p>
 
-          <div className="nhome-nav-grid">
+          <div className="nhome-nav-grid" data-tour="bespoke-grid">
             {visible.map((pkg, idx) => {
               const Icon = pkg.icon;
               return (

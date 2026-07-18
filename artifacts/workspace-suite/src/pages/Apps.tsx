@@ -134,7 +134,7 @@ export function Apps() {
       )}
 
       {/* App grid */}
-      <div className="mx-auto grid max-w-[900px] grid-cols-5 place-items-center gap-5">
+      <div className="mx-auto grid max-w-[900px] grid-cols-5 place-items-center gap-5" data-tour="apps-grid">
         {APP_TILES.map(app => {
           const url = app.getUrl(leadCtx);
           return (

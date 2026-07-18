@@ -350,7 +350,7 @@ export function ProposalDoc() {
           {/* Header: search + view toggle */}
           <div className="nhome-panel-right-header" style={{ paddingBottom: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, maxWidth: 520 }}>
-              <label className="nhome-search-bar" style={{ flex: 1, margin: 0 }}>
+              <label className="nhome-search-bar" data-tour="proposal-search" style={{ flex: 1, margin: 0 }}>
                 <Search size={16} style={{ flexShrink: 0, color: 'var(--ink-soft)' }} />
                 <input
                   type="text"
@@ -396,6 +396,7 @@ export function ProposalDoc() {
 
           {/* File area — internal scroll only, no outer scrollbar */}
           <div
+            data-tour="proposal-grid"
             style={{
               flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden',
               padding: '0 52px 40px',

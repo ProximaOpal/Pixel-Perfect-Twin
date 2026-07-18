@@ -1,0 +1,189 @@
+/* Product tour — matches Nexus navy / mint / coral language */
+
+.nexus-tour {
+  position: fixed;
+  inset: 0;
+  z-index: 10020;
+  pointer-events: none;
+}
+
+.nexus-tour-veil {
+  position: absolute;
+  inset: 0;
+  background: rgba(13, 18, 38, 0.55);
+  backdrop-filter: blur(7px) saturate(0.85);
+  -webkit-backdrop-filter: blur(7px) saturate(0.85);
+  pointer-events: auto;
+  cursor: default;
+}
+
+.nexus-tour-ring {
+  position: fixed;
+  z-index: 10030;
+  border-radius: 16px;
+  pointer-events: none;
+  box-shadow:
+    0 0 0 2px rgba(0, 247, 142, 0.95),
+    0 0 0 6px rgba(0, 247, 142, 0.18),
+    0 18px 50px rgba(0, 0, 0, 0.35);
+  animation: nexusTourPulse 2.2s ease-in-out infinite;
+}
+
+@keyframes nexusTourPulse {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(0, 247, 142, 0.95), 0 0 0 6px rgba(0, 247, 142, 0.18), 0 18px 50px rgba(0, 0, 0, 0.35); }
+  50% { box-shadow: 0 0 0 2px rgba(0, 247, 142, 1), 0 0 0 10px rgba(0, 247, 142, 0.1), 0 18px 50px rgba(0, 0, 0, 0.35); }
+}
+
+.nexus-tour-target {
+  border-radius: 14px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.nexus-tour-arrows {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10035;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.nexus-tour-card {
+  width: min(320px, calc(100vw - 32px));
+  z-index: 10050;
+  pointer-events: auto;
+  padding: 18px 18px 14px;
+  border-radius: 18px;
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.98) 0%, rgba(253, 252, 255, 0.96) 100%);
+  color: #17181c;
+  font-family: 'Inter', sans-serif;
+  box-shadow:
+    0 24px 60px rgba(13, 18, 38, 0.35),
+    0 0 0 1px rgba(44, 58, 99, 0.08);
+  overflow: hidden;
+}
+
+.nexus-tour-card-glow {
+  position: absolute;
+  inset: auto -20% -40% -20%;
+  height: 70%;
+  background:
+    radial-gradient(circle at 20% 40%, rgba(0, 247, 142, 0.16), transparent 55%),
+    radial-gradient(circle at 80% 60%, rgba(255, 90, 69, 0.12), transparent 50%);
+  pointer-events: none;
+}
+
+.nexus-tour-meta {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.nexus-tour-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: #5ac69a;
+}
+
+.nexus-tour-progress {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(23, 24, 28, 0.38);
+  font-variant-numeric: tabular-nums;
+}
+
+.nexus-tour-title {
+  position: relative;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
+  color: #17181c;
+}
+
+.nexus-tour-body {
+  position: relative;
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(23, 24, 28, 0.62);
+}
+
+.nexus-tour-actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.nexus-tour-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nexus-tour-btn {
+  border: 0;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 8px 12px;
+  transition: background 0.18s cubic-bezier(0.65, 0, 0.35, 1), color 0.18s, transform 0.15s;
+}
+
+.nexus-tour-btn:active {
+  transform: scale(0.97);
+}
+
+.nexus-tour-btn.ghost {
+  background: transparent;
+  color: rgba(23, 24, 28, 0.42);
+}
+
+.nexus-tour-btn.ghost:hover {
+  color: rgba(23, 24, 28, 0.75);
+  background: rgba(23, 24, 28, 0.05);
+}
+
+.nexus-tour-btn.primary {
+  background: linear-gradient(135deg, #2c3a63 0%, #3e4f86 55%, #5a6aa8 100%);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(44, 58, 99, 0.28);
+  padding-inline: 16px;
+}
+
+.nexus-tour-btn.primary:hover {
+  filter: brightness(1.06);
+}
+
+.nexus-tour-track {
+  position: relative;
+  margin-top: 14px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(23, 24, 28, 0.08);
+  overflow: hidden;
+}
+
+.nexus-tour-track-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #00f78e 0%, #34c98d 45%, #FF5A45 100%);
+  transition: width 0.35s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+@media (max-width: 640px) {
+  .nexus-tour-card {
+    width: calc(100vw - 24px);
+  }
+}

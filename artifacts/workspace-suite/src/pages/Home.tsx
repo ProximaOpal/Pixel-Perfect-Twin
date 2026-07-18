@@ -43,22 +43,29 @@ const LOGIN_USERS = [
 export function Home() {
   const [, navigate] = useLocation();
 
-  // landing → login → app transition phases
-  const [phase, setPhase] = useState<'landing' | 'wiping' | 'login' | 'app'>('landing');
+  // Skip splash/login when a user is already chosen (local sessions + tour restarts).
+  const [phase, setPhase] = useState<'landing' | 'wiping' | 'login' | 'app'>(() =>
+    localStorage.getItem('nexus_active_user') ? 'app' : 'landing',
+  );
 
   // fake cursor
   const cursorRef = useRef<HTMLDivElement>(null);
 
   /* ── Landing → login wipe ───────────────────────────────────────────── */
   useEffect(() => {
+    if (phase !== 'landing') return;
     const t1 = setTimeout(() => setPhase('wiping'), 2400);
     const t2 = setTimeout(() => setPhase('login'),  3000);
     return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, []);
+  }, [phase]);
 
   function handleLogin(userId: string) {
     localStorage.setItem('nexus_active_user', userId);
     setPhase('app');
+    // Kick off the product tour after the dashboard paints.
+    window.setTimeout(() => {
+      window.dispatchEvent(new Event('nexus:app-ready'));
+    }, 480);
   }
 
   /* ── Fake cursor (home page only) ───────────────────────────────────── */
@@ -212,7 +219,7 @@ export function Home() {
             <div className="nhome-kaleidoscope" />
             <div className="nhome-left-inner">
               <div className="nhome-top-row">
-                <div className="nhome-brand">
+                <div className="nhome-brand" data-tour="home-brand">
                   Nexus<span className="nhome-brand-dot" />
                 </div>
               </div>
@@ -246,7 +253,7 @@ export function Home() {
           {/* Right panel */}
           <main className="nhome-panel-right">
             <div className="nhome-panel-right-header">
-              <label className="nhome-search-bar">
+              <label className="nhome-search-bar" data-tour="home-search">
                 <Search size={16} style={{ flexShrink: 0, color: 'var(--ink-soft)' }} />
                 <input type="text" placeholder="Search Nexus…" />
               </label>
@@ -254,7 +261,7 @@ export function Home() {
 
             <p className="nhome-section-label">NAVIGATE TO</p>
 
-            <div className="nhome-nav-grid">
+            <div className="nhome-nav-grid" data-tour="home-nav-grid">
               {NAV_CARDS.map((card) => {
                 const Icon = card.icon;
                 return (
@@ -262,6 +269,7 @@ export function Home() {
                     key={card.href}
                     type="button"
                     className="nhome-nav-card"
+                    data-tour={`home-card-${card.href === '/' ? 'home' : card.href.slice(1)}`}
                     onClick={() => navigate(card.href)}
                   >
                     <div className="nhome-nav-card-icon">
