@@ -51,7 +51,31 @@ function todayIso() {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 function matchSourceType(raw?: string) { return SOURCE_TYPES.find(t => raw?.toLowerCase().startsWith(t.toLowerCase())) ?? ''; }
-function isRepeatClientSource(raw?: string) { return !!raw?.toLowerCase().includes('repeat client'); }
+function isRepeatClientSource(raw?: string) {
+  if (!raw) return false;
+  const s = raw.toLowerCase();
+  return s.includes('repeat client') || s.includes('repeat-client') || /\brepeat\b/.test(s);
+}
+
+/** Map n8n event-type strings onto known EVENT_TYPES, or keep the raw value. */
+function matchEventType(raw?: string): string {
+  if (!raw?.trim()) return '';
+  const t = raw.trim();
+  const lower = t.toLowerCase();
+  const exact = EVENT_TYPES.find(e => e.toLowerCase() === lower);
+  if (exact) return exact;
+  const starts = EVENT_TYPES.find(e => lower.startsWith(e.toLowerCase()) || e.toLowerCase().startsWith(lower));
+  if (starts) return starts;
+  const includes = EVENT_TYPES.find(e => e.toLowerCase().includes(lower) || lower.includes(e.toLowerCase()));
+  if (includes) return includes;
+  return t;
+}
+
+function parseGuestCount(raw?: string): string {
+  if (!raw?.trim()) return '';
+  const m = raw.replace(/,/g, '').match(/\d+/);
+  return m ? m[0] : '';
+}
 
 /* ── Types ── */
 type FormData = {
@@ -143,17 +167,33 @@ export function Forms() {
   const [fading, setFading]       = useState(false);
   const [data, setData]           = useState<FormData>(() => {
     const lead = getQuoteLead();
+    const eventType = matchEventType(lead?.eventType);
+    const fromLeadDate = lead?.fullEventDate?.trim();
+    const eventDate = fromLeadDate && !Number.isNaN(new Date(fromLeadDate).getTime())
+      ? fromLeadDate.slice(0, 10)
+      : todayIso();
     return {
-      vesselType:[], eventType:'', source: matchSourceType(lead?.source),
-      eventDate: todayIso(), guestCount:'',
-      embarkation:'10:00', departure:'12:00', returnTime:'17:00', disembarkation:'18:00',
-      menuType:[], repeatClient: isRepeatClientSource(lead?.source), totalCost:'', selectedUpgrades:[],
+      vesselType: [],
+      eventType,
+      source: matchSourceType(lead?.source),
+      eventDate,
+      guestCount: parseGuestCount(lead?.groupSize),
+      embarkation: '10:00',
+      departure: '12:00',
+      returnTime: '17:00',
+      disembarkation: '18:00',
+      menuType: [],
+      repeatClient: isRepeatClientSource(lead?.source),
+      totalCost: '',
+      selectedUpgrades: [],
     };
   });
   const [stage, setStage]             = useState<GenerationStage>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [baseCostAuto, setBaseCostAuto] = useState(true);
   const [quoteLead]                   = useState<QuoteLead|null>(() => getQuoteLead());
+  // When n8n already supplied an event type, only show that locked option.
+  const eventTypeLocked = Boolean(quoteLead?.eventType && data.eventType);
   const cursorRef                     = useRef<HTMLDivElement>(null);
   const scrollRef                     = useRef<HTMLDivElement>(null);
 
@@ -331,19 +371,44 @@ export function Forms() {
                   <h2 className="pn-q-title">{currentQ.title}</h2>
 
                   {/* SINGLE SELECT */}
-                  {currentQ.type==='single' && (
-                    <div style={{ display:'grid', gridTemplateColumns: currentQ.id==='eventType' ? '1fr 1fr 1fr' : '1fr 1fr', gap:8, marginBottom:18 }}>
-                      {(currentQ.options??[]).map(opt => {
-                        const sel = (data[currentQ.id as keyof FormData] as string)===opt;
-                        return (
-                          <button key={opt} className={`pn-text-opt${sel?' selected':''}`} style={{ width:'auto', maxWidth:'none', margin:0, padding:'10px 12px', fontSize:'12.5px' }} onClick={()=>set(currentQ.id as keyof FormData, opt)}>
-                            {opt}
-                            {sel && <span className="pn-text-opt-dot"><Check size={9} color="#0894ce" strokeWidth={3}/></span>}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
+                  {currentQ.type==='single' && (() => {
+                    const isEventQ = currentQ.id === 'eventType';
+                    const options = isEventQ && eventTypeLocked
+                      ? [data.eventType]
+                      : (currentQ.options ?? []);
+                    const cols = isEventQ && eventTypeLocked
+                      ? '1fr'
+                      : isEventQ
+                        ? '1fr 1fr 1fr'
+                        : '1fr 1fr';
+                    return (
+                      <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 8, marginBottom: 18, width: '100%' }}>
+                        {isEventQ && eventTypeLocked && (
+                          <p style={{ gridColumn: '1 / -1', margin: '0 0 4px', fontSize: 12, fontWeight: 600, color: '#0894ce' }}>
+                            Pre-filled from n8n lead data
+                          </p>
+                        )}
+                        {options.map(opt => {
+                          const sel = (data[currentQ.id as keyof FormData] as string) === opt;
+                          return (
+                            <button
+                              key={opt}
+                              type="button"
+                              className={`pn-text-opt${sel ? ' selected' : ''}`}
+                              style={{ width: 'auto', maxWidth: 'none', margin: 0, padding: '10px 12px', fontSize: '12.5px', cursor: isEventQ && eventTypeLocked ? 'default' : 'pointer' }}
+                              onClick={() => {
+                                if (isEventQ && eventTypeLocked) return;
+                                set(currentQ.id as keyof FormData, opt);
+                              }}
+                            >
+                              {opt}
+                              {sel && <span className="pn-text-opt-dot"><Check size={9} color="#0894ce" strokeWidth={3} /></span>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
 
                   {/* MULTI SELECT */}
                   {currentQ.type==='multi' && (
@@ -393,13 +458,18 @@ export function Forms() {
                     </div>
                   )}
 
-                  {/* BOOL — repeat client */}
+                  {/* BOOL — repeat client (pre-selected from n8n source when available) */}
                   {currentQ.type==='bool' && (
                     <div style={{ marginBottom:18 }}>
+                      {quoteLead?.source && (
+                        <p style={{ margin: '0 0 10px', fontSize: 12, fontWeight: 600, color: '#0894ce' }}>
+                          Pre-filled from n8n source: {quoteLead.source}
+                        </p>
+                      )}
                       {[{ label:'Yes — repeat client', val:true, hint:'15% margin applied' },{ label:'No — new client', val:false, hint:'25% margin applied' }].map(({label,val,hint})=>{
                         const sel = data.repeatClient===val;
                         return (
-                          <button key={String(val)} className={`pn-text-opt${sel?' selected':''}`} onClick={()=>set('repeatClient',val)}>
+                          <button key={String(val)} type="button" className={`pn-text-opt${sel?' selected':''}`} onClick={()=>set('repeatClient',val)}>
                             <span><span style={{ display:'block' }}>{label}</span><span style={{ fontSize:11, opacity:.65 }}>{hint}</span></span>
                             {sel && <span className="pn-text-opt-dot"><Check size={9} color="#0894ce" strokeWidth={3}/></span>}
                           </button>

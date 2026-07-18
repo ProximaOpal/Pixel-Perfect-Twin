@@ -22,6 +22,12 @@ export type QuoteLead = {
   // "Build your event form 1-3") — parsed in the Quote Builder to prefill
   // the Source picker and the Repeat Client toggle.
   source?: string;
+  /** Event type from n8n LeadDataFetch — preselects Quote Builder Q2. */
+  eventType?: string;
+  /** Guest count from n8n when available. */
+  groupSize?: string;
+  /** Preferred event date from n8n when available. */
+  fullEventDate?: string;
 };
 
 export function setQuoteLead(lead: QuoteLead): void {

@@ -478,6 +478,9 @@ export function LeadPanel({ lead, onClose }: { lead: Lead | null; onClose: () =>
       initials: lead.initials,
       color: lead.color,
       source: lead.source,
+      eventType: lead.eventType,
+      groupSize: lead.groupSize,
+      fullEventDate: lead.fullEventDate,
     });
     soundClick();
     onClose();
