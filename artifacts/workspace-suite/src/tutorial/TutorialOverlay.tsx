@@ -250,7 +250,18 @@ export function TutorialOverlay() {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.28 }}
         >
-          <div className="nexus-tour-veil" onClick={skip} />
+          <div
+            className="nexus-tour-veil"
+            onClick={skip}
+            style={
+              hole
+                ? {
+                    // evenodd path: full viewport minus spotlight rectangle
+                    clipPath: `path(evenodd, "M0 0 H${typeof window !== 'undefined' ? window.innerWidth : 1920} V${typeof window !== 'undefined' ? window.innerHeight : 1080} H0 Z M${hole.left} ${hole.top} H${hole.left + hole.width} V${hole.top + hole.height} H${hole.left} Z")`,
+                  }
+                : undefined
+            }
+          />
 
           {hole && (
             <motion.div
