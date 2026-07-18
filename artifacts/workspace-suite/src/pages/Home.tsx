@@ -14,6 +14,11 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { PanelNav } from '@/components/PanelNav';
+import {
+  HOME_INTRO_EVENT,
+  consumeSkipIntro,
+  playHomeIntro,
+} from '@/lib/homeIntro';
 import './Home.css';
 
 type NavCard = {
@@ -46,20 +51,33 @@ const LOGIN_USERS = [
 export function Home() {
   const [, navigate] = useLocation();
 
-  // Skip splash/login when a user is already chosen (local sessions + tour restarts).
+  // Always play splash → wipe → login on mount/reload, unless the tour asks to skip once.
+  const skipIntroOnce = useRef(consumeSkipIntro());
   const [phase, setPhase] = useState<'landing' | 'wiping' | 'login' | 'app'>(() =>
-    localStorage.getItem('nexus_active_user') ? 'app' : 'landing',
+    skipIntroOnce.current ? 'app' : 'landing',
   );
+  const [animKey, setAnimKey] = useState(0);
 
   // fake cursor
   const cursorRef = useRef<HTMLDivElement>(null);
 
-  /* ── Landing → login wipe ───────────────────────────────────────────── */
+  /* ── Landing → wipe → login (every Home visit / reload / Home press) ── */
   useEffect(() => {
-    if (localStorage.getItem('nexus_active_user')) return;
+    if (skipIntroOnce.current) {
+      skipIntroOnce.current = false;
+      return;
+    }
+    setPhase('landing');
     const t1 = setTimeout(() => setPhase('wiping'), 2400);
-    const t2 = setTimeout(() => setPhase('login'),  3000);
+    const t2 = setTimeout(() => setPhase('login'), 3000);
     return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [animKey]);
+
+  // Replay full intro when Home is pressed while already on `/`.
+  useEffect(() => {
+    const replay = () => setAnimKey(k => k + 1);
+    window.addEventListener(HOME_INTRO_EVENT, replay);
+    return () => window.removeEventListener(HOME_INTRO_EVENT, replay);
   }, []);
 
   function handleLogin(userId: string) {
@@ -69,6 +87,11 @@ export function Home() {
     window.setTimeout(() => {
       window.dispatchEvent(new Event('nexus:app-ready'));
     }, 480);
+  }
+
+  function goHomeCard() {
+    // Home card while already on the dashboard → replay the landing sequence.
+    playHomeIntro();
   }
 
   /* ── Fake cursor (home page only) ───────────────────────────────────── */
@@ -105,7 +128,7 @@ export function Home() {
 
       {/* ── Landing screen ─────────────────────────────────────────────── */}
       {phase === 'landing' && (
-        <div className="nhome-landing">
+        <div className="nhome-landing" key={`landing-${animKey}`}>
           <div className="nhome-landing-bg" />
           <div className="nhome-landing-content">
             <div className="nhome-landing-icons">
@@ -148,7 +171,7 @@ export function Home() {
       )}
 
       {/* ── Wipe transition overlay ─────────────────────────────────────── */}
-      <div className={`nhome-overlay${phase === 'wiping' ? ' run' : ''}`}>
+      <div key={`wipe-${animKey}`} className={`nhome-overlay${phase === 'wiping' ? ' run' : ''}`}>
         <div className="nhome-wipe" />
         <div className="nhome-wipe-logo">
           <span /><span />
@@ -270,7 +293,10 @@ export function Home() {
                     type="button"
                     className="nhome-nav-card"
                     data-tour={`home-card-${card.href === '/' ? 'home' : card.href.slice(1)}`}
-                    onClick={() => navigate(card.href)}
+                    onClick={() => {
+                      if (card.href === '/') goHomeCard();
+                      else navigate(card.href);
+                    }}
                   >
                     <div className="nhome-nav-card-icon">
                       <Icon size={18} color="var(--ink)" strokeWidth={1.7} />

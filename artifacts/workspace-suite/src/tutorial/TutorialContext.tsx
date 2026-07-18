@@ -10,6 +10,7 @@ import {
 import { useLocation } from 'wouter';
 import { TUTORIAL_STEPS, TUTORIAL_STORAGE_KEY } from './steps';
 import type { TutorialStep } from './types';
+import { skipHomeIntroOnce } from '@/lib/homeIntro';
 
 type TutorialContextValue = {
   active: boolean;
@@ -50,7 +51,10 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   const start = useCallback(() => {
     setStepIndex(0);
     setActive(true);
-    if (location !== '/') navigate('/');
+    if (location !== '/') {
+      skipHomeIntroOnce();
+      navigate('/');
+    }
   }, [location, navigate]);
 
   const next = useCallback(() => {
@@ -72,6 +76,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!active || !step) return;
     if (location !== step.route) {
+      if (step.route === '/') skipHomeIntroOnce();
       navigate(step.route);
     }
   }, [active, step, location, navigate]);

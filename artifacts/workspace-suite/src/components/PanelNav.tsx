@@ -5,6 +5,7 @@
 import { Link, useLocation } from 'wouter';
 import { Home, Users, NotebookPen, ClipboardList, FileText, Sparkles, Compass } from 'lucide-react';
 import { useTutorial } from '@/tutorial';
+import { playHomeIntro } from '@/lib/homeIntro';
 
 const NAV_ITEMS = [
   { href: '/',               label: 'Home',           icon: Home          },
@@ -30,6 +31,13 @@ export function PanelNav() {
             aria-label={label}
             title={label}
             data-tour={`nav-${href === '/' ? 'home' : href.slice(1)}`}
+            onClick={() => {
+              // Home always replays the full landing sequence when pressed from Home.
+              // Navigating from another route remounts Home, which also plays the intro.
+              if (href === '/' && location === '/') {
+                playHomeIntro();
+              }
+            }}
             style={{
               display: 'flex',
               alignItems: 'center',
