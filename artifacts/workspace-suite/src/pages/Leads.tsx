@@ -5,7 +5,7 @@ import { LeadPanel, type Lead } from '@/components/LeadPanel';
 import { TimelinePanel } from '@/components/TimelinePanel';
 import { useActiveLead } from '@/context/ActiveLeadContext';
 import { Avatar } from '@/components/Avatar';
-import { personAvatarUrl } from '@/lib/avatar';
+import { companyAvatarSources, personAvatarSources } from '@/lib/avatar';
 import { PanelNav } from '@/components/PanelNav';
 import { soundClick, soundOpen, soundClose, soundTab } from '@/lib/sounds';
 import './Home.css';
@@ -40,6 +40,8 @@ interface RawLead {
   howHeard: string;
   status: string;
   linkedin?: string;
+  companyLinkedin?: string;
+  website?: string;
 }
 
 function toInitials(name: string) {
@@ -59,6 +61,8 @@ function mapRaw(raw: RawLead, index: number): Lead {
     color: '#0894ce',
     initials: toInitials(name),
     linkedin: raw.linkedin || undefined,
+    companyLinkedin: raw.companyLinkedin || undefined,
+    website: raw.website || undefined,
     sector: raw.companySector || '—',
     referenceNumber: raw.referenceNumber || '—',
     source: raw.source || '—',
@@ -320,10 +324,9 @@ export function Leads() {
                   className="nhome-nav-card"
                   style={{ width: '100%', maxWidth: 'none', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 14 }}
                 >
-                  {/* Avatar */}
+                  {/* Person + company avatars */}
                   <div
-                    className="nhome-nav-card-icon"
-                    style={{ background: `${lead.color}18`, flexShrink: 0 }}
+                    style={{ position: 'relative', flexShrink: 0, width: 40, height: 40 }}
                     onClick={() => {
                       const enriched = applyLeadExtrasToLead(lead);
                       setPanelLead(enriched);
@@ -331,12 +334,42 @@ export function Leads() {
                       soundOpen();
                     }}
                   >
-                    <Avatar
-                      src={personAvatarUrl(lead)}
-                      alt={lead.name}
-                      fallbackText={lead.initials}
-                      className="h-[22px] w-[22px] text-[9px]"
-                    />
+                    <div
+                      className="nhome-nav-card-icon"
+                      style={{ background: `${lead.color}18`, margin: 0 }}
+                    >
+                      <Avatar
+                        sources={personAvatarSources(lead)}
+                        alt={lead.name}
+                        fallbackText={lead.initials}
+                        className="h-[22px] w-[22px] text-[9px]"
+                      />
+                    </div>
+                    {lead.company && lead.company !== '—' && (
+                      <div
+                        title={lead.company}
+                        style={{
+                          position: 'absolute',
+                          right: -2,
+                          bottom: -2,
+                          width: 18,
+                          height: 18,
+                          borderRadius: 5,
+                          overflow: 'hidden',
+                          background: '#fff',
+                          boxShadow: '0 0 0 1.5px #fff, 0 1px 3px rgba(0,0,0,.18)',
+                        }}
+                      >
+                        <Avatar
+                          sources={companyAvatarSources(lead)}
+                          alt={lead.company}
+                          fallbackText={lead.company.slice(0, 1).toUpperCase()}
+                          rounded={false}
+                          objectFit="contain"
+                          className="h-full w-full text-[8px]"
+                        />
+                      </div>
+                    )}
                   </div>
 
                   {/* Text — clickable to open panel */}

@@ -8,7 +8,9 @@ import {
 } from 'lucide-react';
 import { NOTE_CATEGORIES, detectTag, loadNotes, addNote, type NoteTag, type LeadNote } from '@/lib/leadNotes';
 import { soundClick } from '@/lib/sounds';
-import { personAvatarUrl, companyAvatarUrl } from '@/lib/avatar';
+import { Avatar } from '@/components/Avatar';
+import { personAvatarSources, companyAvatarSources } from '@/lib/avatar';
+import { SALES_REPS, teamAvatarSources, teamFallbackText } from '@/lib/team';
 import { setQuoteLead } from '@/lib/quoteLeadStore';
 import { toast } from '@/hooks/use-toast';
 import { getLeadExtras } from '@/lib/leadExtras';
@@ -47,6 +49,8 @@ export type Lead = {
   color: string;
   initials: string;
   linkedin?: string;
+  companyLinkedin?: string;
+  website?: string;
   sector: string;
   referenceNumber: string;
   source: string;
@@ -67,12 +71,7 @@ export type Lead = {
   howHeard?: string;
 };
 
-/* ─── helpers ───
- * Real photos are resolved by pinging public identity services with the
- * data we actually have — email for the contact, LinkedIn for the company —
- * via the shared lib/avatar.ts helpers, with graceful fallbacks. */
-const contactPhotoUrl = personAvatarUrl;
-const companyLogoUrl = companyAvatarUrl;
+/* ─── helpers ─── */
 
 /** Opens a Gmail compose draft pre-addressed to this lead, in a new tab. */
 function gmailDraftUrl(email: string): string {
@@ -98,7 +97,6 @@ function linkedinUrl(lead: Lead): string {
 
 /* ─── Contact View ─── */
 function ContactView({ lead, onNotes }: { lead: Lead; onNotes: () => void }) {
-  const [imgErr, setImgErr] = useState(false);
   const [showCall, setShowCall] = useState(false);
 
   useEffect(() => {
@@ -187,18 +185,12 @@ function ContactView({ lead, onNotes }: { lead: Lead; onNotes: () => void }) {
       <div className="relative flex w-1/2 items-center justify-center bg-[#111] overflow-hidden">
         <div className="relative">
           <div className="h-52 w-52 overflow-hidden" style={{ borderRadius: '50%' }}>
-            {imgErr ? (
-              <div className="h-full w-full flex items-center justify-center bg-[#1a1a1a] text-white text-[32px] font-black">
-                {lead.initials}
-              </div>
-            ) : (
-              <img
-                src={contactPhotoUrl(lead)}
-                alt={lead.name}
-                className="h-full w-full object-cover"
-                onError={() => setImgErr(true)}
-              />
-            )}
+            <Avatar
+              sources={personAvatarSources(lead)}
+              alt={lead.name}
+              fallbackText={lead.initials}
+              className="h-full w-full text-[32px]"
+            />
           </div>
           {/* Play button at bottom of circle */}
           <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 flex h-8 w-8 items-center justify-center bg-white shadow-lg">
@@ -251,8 +243,7 @@ function ContactView({ lead, onNotes }: { lead: Lead; onNotes: () => void }) {
 
 /* ─── Company View ─── */
 function CompanyView({ lead }: { lead: Lead }) {
-  const [imgErr, setImgErr] = useState(false);
-
+  const companyLi = lead.companyLinkedin || lead.linkedin;
   return (
     <div className="flex h-full w-full">
       {/* Left: deep white panel */}
@@ -283,9 +274,9 @@ function CompanyView({ lead }: { lead: Lead }) {
           <p className="mt-3 max-w-[200px] text-[11px] leading-relaxed text-[#1a1a1a]/50">
             {lead.sector}. Reference {lead.referenceNumber}. Joined {lead.joined}.
           </p>
-          {lead.linkedin && (
+          {companyLi && (
             <a
-              href={lead.linkedin}
+              href={companyLi.startsWith('http') ? companyLi : `https://${companyLi}`}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-5 flex items-center gap-2 text-[11px] font-semibold text-[#1a1a1a] underline underline-offset-2 cursor-pointer hover:text-[#00f78e]"
@@ -299,19 +290,15 @@ function CompanyView({ lead }: { lead: Lead }) {
       {/* Right: dark panel — square photo centred at same equator as contact circle */}
       <div className="relative flex w-1/2 items-center justify-center bg-[#111] overflow-hidden">
         {/* Square photo */}
-        <div className="h-52 w-52 overflow-hidden shrink-0">
-          {imgErr ? (
-            <div className="h-full w-full flex items-center justify-center bg-[#1a1a1a] text-white text-[11px] font-bold text-center p-4">
-              {lead.company}
-            </div>
-          ) : (
-            <img
-              src={companyLogoUrl(lead)}
-              alt={lead.company}
-              className="h-full w-full object-contain"
-              onError={() => setImgErr(true)}
-            />
-          )}
+        <div className="h-52 w-52 overflow-hidden shrink-0 bg-white/5">
+          <Avatar
+            sources={companyAvatarSources(lead)}
+            alt={lead.company}
+            fallbackText={(lead.company || '?').slice(0, 2).toUpperCase()}
+            rounded={false}
+            objectFit="contain"
+            className="h-full w-full text-[18px] p-4"
+          />
         </div>
 
         {/* Right edge up/down */}
@@ -449,16 +436,6 @@ function NoteView({ lead, onBack }: { lead: Lead; onBack: () => void }) {
   );
 }
 
-const REPS = [
-  { name: 'Natasha',   initial: 'N',  color: '#f59e0b' }, // orange
-  { name: 'Lily-May',  initial: 'L',  color: '#a855f7' }, // purple
-  { name: 'Elizabeth', initial: 'E',  color: '#0894ce' }, // blue
-  { name: 'Katherine', initial: 'K',  color: '#00f78e' }, // luminous green
-  { name: 'April',     initial: 'A',  color: '#14b8a6' }, // teal
-  { name: 'Arianne',   initial: 'Ar', color: '#f43f5e' }, // rose
-  { name: 'Sapphire',  initial: 'S',  color: '#3b82f6' }, // sapphire blue
-] as const;
-
 /* ─── Main export: centered overlay ─── */
 export function LeadPanel({ lead, onClose }: { lead: Lead | null; onClose: () => void }) {
   const [, navigate] = useLocation();
@@ -578,11 +555,11 @@ export function LeadPanel({ lead, onClose }: { lead: Lead | null; onClose: () =>
                       transition={{ type: 'spring', stiffness: 380, damping: 28 }}
                       className="flex w-[200px] flex-col gap-1.5"
                     >
-                      {REPS.map(rep => {
+                      {SALES_REPS.map(rep => {
                         const selected = assignedRep === rep.name;
                         return (
                           <button
-                            key={rep.name}
+                            key={rep.id}
                             type="button"
                             onClick={() => {
                               setAssignedRep(rep.name);
@@ -607,12 +584,12 @@ export function LeadPanel({ lead, onClose }: { lead: Lead | null; onClose: () =>
                                 : '0 6px 16px rgba(0,0,0,.16)',
                             }}
                           >
-                            <span
-                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-black text-white"
-                              style={{ background: rep.color }}
-                            >
-                              {rep.initial}
-                            </span>
+                            <Avatar
+                              sources={teamAvatarSources(rep)}
+                              alt={rep.name}
+                              fallbackText={teamFallbackText(rep)}
+                              className="h-7 w-7 shrink-0 text-[11px]"
+                            />
                             <span className="text-[12.5px] font-semibold text-[#17181c]">{rep.name}</span>
                           </button>
                         );

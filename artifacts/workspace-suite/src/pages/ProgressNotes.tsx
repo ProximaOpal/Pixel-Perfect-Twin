@@ -15,7 +15,7 @@ import {
 } from '@/lib/nextActions';
 import { useActiveLead } from '@/context/ActiveLeadContext';
 import { Avatar } from '@/components/Avatar';
-import { personAvatarUrl } from '@/lib/avatar';
+import { personAvatarSources } from '@/lib/avatar';
 import { soundClick } from '@/lib/sounds';
 import { toast } from '@/hooks/use-toast';
 import { PanelNav } from '@/components/PanelNav';
@@ -261,7 +261,7 @@ export function ProgressNotes() {
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 16, marginBottom: 8 }}>
                   <Avatar
-                    src={personAvatarUrl(activeLead)}
+                    sources={personAvatarSources(activeLead)}
                     alt={activeLead.name}
                     fallbackText={activeLead.initials}
                     className="h-10 w-10 text-[11px] shrink-0"

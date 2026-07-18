@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { PanelNav } from '@/components/PanelNav';
+import { Avatar } from '@/components/Avatar';
+import { LOGIN_USERS, teamAvatarSources, teamFallbackText } from '@/lib/team';
 import {
   HOME_INTRO_EVENT,
   consumeSkipIntro,
@@ -36,17 +38,6 @@ const NAV_CARDS: NavCard[] = [
   { href: '/proposal-doc',  label: 'Proposal Doc',  icon: FileText,     desc: 'Review proposals'            },
   { href: '/bespoke',       label: 'Bespoke',       icon: Sparkles,     desc: 'Curated event packages'      },
 ];
-
-const LOGIN_USERS = [
-  { id: 'user',      name: 'User',      initials: null,  color: '#6366f1' },
-  { id: 'natasha',   name: 'Natasha',   initials: 'N',   color: '#ec4899' },
-  { id: 'lily-may',  name: 'Lily-May',  initials: 'LM',  color: '#f59e0b' },
-  { id: 'elizabeth', name: 'Elizabeth', initials: 'E',   color: '#22c55e' },
-  { id: 'katherine', name: 'Katherine', initials: 'K',   color: '#0894ce' },
-  { id: 'april',     name: 'April',     initials: 'A',   color: '#14b8a6' },
-  { id: 'arianne',   name: 'Arianne',   initials: 'Ar',  color: '#f43f5e' },
-  { id: 'sapphire',  name: 'Sapphire',  initials: 'S',   color: '#3b82f6' },
-] as const;
 
 export function Home() {
   const [, navigate] = useLocation();
@@ -210,17 +201,20 @@ export function Home() {
                     transition={{ delay: 0.28 + i * 0.07, duration: 0.38, ease: [0.65, 0, 0.35, 1] }}
                     onClick={() => handleLogin(u.id)}
                   >
-                    {/* Circular avatar */}
+                    {/* Circular avatar — real photo when LinkedIn/email resolves */}
                     <div
                       className="nhome-login-avatar"
-                      style={{ background: `${u.color}22`, border: `2px solid ${u.color}55` }}
+                      style={{ background: `${u.color}22`, border: `2px solid ${u.color}55`, overflow: 'hidden' }}
                     >
                       {u.initials === null ? (
                         <User size={26} color={u.color} strokeWidth={1.6} />
                       ) : (
-                        <span style={{ color: u.color, fontSize: u.initials.length > 1 ? 17 : 22 }}>
-                          {u.initials}
-                        </span>
+                        <Avatar
+                          sources={teamAvatarSources(u)}
+                          alt={u.name}
+                          fallbackText={teamFallbackText(u)}
+                          className="h-full w-full text-[20px]"
+                        />
                       )}
                     </div>
                     {/* Name */}

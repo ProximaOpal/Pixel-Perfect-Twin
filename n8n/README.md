@@ -40,6 +40,16 @@ Upgrade prices match the printed proposal catalogue (Drink Tokens £7.50, Unlimi
 
 **Re-import the workflow** after pulling so live n8n gets the Transform node. Until then, the frontend also posts a stargtm-shaped payload so PDFs still receive correct totals.
 
+## Avatars (people + companies)
+
+`LeadDataFetch` → **Structure all Leads** also maps (when columns exist):
+
+- `LinkedIn` / `Main Contact - LinkedIn` / `LinkedIn URL` → `linkedin`
+- `Company LinkedIn` → `companyLinkedin`
+- `Company Website` / `Website` → `website`
+
+The frontend resolves real photos via unavatar (LinkedIn + email) and domain logos (email/website). Colored initials remain the UI fallback.
+
 ## Live vs Demo
 
 Frontend sends `mode: "demo" | "live"` on every write.
