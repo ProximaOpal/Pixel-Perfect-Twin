@@ -1,60 +1,55 @@
 # Nexus — Business Operations Suite
 
-Lead management and sales workspace: capture leads, build quotes, review proposals, track progress notes, and open contextual apps — all from one React frontend backed by an Express API and PostgreSQL.
+Lead management and sales workspace: capture leads, build quotes, review proposals, track progress notes, and browse bespoke packages — from a React frontend backed by Express + PostgreSQL.
 
-## Quick start (localhost)
+## Quick start
 
 ```bash
 pnpm install
-# Optional: start Postgres via Docker if you do not already have one
-docker compose up -d
+docker compose up -d          # optional if Postgres is not local
 pnpm db:push
 pnpm dev
 ```
 
-Then open **http://localhost:5173**
+Open **http://localhost:5173**
 
-| Service | URL | Notes |
-|---------|-----|--------|
-| Frontend | http://localhost:5173 | Vite + React |
-| API | http://localhost:8080 | Express (`/api/*`) |
-| Database | `postgresql://nexus:nexus@localhost:5432/nexus` | Postgres 16 |
+| Service | URL |
+|---------|-----|
+| Frontend | http://localhost:5173 |
+| API | http://localhost:8080 |
+| Database | `postgresql://nexus:nexus@localhost:5432/nexus` |
 
-### Individual scripts
+## Data pipeline
 
-```bash
-pnpm dev:web    # frontend only
-pnpm dev:api    # API only
-pnpm db:push    # apply Drizzle schema
+```
+n8n / forms ──POST──► /api/webhooks/leads ──► Postgres (leads)
+                              ▲
+                              │
+         /api/leads/sync ─────┘  (pulls LeadDataFetch when DB empty)
+                              │
+Frontend Leads page ◄──GET── /api/leads
+Progress Notes      ──PATCH─► /api/leads/:id/status
 ```
 
-## Stack
-
-- **Monorepo**: pnpm workspaces, Node.js 20+, TypeScript 5.9
-- **Frontend**: React 19 + Vite, Tailwind CSS v4, Radix UI, Framer Motion, wouter (`artifacts/workspace-suite`)
-- **API**: Express 5 (`artifacts/api-server`)
-- **Database**: PostgreSQL + Drizzle ORM (`lib/db`)
+- The UI never calls n8n directly.
+- Quotes still generate PDFs via the QuoteBuilder webhook; proposal metadata lives in IndexedDB.
+- Progress notes remain in `localStorage`, keyed by lead id.
 
 ## Product tour
 
-After you log in on the Home screen, Nexus offers a guided product tour covering every page and major feature. Restart it anytime with the **Tour** control in the left panel nav, or clear `localStorage` key `nexus_tutorial_done`.
+After first login, Nexus offers a guided tour of every page. Replay via the compass icon in the left panel nav.
 
 ## Key paths
 
-| Path | What it is |
-|------|-----------|
+| Path | What |
+|------|------|
 | `artifacts/workspace-suite/src/pages/` | Frontend pages |
-| `artifacts/workspace-suite/src/tutorial/` | Product tour (spotlight, arrows, steps) |
-| `artifacts/api-server/src/routes/leads.ts` | Lead webhook + list API |
+| `artifacts/workspace-suite/src/tutorial/` | Product tour |
+| `artifacts/api-server/src/routes/leads.ts` | Lead ingest / list / sync / status |
 | `lib/db/src/schema/leads.ts` | Drizzle leads schema |
-| `lib/api-spec/openapi.yaml` | OpenAPI source for codegen |
+| `lib/api-spec/openapi.yaml` | OpenAPI source of truth |
+| `codebase.txt` | Full source dump for LLM notebooks |
 
-## n8n integration
+## Design tokens
 
-Point your n8n workflow at:
-
-```
-http://localhost:8080/api/webhooks/leads
-```
-
-Expected payload fields: `name` / `firstName` + `lastName`, `email`, `phone`, `company`, `designation`, `sector`, `source`, `referenceNumber`, `linkedin`.
+Home page palette (`.nexus-home` in `Home.css`): mint `#00f78e`, mint-deep, teal labels, blue `#0894ce`, ink, navy1–3, panel / option backgrounds. Coral has been removed.

@@ -291,9 +291,7 @@ export function ProgressNotes() {
                   <h2 className="pn-q-title">Current pipeline status</h2>
                   {[
                     { label: 'Live',        color: '#22c55e' },
-                    { label: 'Booked',      color: '#3b82f6' },
-                    { label: 'Approved',    color: '#10b981' },
-                    { label: 'On Hold',     color: '#f59e0b' },
+                    { label: 'Booked',      color: '#0894ce' },
                     { label: 'Dead',        color: '#ef4444' },
                     { label: 'Blacklisted', color: '#6b7280' },
                   ].map(({ label, color }) => {
@@ -306,7 +304,13 @@ export function ProgressNotes() {
                         disabled={!activeLead}
                         onClick={() => {
                           if (!activeLead) return;
-                          setActiveLead({ ...activeLead, status: label.toLowerCase() });
+                          const next = label.toLowerCase();
+                          setActiveLead({ ...activeLead, status: next });
+                          void fetch(`/api/leads/${activeLead.id}/status`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ status: next }),
+                          });
                         }}
                       >
                         <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

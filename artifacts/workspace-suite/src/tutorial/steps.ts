@@ -1,15 +1,15 @@
 import type { TutorialStep } from './types';
 
 /**
- * Full-product tour covering every routed page and major feature.
- * Steps navigate automatically; missing selectors are skipped at runtime.
+ * Product tour covering every routed page and major feature.
+ * Missing optional selectors are skipped at runtime.
  */
 export const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: 'welcome',
     route: '/',
     title: 'Welcome to Nexus',
-    body: 'A quick tour of your business operations suite — leads, quotes, proposals, notes, packages, and apps.',
+    body: 'A quick tour of your business operations suite — leads, quotes, proposals, notes, and packages.',
     placement: 'center',
   },
   {
@@ -52,7 +52,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     route: '/leads',
     selector: '[data-tour="leads-tabs"]',
     title: 'Leads pipeline tabs',
-    body: 'Filter leads by Live, Booked, Dead, or Blacklisted. Counts update as records load.',
+    body: 'Filter leads by Live, Booked, Dead, or Blacklisted. Counts update as records load from the API.',
     placement: 'bottom',
     settleMs: 400,
   },
@@ -83,15 +83,6 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     padding: 8,
   },
   {
-    id: 'leads-fab',
-    route: '/leads',
-    selector: '[data-tour="leads-fab"]',
-    title: 'Add a lead',
-    body: 'Use the floating action button when you need to capture someone new into the pipeline.',
-    placement: 'left',
-    padding: 6,
-  },
-  {
     id: 'quote-mode',
     route: '/quote-builder',
     selector: '[data-tour="quote-mode"]',
@@ -105,7 +96,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     route: '/quote-builder',
     selector: '[data-tour="quote-wizard"]',
     title: 'Six-step quote wizard',
-    body: 'Walk through event core, guests, schedule (with the itinerary watch), catering, financials, and upgrades — then generate a proposal PDF.',
+    body: 'Walk through event core, guests, schedule, catering, financials, and upgrades — then generate a proposal PDF.',
     placement: 'left',
     padding: 12,
   },
@@ -170,16 +161,6 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     title: 'Filter packages',
     body: 'Search packages by name or description, then open a card for highlights and enquire.',
     placement: 'bottom',
-  },
-  {
-    id: 'apps',
-    route: '/apps',
-    selector: '[data-tour="apps-grid"]',
-    title: 'Connected apps',
-    body: 'Launch Gmail, Drive, WhatsApp, Slack, LinkedIn, and more — links contextualise around your active lead.',
-    placement: 'top',
-    settleMs: 350,
-    padding: 14,
   },
   {
     id: 'tour-restart',

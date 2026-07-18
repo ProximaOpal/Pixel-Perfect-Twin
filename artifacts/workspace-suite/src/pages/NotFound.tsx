@@ -14,7 +14,7 @@ export default function NotFound() {
         </p>
         <button
           onClick={() => navigate('/')}
-          className="mt-2 flex items-center gap-2 bg-[#FF5A45] px-5 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#F4412A]"
+          className="mt-2 flex items-center gap-2 bg-[#00f78e] px-5 py-2.5 text-[13px] font-semibold text-[#0c3524] transition-colors hover:bg-[#06c97a]"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           Back to Home

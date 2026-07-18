@@ -8,7 +8,6 @@ import { Home } from '@/pages/Home';
 import { Leads } from '@/pages/Leads';
 import { Forms as QuoteBuilder } from '@/pages/Forms';
 import { ProposalDoc } from '@/pages/ProposalDoc';
-import { Apps } from '@/pages/Apps';
 import { ProgressNotes } from '@/pages/ProgressNotes';
 import { Bespoke } from '@/pages/Bespoke';
 import NotFound from '@/pages/NotFound';
@@ -17,18 +16,15 @@ const queryClient = new QueryClient();
 
 function Router() {
   return (
-    <>
-      <Switch>
-        <Route path="/" component={Home} />
-        <Route path="/leads" component={Leads} />
-        <Route path="/quote-builder" component={QuoteBuilder} />
-        <Route path="/proposal-doc" component={ProposalDoc} />
-        <Route path="/apps" component={Apps} />
-        <Route path="/progress-notes" component={ProgressNotes} />
-        <Route path="/bespoke" component={Bespoke} />
-        <Route component={NotFound} />
-      </Switch>
-    </>
+    <Switch>
+      <Route path="/" component={Home} />
+      <Route path="/leads" component={Leads} />
+      <Route path="/quote-builder" component={QuoteBuilder} />
+      <Route path="/proposal-doc" component={ProposalDoc} />
+      <Route path="/progress-notes" component={ProgressNotes} />
+      <Route path="/bespoke" component={Bespoke} />
+      <Route component={NotFound} />
+    </Switch>
   );
 }
 

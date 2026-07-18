@@ -165,13 +165,13 @@ function ContactView({ lead, onNotes }: { lead: Lead; onNotes: () => void }) {
             <button
               type="button"
               onClick={() => { setShowCall(true); soundClick(); }}
-              className="flex items-center gap-1.5 border border-[#1a1a1a]/20 px-4 py-2 text-[11px] font-semibold text-[#1a1a1a] hover:border-[#FF5A45] hover:text-[#FF5A45] transition-colors"
+              className="flex items-center gap-1.5 border border-[#1a1a1a]/20 px-4 py-2 text-[11px] font-semibold text-[#1a1a1a] hover:border-[#00f78e] hover:text-[#00f78e] transition-colors"
             >
               <Phone className="h-3 w-3" /> Call
             </button>
             <button
               onClick={() => { onNotes(); soundClick(); }}
-              className="flex items-center gap-1.5 border border-[#1a1a1a]/20 px-4 py-2 text-[11px] font-semibold text-[#1a1a1a] hover:border-[#FF5A45] hover:text-[#FF5A45] transition-colors"
+              className="flex items-center gap-1.5 border border-[#1a1a1a]/20 px-4 py-2 text-[11px] font-semibold text-[#1a1a1a] hover:border-[#00f78e] hover:text-[#00f78e] transition-colors"
             >
               <FileText className="h-3 w-3" /> Notes
             </button>
@@ -224,9 +224,9 @@ function ContactView({ lead, onNotes }: { lead: Lead; onNotes: () => void }) {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 8 }}
               transition={{ type: 'spring', stiffness: 340, damping: 30 }}
-              className="flex flex-col items-center gap-3 border border-[#FF5A45]/30 bg-[#111] px-8 py-7"
+              className="flex flex-col items-center gap-3 border border-[#00f78e]/30 bg-[#111] px-8 py-7"
             >
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#FF5A45]">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#00f78e] text-[#0c3524]">
                 <Phone className="h-6 w-6 text-white" />
               </div>
               <p className="text-[19px] font-bold tracking-wide text-white">{lead.phone}</p>
@@ -284,7 +284,7 @@ function CompanyView({ lead }: { lead: Lead }) {
               href={lead.linkedin}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-5 flex items-center gap-2 text-[11px] font-semibold text-[#1a1a1a] underline underline-offset-2 cursor-pointer hover:text-[#FF5A45]"
+              className="mt-5 flex items-center gap-2 text-[11px] font-semibold text-[#1a1a1a] underline underline-offset-2 cursor-pointer hover:text-[#00f78e]"
             >
               View on LinkedIn
             </a>
@@ -366,7 +366,7 @@ function NoteView({ lead, onBack }: { lead: Lead; onBack: () => void }) {
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder='Type naturally — e.g. "Repeat client, wants same as last year, next action: send updated quote by Friday"'
-          className="mt-4 h-32 w-full resize-none border border-black/15 p-3 text-[12.5px] text-black/80 placeholder-black/30 outline-none transition-colors focus:border-[#FF5A45]"
+          className="mt-4 h-32 w-full resize-none border border-black/15 p-3 text-[12.5px] text-black/80 placeholder-black/30 outline-none transition-colors focus:border-[#00f78e]"
         />
 
         <div className="mt-2 flex min-h-[18px] items-center gap-1.5">
@@ -408,7 +408,7 @@ function NoteView({ lead, onBack }: { lead: Lead; onBack: () => void }) {
         <button
           onClick={handleSave}
           disabled={!text.trim()}
-          className="mt-5 flex items-center justify-center gap-2 bg-[#FF5A45] py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#F4412A] disabled:cursor-not-allowed disabled:opacity-40"
+          className="mt-5 flex items-center justify-center gap-2 bg-[#00f78e] py-2.5 text-[13px] font-semibold text-[#0c3524] transition-colors hover:bg-[#06c97a] disabled:cursor-not-allowed disabled:opacity-40"
         >
           <Send className="h-3.5 w-3.5" /> Save Note
         </button>
@@ -557,9 +557,9 @@ export function LeadPanel({ lead, onClose }: { lead: Lead | null; onClose: () =>
                         <button
                           key={rep}
                           onClick={() => { setAssignedRep(rep); setShowReps(false); soundClick(); }}
-                          className="flex flex-col items-center gap-1.5 border border-white/20 bg-[#111]/85 px-3 py-2.5 backdrop-blur-sm transition-colors hover:border-[#FF5A45]/60 hover:bg-[#1a1a1a]"
+                          className="flex flex-col items-center gap-1.5 border border-white/20 bg-[#111]/85 px-3 py-2.5 backdrop-blur-sm transition-colors hover:border-[#00f78e]/60 hover:bg-[#1a1a1a]"
                         >
-                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#FF5A45]/20 text-[10px] font-black text-[#FF5A45]">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#00f78e]/20 text-[10px] font-black text-[#00f78e]">
                             {rep[0]}
                           </div>
                           <span className="text-[10px] font-semibold text-white/80">{rep}</span>
@@ -597,7 +597,7 @@ export function LeadPanel({ lead, onClose }: { lead: Lead | null; onClose: () =>
                 <button
                   onClick={() => setView('contact')}
                   className={`flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold uppercase tracking-widest transition-colors ${
-                    !showCompany ? 'bg-[#FF5A45] text-[#0a0a0a]' : 'text-white/40 hover:text-white'
+                    !showCompany ? 'bg-[#00f78e] text-[#0a0a0a]' : 'text-white/40 hover:text-white'
                   }`}
                 >
                   <div className="h-3 w-3 rounded-full border border-current" />
@@ -606,7 +606,7 @@ export function LeadPanel({ lead, onClose }: { lead: Lead | null; onClose: () =>
                 <button
                   onClick={() => setView('company')}
                   className={`flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold uppercase tracking-widest transition-colors ${
-                    showCompany ? 'bg-[#FF5A45] text-[#0a0a0a]' : 'text-white/40 hover:text-white'
+                    showCompany ? 'bg-[#00f78e] text-[#0a0a0a]' : 'text-white/40 hover:text-white'
                   }`}
                 >
                   <div className="h-3 w-3 border border-current" />

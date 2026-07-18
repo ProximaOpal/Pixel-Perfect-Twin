@@ -283,7 +283,7 @@ export function TutorialOverlay() {
               <defs>
                 <linearGradient id="tourArrowGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                   <stop offset="0%" stopColor="#00f78e" />
-                  <stop offset="100%" stopColor="#FF5A45" />
+                  <stop offset="100%" stopColor="#0894ce" />
                 </linearGradient>
                 <marker
                   id="tourArrowHead"
@@ -293,7 +293,7 @@ export function TutorialOverlay() {
                   refY="3"
                   orient="auto"
                 >
-                  <path d="M0,0 L6,3 L0,6 Z" fill="#FF5A45" />
+                  <path d="M0,0 L6,3 L0,6 Z" fill="#0894ce" />
                 </marker>
               </defs>
               <motion.path

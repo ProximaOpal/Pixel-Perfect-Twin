@@ -120,20 +120,17 @@ export function Home() {
                   <path d="M9 12h6M9 16h4" stroke="#00f78e" strokeWidth="1.6" strokeLinecap="round"/>
                 </svg>
               </div>
-              {/* Timeline */}
+              {/* Notes */}
               <div className="nhome-landing-icon">
                 <svg viewBox="0 0 24 24" fill="none" width="22" height="22">
-                  <circle cx="12" cy="12" r="3" stroke="#00f78e" strokeWidth="1.6"/>
-                  <path d="M12 3v3M12 18v3M3 12h3M18 12h3" stroke="#00f78e" strokeWidth="1.6" strokeLinecap="round"/>
+                  <path d="M6 4h9l3 3v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" stroke="#00f78e" strokeWidth="1.6"/>
+                  <path d="M9 11h6M9 15h4" stroke="#00f78e" strokeWidth="1.6" strokeLinecap="round"/>
                 </svg>
               </div>
-              {/* Apps */}
+              {/* Bespoke */}
               <div className="nhome-landing-icon">
                 <svg viewBox="0 0 24 24" fill="none" width="22" height="22">
-                  <rect x="3" y="3" width="7" height="7" rx="1.5" stroke="#00f78e" strokeWidth="1.6"/>
-                  <rect x="14" y="3" width="7" height="7" rx="1.5" stroke="#00f78e" strokeWidth="1.6"/>
-                  <rect x="3" y="14" width="7" height="7" rx="1.5" stroke="#00f78e" strokeWidth="1.6"/>
-                  <rect x="14" y="14" width="7" height="7" rx="1.5" stroke="#00f78e" strokeWidth="1.6"/>
+                  <path d="M12 3l2.2 4.5L19 8.2l-3.5 3.4.8 4.9L12 14.2 7.7 16.5l.8-4.9L5 8.2l4.8-.7L12 3z" stroke="#00f78e" strokeWidth="1.6" strokeLinejoin="round"/>
                 </svg>
               </div>
             </div>

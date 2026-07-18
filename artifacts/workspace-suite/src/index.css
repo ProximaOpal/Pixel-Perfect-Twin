@@ -37,22 +37,7 @@
 .pn-scroll-area::-webkit-scrollbar { display: none; }
 
 
-/* Brand coral — West End on the Thames identity. Every "coral" utility in the
-   app (bg-coral-500, text-coral-700, etc.) is repointed to this single hue
-   so the whole app matches the public site's accent (#FF5A45). */
-@theme {
-  --color-coral-50: #fff1f0;
-  --color-coral-100: #ffe4e0;
-  --color-coral-200: #ffc4bd;
-  --color-coral-300: #ff9b8f;
-  --color-coral-400: #ff7766;
-  --color-coral-500: #ff5a45;
-  --color-coral-600: #f4412a;
-  --color-coral-700: #e22a12;
-  --color-coral-800: #ae2513;
-  --color-coral-900: #862013;
-  --color-coral-950: #4e150e;
-}
+/* Brand accents live in Home.css (.nexus-home): mint, teal, blue, navy, ink. */
 
 @theme inline {
   --color-background: hsl(var(--background));
@@ -146,7 +131,7 @@
 
   --sidebar-border: 240 8% 18%;
 
-  --sidebar-primary: 6.8 100% 63.5%;
+  --sidebar-primary: 154 100% 48%;
 
   --sidebar-primary-foreground: 0 0% 100%;
 
@@ -154,7 +139,7 @@
 
   --sidebar-accent-foreground: 0 0% 100%;
 
-  --sidebar-ring: 6.8 100% 63.5%;
+  --sidebar-ring: 154 100% 48%;
 
   --popover: 240 9% 6%;
 
@@ -162,7 +147,7 @@
 
   --popover-border: 240 8% 16%;
 
-  --primary: 6.8 100% 63.5%;
+  --primary: 154 100% 48%;
 
   --primary-foreground: 0 0% 100%;
 
@@ -174,19 +159,19 @@
 
   --muted-foreground: 240 5% 65%;
 
-  --accent: 6.8 100% 94%;
+  --accent: 154 60% 94%;
 
-  --accent-foreground: 6.8 85% 30%;
+  --accent-foreground: 154 70% 22%;
 
   --destructive: 4 78% 55%;
 
   --destructive-foreground: 0 0% 100%;
 
   --input: 240 8% 16%;
-  --ring: 6.8 100% 63.5%;
-  --chart-1: 6.8 100% 63.5%;
+  --ring: 154 100% 48%;
+  --chart-1: 154 100% 48%;
   --chart-2: 145 60% 55%;
-  --chart-3: 6.8 85% 48%;
+  --chart-3: 198 93% 42%;
   --chart-4: 240 5% 65%;
   --chart-5: 240 8% 40%;
 
@@ -295,7 +280,7 @@
 
   --sidebar-border: 240 8% 18%;
 
-  --sidebar-primary: 6.8 100% 63.5%;
+  --sidebar-primary: 154 100% 48%;
 
   --sidebar-primary-foreground: 0 0% 100%;
 
@@ -303,7 +288,7 @@
 
   --sidebar-accent-foreground: 0 0% 98%;
 
-  --sidebar-ring: 6.8 100% 63.5%;
+  --sidebar-ring: 154 100% 48%;
 
   --popover: 240 9% 7%;
 
@@ -311,7 +296,7 @@
 
   --popover-border: 240 8% 18%;
 
-  --primary: 6.8 100% 63.5%;
+  --primary: 154 100% 48%;
 
   --primary-foreground: 0 0% 8%;
 
@@ -323,9 +308,9 @@
 
   --muted-foreground: 240 5% 65%;
 
-  --accent: 6.8 85% 18%;
+  --accent: 154 40% 18%;
 
-  --accent-foreground: 6.8 100% 85%;
+  --accent-foreground: 154 80% 75%;
 
   --destructive: 4 70% 55%;
 
@@ -333,10 +318,10 @@
 
   /* Used as the border around inputs. Dark mode: Should be a border that is light enough to have high contrast when rendered on a --card background. More contrast than standard --border */
   --input: 240 8% 20%;
-  --ring: 6.8 100% 63.5%;
-  --chart-1: 6.8 100% 63.5%;
+  --ring: 154 100% 48%;
+  --chart-1: 154 100% 48%;
   --chart-2: 145 55% 60%;
-  --chart-3: 6.8 85% 48%;
+  --chart-3: 198 93% 42%;
   --chart-4: 240 5% 65%;
   --chart-5: 240 8% 40%;
 

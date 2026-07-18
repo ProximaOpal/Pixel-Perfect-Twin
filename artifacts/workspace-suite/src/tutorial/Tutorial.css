@@ -1,4 +1,4 @@
-/* Product tour — matches Nexus navy / mint / coral language */
+/* Product tour — matches Nexus navy / mint / blue language */
 
 .nexus-tour {
   position: fixed;
@@ -178,7 +178,7 @@
 .nexus-tour-track-fill {
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #00f78e 0%, #34c98d 45%, #FF5A45 100%);
+  background: linear-gradient(90deg, #00f78e 0%, #34c98d 45%, #0894ce 100%);
   transition: width 0.35s cubic-bezier(0.65, 0, 0.35, 1);
 }
 

@@ -65,8 +65,8 @@ export function PanelNav() {
           borderRadius: 8,
           border: 0,
           cursor: 'pointer',
-          background: active ? 'rgba(255,90,69,0.28)' : 'rgba(255,255,255,0.10)',
-          color: active ? '#FF5A45' : 'rgba(255,255,255,0.55)',
+          background: active ? 'rgba(0,247,142,0.22)' : 'rgba(255,255,255,0.10)',
+          color: active ? '#00f78e' : 'rgba(255,255,255,0.55)',
           transition: 'background .2s, color .2s',
           flexShrink: 0,
         }}

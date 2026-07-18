@@ -2,14 +2,16 @@ openapi: 3.1.0
 info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
-  version: 0.1.0
-  description: API specification
+  version: 0.2.0
+  description: Nexus API — leads ingest, list, sync, and status updates
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: leads
+    description: Lead CRM pipeline
 paths:
   /healthz:
     get:
@@ -24,6 +26,75 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /webhooks/leads:
+    post:
+      operationId: ingestLead
+      tags: [leads]
+      summary: Ingest a lead from n8n / forms
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "201":
+          description: Lead stored
+        "400":
+          description: Invalid payload
+  /leads:
+    get:
+      operationId: listLeads
+      tags: [leads]
+      summary: List recent leads
+      responses:
+        "200":
+          description: Lead list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  leads:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Lead"
+  /leads/sync:
+    post:
+      operationId: syncLeads
+      tags: [leads]
+      summary: Sync leads from upstream n8n into Postgres
+      responses:
+        "200":
+          description: Sync result with leads
+  /leads/{id}/status:
+    patch:
+      operationId: updateLeadStatus
+      tags: [leads]
+      summary: Update pipeline status for a lead
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [live, booked, dead, blacklisted]
+      responses:
+        "200":
+          description: Updated lead
+        "404":
+          description: Not found
 components:
   schemas:
     HealthStatus:
@@ -33,4 +104,82 @@ components:
           type: string
       required:
         - status
-
+    Lead:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        company:
+          type: string
+          nullable: true
+        designation:
+          type: string
+          nullable: true
+        sector:
+          type: string
+          nullable: true
+        source:
+          type: string
+          nullable: true
+        referenceNumber:
+          type: string
+          nullable: true
+        linkedin:
+          type: string
+          nullable: true
+        status:
+          type: string
+        market:
+          type: string
+          nullable: true
+        eventType:
+          type: string
+          nullable: true
+        yearOfEvent:
+          type: string
+          nullable: true
+        fullEventDate:
+          type: string
+          nullable: true
+        eventDateFlexible:
+          type: string
+          nullable: true
+        requestedEventTimes:
+          type: string
+          nullable: true
+        groupSize:
+          type: string
+          nullable: true
+        budget:
+          type: string
+          nullable: true
+        bestTimeToCall:
+          type: string
+          nullable: true
+        howHeard:
+          type: string
+          nullable: true
+        enquiryDate:
+          type: string
+          nullable: true
+        raw:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - status

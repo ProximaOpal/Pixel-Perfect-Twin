@@ -83,7 +83,7 @@ export const NOTE_CATEGORIES: NoteCategory[] = [
     hashtag: '#resolution',
     description: 'Bookings confirmed, dead leads closed, and PM handovers.',
     iconName: 'CheckCircle2',
-    color: '#FF5A45',
+    color: '#00f78e',
     keywords: ['bf', 'booking form', 'signed bf', 'signed', 'dead lead', 'went elsewhere', 'close it', 'closed', 'handover', 'booked', 'pm handover', 'cant do the cost'],
   },
 ];
