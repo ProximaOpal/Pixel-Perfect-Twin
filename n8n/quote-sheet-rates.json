@@ -1,0 +1,46 @@
+{
+  "$comment": "WEOTT Quote Sheet rates — keep in sync with artifacts/workspace-suite/src/lib/quoteFinance.ts. Update both when the Client Data and Quote Sheet changes.",
+  "source": "WEOTT - Client Data and Quote Sheet",
+  "rates": {
+    "vesselHire": 1500,
+    "menuPerHead": 45,
+    "fixedOps": 250,
+    "fruitSkewerPerHead": 8,
+    "pimmsProseccoPerHead": 12,
+    "contingency": 0.0225,
+    "vat": 0.2,
+    "peakUplift": 0.2,
+    "marginRepeat": 0.15,
+    "marginNew": 0.25
+  },
+  "stack": [
+    "baseCost",
+    "contingency = baseCost * 2.25%",
+    "costToClient = (baseCost + contingency) * (1 + margin)",
+    "vat = costToClient * 20%",
+    "grandTotal = costToClient + vat"
+  ],
+  "stargtm": {
+    "package_cost": "costToClient (ex VAT)",
+    "vat": "vat",
+    "grand_total": "grandTotal"
+  },
+  "upgrades": [
+    { "label": "Live DJ", "id": "live_dj", "price": 500, "type": "flat" },
+    { "label": "Saxophonist", "id": "saxophonist", "price": 550, "type": "flat" },
+    { "label": "Karaoke", "id": "karaoke", "price": 550, "type": "flat" },
+    { "label": "Photo Booth", "id": "photo_booth", "price": 650, "type": "flat" },
+    { "label": "Acoustic Artist", "id": "acoustic_artist", "price": 650, "type": "flat" },
+    { "label": "Jazz and Sax Duo", "id": "jazz_sax_duo", "price": 650, "type": "flat" },
+    { "label": "Close-up Magician", "id": "close_up_magician", "price": 700, "type": "flat" },
+    { "label": "Casino Table with Croupier", "id": "casino_table", "price": 700, "type": "flat" },
+    { "label": "Branded Vessel Flag", "id": "branded_vessel_flag", "price": 150, "type": "flat" },
+    { "label": "Bespoke Logo Bunting", "id": "logo_bunting", "price": 230, "type": "flat" },
+    { "label": "Social Media Highlight Reel", "id": "social_highlight_reel", "price": 450, "type": "flat" },
+    { "label": "Mingling Tour Guide", "id": "mingling_guide", "price": 420, "type": "flat" },
+    { "label": "Additional Hour on Board", "id": "extra_hour", "price": 650, "type": "flat" },
+    { "label": "Unlimited Drinks (4 hrs)", "id": "unlimited_drinks", "price": 50, "type": "perGuest" },
+    { "label": "Drink Tokens", "id": "drink_tokens", "price": 7.5, "type": "perGuest" },
+    { "label": "Street Food Upgrade", "id": "street_food_upgrade", "price": 3.5, "type": "perGuest" }
+  ]
+}

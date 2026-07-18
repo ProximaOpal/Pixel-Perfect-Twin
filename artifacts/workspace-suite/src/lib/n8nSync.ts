@@ -48,7 +48,24 @@ export type QuoteStatusPayload = {
   status: 'built' | 'approved';
   version?: 'V1' | 'V2' | 'V3' | string;
   title?: string;
+  /** Quote Sheet financial stack (all optional for backward compat). */
   grandTotal?: number;
+  baseCost?: number;
+  contingency?: number;
+  contingencyRate?: number;
+  margin?: number;
+  marginAmount?: number;
+  costToClient?: number;
+  packageCost?: number;
+  vat?: number;
+  vatRate?: number;
+  upgradeTotal?: number;
+  guests?: number;
+  eventType?: string;
+  eventDate?: string;
+  guestCount?: string;
+  selectedUpgrades?: string[];
+  repeatClient?: boolean;
 };
 
 async function postJson(url: string, body: unknown): Promise<boolean> {

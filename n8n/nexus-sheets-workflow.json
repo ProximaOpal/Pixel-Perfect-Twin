@@ -6,14 +6,33 @@
         "httpMethod": "POST",
         "path": "QuoteBuilder",
         "responseMode": "responseNode",
-        "options": { "allowedOrigins": "*" }
+        "options": {
+          "allowedOrigins": "*"
+        }
       },
       "id": "4223f874-69da-4ab8-8165-ef51bda0ee0d",
       "name": "GenerateProposal",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "position": [0, 0],
+      "position": [
+        0,
+        0
+      ],
       "webhookId": "33f82467-6af2-4f4c-904f-c43e748a0541"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * n8n Code node \u2014 QuoteBuilder webhook \u2192 stargtm /generate payload.\n * Keep in sync with artifacts/workspace-suite/src/lib/quoteFinance.ts\n * (buildStargtmPayload).\n */\nconst raw = $json.body || $json;\nconst lead = raw.nexusLead || raw.lead || {};\nconst fin = raw.financials || {};\nconst form = raw.form || raw;\n\nconst upgradeIdMap = {\n  'Live DJ': 'live_dj',\n  Saxophonist: 'saxophonist',\n  Karaoke: 'karaoke',\n  'Photo Booth': 'photo_booth',\n  'Close-up Magician': 'close_up_magician',\n  'Close up Magician': 'close_up_magician',\n  'Branded Vessel Flag': 'branded_vessel_flag',\n  'Acoustic Artist': 'acoustic_artist',\n  'Jazz and Sax Duo': 'jazz_sax_duo',\n  'Additional Hour on Board': 'extra_hour',\n  'Casino Table with Croupier': 'casino_table',\n  'Social Media Highlight Reel': 'social_highlight_reel',\n  'Mingling Tour Guide': 'mingling_guide',\n  'Bespoke Logo Bunting': 'logo_bunting',\n  'Unlimited Drinks (4 hrs)': 'unlimited_drinks',\n  'Unlimited Drinks': 'unlimited_drinks',\n  'Drink Tokens': 'drink_tokens',\n  'Street Food Upgrade': 'street_food_upgrade',\n};\n\nfunction addIfPresent(obj, key, value) {\n  if (value !== undefined && value !== null && String(value).trim() !== '') {\n    obj[key] = String(value);\n  }\n}\n\nfunction money(n) {\n  const v = Number(n);\n  if (!Number.isFinite(v)) return 0;\n  return Math.round((v + Number.EPSILON) * 100) / 100;\n}\n\nfunction mapUpgrades(selected) {\n  return (Array.isArray(selected) ? selected : [])\n    .map((u) => {\n      if (typeof u !== 'string') return null;\n      if (upgradeIdMap[u]) return upgradeIdMap[u];\n      if (u.includes('_')) return u;\n      return null;\n    })\n    .filter(Boolean);\n}\n\n// Already stargtm-shaped from the frontend? Normalize lightly and pass through.\nconst prebuilt = raw.calculations || {};\nconst hasPackage = prebuilt.package_cost != null && prebuilt.package_cost !== '';\nconst hasLeadShape = Boolean(lead.client_name || lead.proposal_ref || raw.lead?.client_name || raw.lead?.proposal_ref);\n\nif (hasPackage && hasLeadShape && !fin.baseCost && !fin.costToClient) {\n  const L = raw.lead?.client_name ? raw.lead : lead;\n  return [\n    {\n      json: {\n        event_type: raw.event_type || form.eventType || raw.eventType || L.event_type || '',\n        category: raw.category,\n        lead: L,\n        calculations: {\n          guests: Number(prebuilt.guests) || 0,\n          package_cost: money(prebuilt.package_cost),\n          vat: money(prebuilt.vat),\n          grand_total: money(prebuilt.grand_total),\n        },\n        selectedUpgrades: mapUpgrades(raw.selectedUpgrades || raw.selectedUpgradeLabels || []),\n        packageWording: raw.packageWording || {},\n      },\n    },\n  ];\n}\n\nconst packageCost = money(\n  fin.costToClient ?? fin.subtotal ?? fin.package_cost ?? prebuilt.package_cost ?? 0,\n);\nconst vat = money(fin.vat ?? prebuilt.vat ?? 0);\nconst grandTotal = money(\n  fin.grandTotal ?? fin.grand ?? prebuilt.grand_total ?? packageCost + vat,\n);\nconst guests =\n  Number(form.guestCount ?? raw.guestCount ?? prebuilt.guests) || 0;\nconst eventType = form.eventType || raw.eventType || raw.event_type || lead.event_type || '';\nconst selected =\n  raw.selectedUpgradeLabels || form.selectedUpgrades || raw.selectedUpgrades || [];\n\nconst leadOut = {\n  proposal_ref:\n    lead.referenceNumber ||\n    lead.proposal_ref ||\n    raw.lead?.proposal_ref ||\n    'WE.' + Math.floor(1000 + Math.random() * 9000),\n  quote_date:\n    new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) +\n    ' | Quotation valid for 28 days',\n};\naddIfPresent(leadOut, 'client_name', lead.name || lead.client_name || raw.lead?.client_name);\naddIfPresent(leadOut, 'organisation', lead.company || lead.organisation || raw.lead?.organisation);\naddIfPresent(leadOut, 'telephone', lead.phone || lead.telephone || raw.lead?.telephone);\naddIfPresent(leadOut, 'email', lead.email || raw.lead?.email);\naddIfPresent(leadOut, 'event_type', eventType);\naddIfPresent(leadOut, 'event_date', form.eventDate || raw.eventDate);\nconst embark = form.embarkation || raw.embarkation;\nconst disembark = form.disembarkation || raw.disembarkation;\nif (embark || disembark) {\n  leadOut.event_timings = `${embark || ''} - ${disembark || ''}`;\n}\naddIfPresent(leadOut, 'guest_range', form.guestCount || raw.guestCount);\naddIfPresent(leadOut, 'guest_quote_n', String(guests || form.guestCount || raw.guestCount || ''));\nleadOut.contact_name = 'Katherine Bulaon';\nleadOut.contact_title = 'Client Relationship Manager';\nleadOut.contact_phone = '020 8323 5827';\nleadOut.contact_email = 'sales@westendonthethames.com';\n\nconst lower = String(eventType).toLowerCase();\nconst category =\n  raw.category ||\n  (lower.includes('wedding') || lower.includes('engagement')\n    ? 'wedding'\n    : eventType\n      ? 'corporate'\n      : undefined);\n\nreturn [\n  {\n    json: {\n      event_type: eventType,\n      ...(category ? { category } : {}),\n      lead: leadOut,\n      calculations: {\n        guests,\n        package_cost: packageCost,\n        vat,\n        grand_total: grandTotal,\n      },\n      selectedUpgrades: mapUpgrades(selected),\n      packageWording: raw.packageWording || {},\n    },\n  },\n];\n"
+      },
+      "id": "4223f874-transform-quote-builder",
+      "name": "Transform QuoteBuilder",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        112,
+        0
+      ],
+      "notes": "Maps Nexus quote financials (Quote Sheet) \u2192 stargtm calculations.package_cost / vat / grand_total"
     },
     {
       "parameters": {
@@ -24,7 +43,9 @@
         "jsonBody": "={{ $json }}",
         "options": {
           "response": {
-            "response": { "responseFormat": "file" }
+            "response": {
+              "responseFormat": "file"
+            }
           }
         }
       },
@@ -32,7 +53,10 @@
       "name": "HTTP Request",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [224, 0]
+      "position": [
+        224,
+        0
+      ]
     },
     {
       "parameters": {
@@ -41,7 +65,10 @@
         "options": {
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/pdf" }
+              {
+                "name": "Content-Type",
+                "value": "application/pdf"
+              }
             ]
           }
         }
@@ -50,20 +77,28 @@
       "name": "GenProposalTemplate",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [448, 0]
+      "position": [
+        448,
+        0
+      ]
     },
     {
       "parameters": {
         "httpMethod": "POST",
         "path": "LeadDataFetch",
         "responseMode": "responseNode",
-        "options": { "allowedOrigins": "*" }
+        "options": {
+          "allowedOrigins": "*"
+        }
       },
       "id": "5cb01b36-819a-4c0f-8823-0cd877e977ad",
       "name": "SearchForLeads",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "position": [0, 240],
+      "position": [
+        0,
+        240
+      ],
       "webhookId": "08a7fd28-1914-495d-9553-51a873f195d8"
     },
     {
@@ -86,7 +121,10 @@
       "name": "Get Leads",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
-      "position": [224, 240],
+      "position": [
+        224,
+        240
+      ],
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "8aF9CpidfdOSoB9E",
@@ -102,7 +140,10 @@
       "name": "Structure all Leads",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [448, 240]
+      "position": [
+        448,
+        240
+      ]
     },
     {
       "parameters": {
@@ -114,42 +155,60 @@
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [672, 240]
+      "position": [
+        672,
+        240
+      ]
     },
     {
       "parameters": {
         "httpMethod": "POST",
         "path": "LeadUpdate",
         "responseMode": "responseNode",
-        "options": { "allowedOrigins": "*" }
+        "options": {
+          "allowedOrigins": "*"
+        }
       },
       "id": "a11b0001-lead-update-webhook",
       "name": "LeadUpdate Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "position": [0, 480],
+      "position": [
+        0,
+        480
+      ],
       "webhookId": "lead-update-webhook"
     },
     {
       "parameters": {
-        "jsCode": "// Normalize LeadUpdate payload for Google Sheets write.\n// mode=demo → Nexus Ops tab (append/update by ref/email)\n// mode=live → Enquiry - Lead Data (2026)\nconst body = $input.first().json;\nconst mode = body.mode === 'live' ? 'live' : 'demo';\nconst lookup = String(body.referenceNumber || body.email || '').trim();\n\nconst row = {\n  mode,\n  lookup,\n  referenceNumber: body.referenceNumber || '',\n  email: body.email || '',\n  leadName: body.leadName || '',\n  status: body.status || '',\n  assignedRep: body.assignedRep || '',\n  nextAction: body.nextAction || '',\n  packageAbbreviation: body.packageAbbreviation || '',\n  vivaTag: body.vivaTag === true || body.vivaTag === 'true' ? 'YES' : (body.vivaTag === false || body.vivaTag === 'false' ? 'NO' : ''),\n  quoteBuilt: body.quoteBuilt === true ? 'YES' : (body.quoteBuilt === false ? 'NO' : ''),\n  quoteApproved: body.quoteApproved === true ? 'YES' : (body.quoteApproved === false ? 'NO' : ''),\n  quoteVersion: body.quoteVersion || '',\n  updatedAt: new Date().toISOString(),\n};\n\nreturn [{ json: row }];"
+        "jsCode": "// Normalize LeadUpdate payload for Google Sheets write.\n// mode=demo \u2192 Nexus Ops tab (append/update by ref/email)\n// mode=live \u2192 Enquiry - Lead Data (2026)\nconst body = $input.first().json;\nconst mode = body.mode === 'live' ? 'live' : 'demo';\nconst lookup = String(body.referenceNumber || body.email || '').trim();\n\nconst row = {\n  mode,\n  lookup,\n  referenceNumber: body.referenceNumber || '',\n  email: body.email || '',\n  leadName: body.leadName || '',\n  status: body.status || '',\n  assignedRep: body.assignedRep || '',\n  nextAction: body.nextAction || '',\n  packageAbbreviation: body.packageAbbreviation || '',\n  vivaTag: body.vivaTag === true || body.vivaTag === 'true' ? 'YES' : (body.vivaTag === false || body.vivaTag === 'false' ? 'NO' : ''),\n  quoteBuilt: body.quoteBuilt === true ? 'YES' : (body.quoteBuilt === false ? 'NO' : ''),\n  quoteApproved: body.quoteApproved === true ? 'YES' : (body.quoteApproved === false ? 'NO' : ''),\n  quoteVersion: body.quoteVersion || '',\n  updatedAt: new Date().toISOString(),\n};\n\nreturn [{ json: row }];"
       },
       "id": "a11b0002-lead-update-normalize",
       "name": "Normalize LeadUpdate",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [224, 480]
+      "position": [
+        224,
+        480
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
           "conditions": [
             {
               "id": "mode-live",
               "leftValue": "={{ $json.mode }}",
               "rightValue": "live",
-              "operator": { "type": "string", "operation": "equals" }
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
             }
           ],
           "combinator": "and"
@@ -160,7 +219,10 @@
       "name": "Is Live Mode?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [448, 480]
+      "position": [
+        448,
+        480
+      ]
     },
     {
       "parameters": {
@@ -197,7 +259,10 @@
       "name": "Write Live Enquiry Sheet",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
-      "position": [704, 400],
+      "position": [
+        704,
+        400
+      ],
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "8aF9CpidfdOSoB9E",
@@ -243,7 +308,10 @@
       "name": "Append Demo Nexus Ops",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
-      "position": [704, 560],
+      "position": [
+        704,
+        560
+      ],
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "8aF9CpidfdOSoB9E",
@@ -262,20 +330,28 @@
       "name": "Respond LeadUpdate",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [928, 480]
+      "position": [
+        928,
+        480
+      ]
     },
     {
       "parameters": {
         "httpMethod": "POST",
         "path": "NoteAppend",
         "responseMode": "responseNode",
-        "options": { "allowedOrigins": "*" }
+        "options": {
+          "allowedOrigins": "*"
+        }
       },
       "id": "b22c0001-note-append-webhook",
       "name": "NoteAppend Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "position": [0, 760],
+      "position": [
+        0,
+        760
+      ],
       "webhookId": "note-append-webhook"
     },
     {
@@ -286,7 +362,10 @@
       "name": "Normalize NoteAppend",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [224, 760]
+      "position": [
+        224,
+        760
+      ]
     },
     {
       "parameters": {
@@ -319,7 +398,10 @@
       "name": "Append Progress Note Row",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
-      "position": [448, 760],
+      "position": [
+        448,
+        760
+      ],
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "8aF9CpidfdOSoB9E",
@@ -338,31 +420,42 @@
       "name": "Respond NoteAppend",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [672, 760]
+      "position": [
+        672,
+        760
+      ]
     },
     {
       "parameters": {
         "httpMethod": "POST",
         "path": "QuoteStatus",
         "responseMode": "responseNode",
-        "options": { "allowedOrigins": "*" }
+        "options": {
+          "allowedOrigins": "*"
+        }
       },
       "id": "c33d0001-quote-status-webhook",
       "name": "QuoteStatus Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "position": [0, 1000],
+      "position": [
+        0,
+        1000
+      ],
       "webhookId": "quote-status-webhook"
     },
     {
       "parameters": {
-        "jsCode": "const body = $input.first().json;\nconst mode = body.mode === 'live' ? 'live' : 'demo';\nreturn [{\n  json: {\n    mode,\n    referenceNumber: body.referenceNumber || '',\n    email: body.email || '',\n    leadName: body.leadName || '',\n    quoteId: body.quoteId || '',\n    status: body.status || '',\n    version: body.version || '',\n    title: body.title || '',\n    grandTotal: body.grandTotal ?? '',\n    updatedAt: new Date().toISOString(),\n  }\n}];"
+        "jsCode": "const body = $input.first().json;\nconst mode = body.mode === 'live' ? 'live' : 'demo';\nconst upgrades = Array.isArray(body.selectedUpgrades)\n  ? body.selectedUpgrades.join(', ')\n  : (body.selectedUpgrades || '');\nreturn [{\n  json: {\n    mode,\n    referenceNumber: body.referenceNumber || '',\n    email: body.email || '',\n    leadName: body.leadName || '',\n    quoteId: body.quoteId || '',\n    status: body.status || '',\n    version: body.version || '',\n    title: body.title || '',\n    eventType: body.eventType || '',\n    eventDate: body.eventDate || '',\n    guestCount: body.guestCount || body.guests || '',\n    guests: body.guests ?? '',\n    repeatClient: body.repeatClient === true ? 'YES' : (body.repeatClient === false ? 'NO' : ''),\n    selectedUpgrades: upgrades,\n    baseCost: body.baseCost ?? '',\n    contingency: body.contingency ?? '',\n    contingencyRate: body.contingencyRate ?? '',\n    margin: body.margin ?? '',\n    marginAmount: body.marginAmount ?? '',\n    costToClient: body.costToClient ?? body.packageCost ?? '',\n    packageCost: body.packageCost ?? body.costToClient ?? '',\n    vat: body.vat ?? '',\n    vatRate: body.vatRate ?? '',\n    upgradeTotal: body.upgradeTotal ?? '',\n    grandTotal: body.grandTotal ?? '',\n    updatedAt: new Date().toISOString(),\n  }\n}];"
       },
       "id": "c33d0002-quote-normalize",
       "name": "Normalize QuoteStatus",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [224, 1000]
+      "position": [
+        224,
+        1000
+      ]
     },
     {
       "parameters": {
@@ -389,6 +482,19 @@
             "Status": "={{ $json.status }}",
             "Version": "={{ $json.version }}",
             "Title": "={{ $json.title }}",
+            "Event Type": "={{ $json.eventType }}",
+            "Event Date": "={{ $json.eventDate }}",
+            "Guests": "={{ $json.guestCount }}",
+            "Repeat Client": "={{ $json.repeatClient }}",
+            "Selected Upgrades": "={{ $json.selectedUpgrades }}",
+            "Base Cost": "={{ $json.baseCost }}",
+            "Contingency": "={{ $json.contingency }}",
+            "Margin": "={{ $json.margin }}",
+            "Margin Amount": "={{ $json.marginAmount }}",
+            "Cost To Client": "={{ $json.costToClient }}",
+            "Package Cost": "={{ $json.packageCost }}",
+            "VAT": "={{ $json.vat }}",
+            "Upgrade Total": "={{ $json.upgradeTotal }}",
             "Grand Total": "={{ $json.grandTotal }}"
           }
         },
@@ -398,14 +504,17 @@
       "name": "Append Quote Status Row",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
-      "position": [448, 1000],
+      "position": [
+        448,
+        1000
+      ],
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "8aF9CpidfdOSoB9E",
           "name": "Google Sheets OAuth2 API"
         }
       },
-      "notes": "Create tab Nexus Ops Quotes. Tracks built/approved + V1/V2/V3."
+      "notes": "Create tab Nexus Ops Quotes with full Quote Sheet financial columns."
     },
     {
       "parameters": {
@@ -417,60 +526,206 @@
       "name": "Respond QuoteStatus",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [672, 1000]
+      "position": [
+        672,
+        1000
+      ]
     }
   ],
   "connections": {
     "GenerateProposal": {
-      "main": [[{ "node": "HTTP Request", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Transform QuoteBuilder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "HTTP Request": {
-      "main": [[{ "node": "GenProposalTemplate", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "GenProposalTemplate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "SearchForLeads": {
-      "main": [[{ "node": "Get Leads", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Get Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Get Leads": {
-      "main": [[{ "node": "Structure all Leads", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Structure all Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Structure all Leads": {
-      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "LeadUpdate Webhook": {
-      "main": [[{ "node": "Normalize LeadUpdate", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Normalize LeadUpdate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Normalize LeadUpdate": {
-      "main": [[{ "node": "Is Live Mode?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Is Live Mode?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Is Live Mode?": {
       "main": [
-        [{ "node": "Write Live Enquiry Sheet", "type": "main", "index": 0 }],
-        [{ "node": "Append Demo Nexus Ops", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Write Live Enquiry Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Append Demo Nexus Ops",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Write Live Enquiry Sheet": {
-      "main": [[{ "node": "Respond LeadUpdate", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Respond LeadUpdate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Append Demo Nexus Ops": {
-      "main": [[{ "node": "Respond LeadUpdate", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Respond LeadUpdate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "NoteAppend Webhook": {
-      "main": [[{ "node": "Normalize NoteAppend", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Normalize NoteAppend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Normalize NoteAppend": {
-      "main": [[{ "node": "Append Progress Note Row", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Append Progress Note Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Append Progress Note Row": {
-      "main": [[{ "node": "Respond NoteAppend", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Respond NoteAppend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "QuoteStatus Webhook": {
-      "main": [[{ "node": "Normalize QuoteStatus", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Normalize QuoteStatus",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Normalize QuoteStatus": {
-      "main": [[{ "node": "Append Quote Status Row", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Append Quote Status Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Append Quote Status Row": {
-      "main": [[{ "node": "Respond QuoteStatus", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Respond QuoteStatus",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transform QuoteBuilder": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "pinData": {},

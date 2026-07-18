@@ -14,6 +14,15 @@ import { toast } from '@/hooks/use-toast';
 import { N8N_URLS, syncQuoteStatus } from '@/lib/n8nSync';
 import { persistLeadUpdate } from '@/lib/persistLead';
 import { sheetsTargetLabel } from '@/lib/sheetsMode';
+import {
+  UPGRADES,
+  buildStargtmPayload,
+  calcBaseCostBreakdown,
+  calcFinancials,
+  financialsToSheetRow,
+  isPeakPeriod,
+  parseGuestCount as parseGuestsNumber,
+} from '@/lib/quoteFinance';
 import './Home.css';
 import './ProgressNotes.css';
 
@@ -28,30 +37,8 @@ const SOURCE_TYPES = [
   'Recommendation/referral','Other','Wedding Planner/Agent',
 ];
 void SOURCE_TYPES; // kept for auto-fill logic, question removed from wizard
-const UPGRADES: { label: string; price: number; type: 'flat'|'perGuest' }[] = [
-  { label:'Live DJ',             price:500,  type:'flat' },
-  { label:'Saxophonist',         price:550,  type:'flat' },
-  { label:'Photo Booth',         price:650,  type:'flat' },
-  { label:'Close-up Magician',   price:700,  type:'flat' },
-  { label:'Branded Vessel Flag',  price:150,  type:'flat' },
-  { label:'Unlimited Drinks',    price:35,   type:'perGuest' },
-  { label:'Drink Tokens',        price:15,   type:'perGuest' },
-];
-const VESSEL_HIRE_RATE        = 1500;
-const MENU_COST_PER_HEAD      = 45;
-const FIXED_OPS_COST          = 250;
-const FRUIT_SKEWER_PER_HEAD   = 8;
-const PIMMS_PROSECCO_PER_HEAD = 12;
-const CONTINGENCY_RATE        = 0.0225;
-const VAT_RATE                = 0.2;
-const PEAK_UPLIFT_RATE        = 0.2;
 
 /* ── Helpers ── */
-function isPeakPeriod(eventDate: string): boolean {
-  if (!eventDate.trim() || /tbc/i.test(eventDate)) return true;
-  const d = new Date(eventDate); if (Number.isNaN(d.getTime())) return false;
-  return d.getDay() === 0 || d.getDay() === 5 || d.getDay() === 6;
-}
 function todayIso() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -82,9 +69,8 @@ function matchEventType(raw?: string): string {
 }
 
 function parseGuestCount(raw?: string): string {
-  if (!raw?.trim()) return '';
-  const m = raw.replace(/,/g, '').match(/\d+/);
-  return m ? m[0] : '';
+  const n = parseGuestsNumber(raw);
+  return n > 0 ? String(n) : '';
 }
 
 /* ── Types ── */
@@ -101,34 +87,6 @@ const VIEW_MODES: { id: ViewMode; label: string }[] = [
   { id: 'built', label: 'Built Quotes' },
   { id: 'approved', label: 'Approved Quotes' },
 ];
-
-/* ── Pricing ── */
-function calcBaseCostBreakdown(data: FormData) {
-  const guests = parseFloat(data.guestCount) || 0;
-  const peak   = isPeakPeriod(data.eventDate);
-  const vesselHire = peak ? VESSEL_HIRE_RATE * (1 + PEAK_UPLIFT_RATE) : VESSEL_HIRE_RATE;
-  const menuCost   = MENU_COST_PER_HEAD * guests;
-  const fixedOps   = FIXED_OPS_COST;
-  let cateringInclusions = 0;
-  if (data.menuType.includes('Summer Barbecue')) cateringInclusions += FRUIT_SKEWER_PER_HEAD * guests;
-  if (data.eventType === 'Summer Event')          cateringInclusions += PIMMS_PROSECCO_PER_HEAD * guests;
-  const upgradesTotal = UPGRADES.filter(u => data.selectedUpgrades.includes(u.label))
-    .reduce((s, u) => s + (u.type === 'perGuest' ? u.price * guests : u.price), 0);
-  return { vesselHire, menuCost, fixedOps, cateringInclusions, upgradesTotal, total: vesselHire+menuCost+fixedOps+cateringInclusions+upgradesTotal, peak };
-}
-function calcFinancials(data: FormData) {
-  const baseCost         = parseFloat(data.totalCost) || 0;
-  const guests           = parseFloat(data.guestCount) || 0;
-  const upgradeTotal     = UPGRADES.filter(u => data.selectedUpgrades.includes(u.label)).reduce((s,u) => s+(u.type==='perGuest'?u.price*guests:u.price),0);
-  const contingency      = baseCost * CONTINGENCY_RATE;
-  const afterContingency = baseCost + contingency;
-  const margin           = data.repeatClient ? 0.15 : 0.25;
-  const marginAmount     = afterContingency * margin;
-  const costToClient     = afterContingency + marginAmount;
-  const vat              = costToClient * VAT_RATE;
-  const grand            = costToClient + vat;
-  return { baseCost, contingency, marginAmount, costToClient, vat, grand, upgradeTotal, margin };
-}
 
 /* ── Step metadata ── */
 const STEPS = [
@@ -270,7 +228,7 @@ export function Forms() {
         marginAmount: f.marginAmount,
         costToClient: f.costToClient,
         vat: f.vat,
-        grandTotal: f.grand,
+        grandTotal: f.grandTotal,
         upgradeTotal: f.upgradeTotal,
         margin: f.margin,
       },
@@ -293,7 +251,12 @@ export function Forms() {
       quoteId: quote.id,
       status: 'built',
       title: quote.title,
-      grandTotal: quote.financials.grandTotal,
+      ...financialsToSheetRow(f),
+      eventType: data.eventType,
+      eventDate: data.eventDate,
+      guestCount: data.guestCount,
+      selectedUpgrades: data.selectedUpgrades,
+      repeatClient: data.repeatClient,
     });
     persistLeadUpdate({
       referenceNumber: quote.referenceNumber,
@@ -335,26 +298,56 @@ export function Forms() {
     setErrorMessage('');
     setStage('preparing');
     const form = q.form;
-    const payload = {
-      ...form,
+    // Recalculate from Quote Sheet rates so edited quotes stay accurate.
+    const f = calcFinancials(form);
+    const lead = {
+      id: q.leadId,
+      name: q.leadName,
+      email: q.leadEmail,
+      company: q.leadCompany,
+      referenceNumber: q.referenceNumber,
+      phone: undefined as string | undefined,
+    };
+    const stargtm = buildStargtmPayload({
+      form,
       financials: {
-        baseCost: q.financials.baseCost,
-        contingency: q.financials.contingency,
-        marginAmount: q.financials.marginAmount,
-        costToClient: q.financials.costToClient,
-        vat: q.financials.vat,
-        grandTotal: q.financials.grandTotal,
-        upgradeTotal: q.financials.upgradeTotal,
+        costToClient: f.costToClient,
+        vat: f.vat,
+        grandTotal: f.grandTotal,
+        subtotal: f.subtotal,
       },
-      lead: q.leadId
-        ? {
-            id: q.leadId,
-            name: q.leadName,
-            email: q.leadEmail,
-            company: q.leadCompany,
-            referenceNumber: q.referenceNumber,
-          }
-        : null,
+      lead,
+    });
+    // Dual-shape payload:
+    // - stargtm fields (lead/calculations/selectedUpgrades ids) work even if n8n is passthrough
+    // - form + financials let the n8n transform / Sheets audit rebuild from Quote Sheet rates
+    const payload = {
+      ...stargtm,
+      form,
+      eventType: form.eventType,
+      eventDate: form.eventDate,
+      guestCount: form.guestCount,
+      embarkation: form.embarkation,
+      disembarkation: form.disembarkation,
+      vesselType: form.vesselType,
+      menuType: form.menuType,
+      repeatClient: form.repeatClient,
+      totalCost: form.totalCost,
+      financials: {
+        baseCost: f.baseCost,
+        contingency: f.contingency,
+        marginAmount: f.marginAmount,
+        costToClient: f.costToClient,
+        subtotal: f.subtotal,
+        vat: f.vat,
+        grandTotal: f.grandTotal,
+        upgradeTotal: f.upgradeTotal,
+        margin: f.margin,
+      },
+      nexusLead: lead,
+      calculations: stargtm.calculations,
+      selectedUpgradeLabels: form.selectedUpgrades,
+      selectedUpgrades: stargtm.selectedUpgrades,
     };
     await new Promise(r => setTimeout(r, 500));
     setStage('sending');
@@ -406,7 +399,7 @@ export function Forms() {
         vesselType: form.vesselType.join(', '),
         eventType: form.eventType,
         guestCount: form.guestCount,
-        grandTotal: q.financials.grandTotal,
+        grandTotal: f.grandTotal,
         pdfDataUrl,
         leadName: q.leadName,
         leadEmail: q.leadEmail,
@@ -415,6 +408,17 @@ export function Forms() {
         version: q.version,
       });
       if (!saved) throw new Error('PDF too large to store — clear older proposals and try again.');
+      // Persist recalculated financials back onto the quote draft.
+      saveQuote({ ...q, financials: {
+        baseCost: f.baseCost,
+        contingency: f.contingency,
+        marginAmount: f.marginAmount,
+        costToClient: f.costToClient,
+        vat: f.vat,
+        grandTotal: f.grandTotal,
+        upgradeTotal: f.upgradeTotal,
+        margin: f.margin,
+      }, updatedAt: new Date().toISOString() });
       setStage('done');
       sessionStorage.setItem('nexus_just_generated', 'true');
       setTimeout(() => navigate('/proposal-doc'), 1200);
@@ -837,7 +841,7 @@ export function Forms() {
                       ))}
                       <div className="mt-1.5 flex items-center justify-between border-t border-gray-100 pt-1.5">
                         <span className="text-gray-500">Grand Total</span>
-                        <span className="font-black text-[#00c06a]">£{(proposalQuote?.financials.grandTotal ?? fin.grand).toFixed(2)}</span>
+                        <span className="font-black text-[#00c06a]">£{(proposalQuote?.financials.grandTotal ?? fin.grandTotal).toFixed(2)}</span>
                       </div>
                     </div>
                   </div>

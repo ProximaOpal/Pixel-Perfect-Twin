@@ -23,6 +23,12 @@ import { toast } from '@/hooks/use-toast';
 import { syncQuoteStatus } from '@/lib/n8nSync';
 import { persistLeadUpdate } from '@/lib/persistLead';
 import { sheetsTargetLabel } from '@/lib/sheetsMode';
+import {
+  UPGRADES,
+  calcFinancials,
+  financialsToSheetRow,
+  normalizeUpgradeLabels,
+} from '@/lib/quoteFinance';
 
 const VERSIONS: QuoteVersion[] = ['V1', 'V2', 'V3'];
 
@@ -34,15 +40,7 @@ type Props = {
   onStartBuilding: () => void;
 };
 
-const UPGRADES = [
-  'Live DJ',
-  'Saxophonist',
-  'Photo Booth',
-  'Close-up Magician',
-  'Branded Vessel Flag',
-  'Unlimited Drinks',
-  'Drink Tokens',
-];
+const UPGRADE_LABELS = UPGRADES.map(u => u.label);
 
 export function QuoteLibrary({ mode, onBuildProposal, onStartBuilding }: Props) {
   const [quotes, setQuotes] = useState<BuiltQuote[]>(() => loadQuotes());
@@ -57,12 +55,26 @@ export function QuoteLibrary({ mode, onBuildProposal, onStartBuilding }: Props) 
 
   function openEdit(q: BuiltQuote) {
     setEditing(q);
-    setDraft({ ...q.form });
+    setDraft({
+      ...q.form,
+      selectedUpgrades: normalizeUpgradeLabels(q.form.selectedUpgrades || []),
+    });
     soundClick();
   }
 
   function approve(q: BuiltQuote, version: QuoteVersion = 'V1') {
-    const next = { ...q, status: 'approved' as const, version, updatedAt: new Date().toISOString() };
+    const f = calcFinancials(q.form);
+    const financials = {
+      baseCost: f.baseCost,
+      contingency: f.contingency,
+      marginAmount: f.marginAmount,
+      costToClient: f.costToClient,
+      vat: f.vat,
+      grandTotal: f.grandTotal,
+      upgradeTotal: f.upgradeTotal,
+      margin: f.margin,
+    };
+    const next = { ...q, financials, status: 'approved' as const, version, updatedAt: new Date().toISOString() };
     saveQuote(next);
     soundClick();
     void syncQuoteStatus({
@@ -73,7 +85,12 @@ export function QuoteLibrary({ mode, onBuildProposal, onStartBuilding }: Props) 
       status: 'approved',
       version,
       title: q.title,
-      grandTotal: q.financials.grandTotal,
+      ...financialsToSheetRow(f),
+      eventType: q.form.eventType,
+      eventDate: q.form.eventDate,
+      guestCount: q.form.guestCount,
+      selectedUpgrades: q.form.selectedUpgrades,
+      repeatClient: q.form.repeatClient,
     });
     persistLeadUpdate({
       referenceNumber: q.referenceNumber,
@@ -91,6 +108,7 @@ export function QuoteLibrary({ mode, onBuildProposal, onStartBuilding }: Props) 
   }
 
   function setVersion(q: BuiltQuote, version: QuoteVersion) {
+    const f = calcFinancials(q.form);
     saveQuote({ ...q, version, updatedAt: new Date().toISOString() });
     soundClick();
     void syncQuoteStatus({
@@ -101,7 +119,12 @@ export function QuoteLibrary({ mode, onBuildProposal, onStartBuilding }: Props) 
       status: q.status,
       version,
       title: q.title,
-      grandTotal: q.financials.grandTotal,
+      ...financialsToSheetRow(f),
+      eventType: q.form.eventType,
+      eventDate: q.form.eventDate,
+      guestCount: q.form.guestCount,
+      selectedUpgrades: q.form.selectedUpgrades,
+      repeatClient: q.form.repeatClient,
     });
     toast({ title: `Version ${version}`, description: sheetsTargetLabel() });
   }
@@ -115,17 +138,45 @@ export function QuoteLibrary({ mode, onBuildProposal, onStartBuilding }: Props) 
       eventType: locked?.eventType ? editing.form.eventType : draft.eventType,
       repeatClient: locked?.repeatClient ? editing.form.repeatClient : draft.repeatClient,
     };
+    const f = calcFinancials(form);
+    const financials = {
+      baseCost: f.baseCost,
+      contingency: f.contingency,
+      marginAmount: f.marginAmount,
+      costToClient: f.costToClient,
+      vat: f.vat,
+      grandTotal: f.grandTotal,
+      upgradeTotal: f.upgradeTotal,
+      margin: f.margin,
+    };
     const title = `${form.eventType || 'Event'} Quote — ${form.vesselType.join(', ') || 'Vessel TBC'}`;
-    saveQuote({
+    const next = {
       ...editing,
       form,
+      financials,
       title,
       updatedAt: new Date().toISOString(),
+    };
+    saveQuote(next);
+    void syncQuoteStatus({
+      referenceNumber: next.referenceNumber,
+      email: next.leadEmail,
+      leadName: next.leadName,
+      quoteId: next.id,
+      status: next.status,
+      version: next.version,
+      title: next.title,
+      ...financialsToSheetRow(f),
+      eventType: form.eventType,
+      eventDate: form.eventDate,
+      guestCount: form.guestCount,
+      selectedUpgrades: form.selectedUpgrades,
+      repeatClient: form.repeatClient,
     });
     setEditing(null);
     setDraft(null);
     soundClick();
-    toast({ title: 'Quote updated' });
+    toast({ title: 'Quote updated', description: `Totals recalculated · ${sheetsTargetLabel()}` });
   }
 
   function toggleInList(key: 'vesselType' | 'menuType' | 'selectedUpgrades', value: string) {
@@ -142,6 +193,7 @@ export function QuoteLibrary({ mode, onBuildProposal, onStartBuilding }: Props) 
   const repeatLocked = Boolean(
     editing?.lockedFromN8n?.repeatClient ?? Boolean(editing?.leadId),
   );
+  const draftTotals = draft ? calcFinancials(draft) : null;
 
   return (
     <div style={{ width: '100%', maxWidth: 460 }}>
@@ -377,7 +429,7 @@ export function QuoteLibrary({ mode, onBuildProposal, onStartBuilding }: Props) 
                 />
                 <MultiDropdown
                   label="Upgrades"
-                  options={UPGRADES}
+                  options={UPGRADE_LABELS}
                   selected={draft.selectedUpgrades}
                   onToggle={v => toggleInList('selectedUpgrades', v)}
                 />
@@ -393,11 +445,16 @@ export function QuoteLibrary({ mode, onBuildProposal, onStartBuilding }: Props) 
 
                 <div style={{ marginTop: 16, borderRadius: 12, background: '#f0fdf5', padding: 14 }}>
                   <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: '#5ac69a', letterSpacing: '0.1em' }}>
-                    SNAPSHOT TOTALS
+                    LIVE TOTALS (QUOTE SHEET)
                   </p>
                   <p style={{ margin: '8px 0 0', fontSize: 22, fontWeight: 800, color: '#0c3524' }}>
-                    £{editing.financials.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    £{(draftTotals?.grandTotal ?? editing.financials.grandTotal).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </p>
+                  {draftTotals && (
+                    <p style={{ margin: '6px 0 0', fontSize: 11, color: 'rgba(12,53,36,.55)' }}>
+                      Base £{draftTotals.baseCost.toFixed(2)} · Cont. £{draftTotals.contingency.toFixed(2)} · Margin {(draftTotals.margin * 100).toFixed(0)}% · VAT £{draftTotals.vat.toFixed(2)}
+                    </p>
+                  )}
                 </div>
               </div>
 
