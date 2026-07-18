@@ -1,5 +1,5 @@
 # Nexus codebase dump
-# Generated: 2026-07-18T08:25:45.126Z
+# Generated: 2026-07-18T08:26:57.478Z
 # Files: 159
 
 ================================================================================
@@ -77,40 +77,38 @@ FILE: README.md
 ================================================================================
 # Nexus — Business Operations Suite
 
-Lead management and sales workspace: capture leads, build quotes, review proposals, track progress notes, and browse bespoke packages — from a React frontend backed by Express + PostgreSQL.
+Lead management and sales workspace: capture leads, build quotes, review proposals, track progress notes, and browse bespoke packages.
+
+**n8n is the automation database and backend engine** for live CRM data (leads fetch + quote generation). The local Express/Postgres service is optional and not used by the UI.
 
 ## Quick start
 
 ```bash
 pnpm install
-docker compose up -d          # optional if Postgres is not local
-pnpm db:push
+pnpm dev:web
+# → http://localhost:5173
+```
+
+Or both frontend + optional local API:
+
+```bash
+pnpm install
 pnpm dev
 ```
 
-Open **http://localhost:5173**
-
-| Service | URL |
-|---------|-----|
-| Frontend | http://localhost:5173 |
-| API | http://localhost:8080 |
-| Database | `postgresql://nexus:nexus@localhost:5432/nexus` |
-
-## Data pipeline
+## Data pipeline (n8n)
 
 ```
-n8n / forms ──POST──► /api/webhooks/leads ──► Postgres (leads)
-                              ▲
-                              │
-         /api/leads/sync ─────┘  (pulls LeadDataFetch when DB empty)
-                              │
-Frontend Leads page ◄──GET── /api/leads
-Progress Notes      ──PATCH─► /api/leads/:id/status
+Frontend Leads ──POST──► meeraworkflows.app.n8n.cloud/webhook/LeadDataFetch
+Frontend Quotes ─POST──► meeraworkflows.app.n8n.cloud/webhook/QuoteBuilder
 ```
 
-- The UI never calls n8n directly.
-- Quotes still generate PDFs via the QuoteBuilder webhook; proposal metadata lives in IndexedDB.
-- Progress notes remain in `localStorage`, keyed by lead id.
+| Flow | Endpoint |
+|------|----------|
+| Load leads | `POST …/webhook/LeadDataFetch` |
+| Generate proposal PDF | `POST …/webhook/QuoteBuilder` |
+
+Progress notes stay in browser `localStorage`. Generated proposals stay in IndexedDB.
 
 ## Product tour
 
@@ -121,15 +119,13 @@ After first login, Nexus offers a guided tour of every page. Replay via the comp
 | Path | What |
 |------|------|
 | `artifacts/workspace-suite/src/pages/` | Frontend pages |
+| `artifacts/workspace-suite/src/components/LeadPanel.tsx` | Lead overlay (Assign a Rep, Build a Quote) |
 | `artifacts/workspace-suite/src/tutorial/` | Product tour |
-| `artifacts/api-server/src/routes/leads.ts` | Lead ingest / list / sync / status |
-| `lib/db/src/schema/leads.ts` | Drizzle leads schema |
-| `lib/api-spec/openapi.yaml` | OpenAPI source of truth |
-| `codebase.txt` | Full source dump for LLM notebooks |
+| `codebase.txt` | Full source dump for LLM notebooks (`pnpm codebase`) |
 
 ## Design tokens
 
-Home page palette (`.nexus-home` in `Home.css`): mint `#00f78e`, mint-deep, teal labels, blue `#0894ce`, ink, navy1–3, panel / option backgrounds. Coral has been removed.
+Home page palette (`.nexus-home` in `Home.css`): mint `#00f78e`, mint-deep, teal labels, blue `#0894ce`, ink, navy1–3. Assign-a-Rep accents: orange / purple / blue / luminous green.
 
 ================================================================================
 FILE: artifacts/api-server/build.mjs
@@ -8843,7 +8839,12 @@ function NoteView({ lead, onBack }: { lead: Lead; onBack: () => void }) {
   );
 }
 
-const REPS = ['Natasha', 'Lily-May', 'Elizabeth', 'Katherine'] as const;
+const REPS = [
+  { name: 'Natasha',   initial: 'N', color: '#f59e0b' }, // orange
+  { name: 'Lily-May',  initial: 'L', color: '#a855f7' }, // purple
+  { name: 'Elizabeth', initial: 'E', color: '#0894ce' }, // blue
+  { name: 'Katherine', initial: 'K', color: '#00f78e' }, // luminous green
+] as const;
 
 /* ─── Main export: centered overlay ─── */
 export function LeadPanel({ lead, onClose }: { lead: Lead | null; onClose: () => void }) {
@@ -8939,39 +8940,53 @@ export function LeadPanel({ lead, onClose }: { lead: Lead | null; onClose: () =>
 
             {/* Action buttons: Assign a Rep + Build a Quote */}
             {view !== 'note' && (
-              <div className="absolute bottom-16 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-2">
+              <div className="absolute bottom-16 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-2.5">
 
-                {/* Rep picker cards — animate in above the buttons */}
+                {/* Rep picker — vertical white pills (matches product screenshot) */}
                 <AnimatePresence>
                   {showReps && (
                     <motion.div
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      initial={{ opacity: 0, y: 10, scale: 0.96 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.96 }}
                       transition={{ type: 'spring', stiffness: 380, damping: 28 }}
-                      className="flex gap-2"
+                      className="flex w-[200px] flex-col gap-1.5"
                     >
-                      {REPS.map(rep => (
-                        <button
-                          key={rep}
-                          onClick={() => { setAssignedRep(rep); setShowReps(false); soundClick(); }}
-                          className="flex flex-col items-center gap-1.5 border border-white/20 bg-[#111]/85 px-3 py-2.5 backdrop-blur-sm transition-colors hover:border-[#00f78e]/60 hover:bg-[#1a1a1a]"
-                        >
-                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#00f78e]/20 text-[10px] font-black text-[#00f78e]">
-                            {rep[0]}
-                          </div>
-                          <span className="text-[10px] font-semibold text-white/80">{rep}</span>
-                        </button>
-                      ))}
+                      {REPS.map(rep => {
+                        const selected = assignedRep === rep.name;
+                        return (
+                          <button
+                            key={rep.name}
+                            type="button"
+                            onClick={() => { setAssignedRep(rep.name); setShowReps(false); soundClick(); }}
+                            className="flex items-center gap-2.5 rounded-full bg-white px-3 py-2 text-left shadow-md transition-transform hover:scale-[1.02]"
+                            style={{
+                              boxShadow: selected
+                                ? `0 0 0 2px ${rep.color}, 0 8px 20px rgba(0,0,0,.18)`
+                                : '0 6px 16px rgba(0,0,0,.16)',
+                            }}
+                          >
+                            <span
+                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-black text-white"
+                              style={{ background: rep.color }}
+                            >
+                              {rep.initial}
+                            </span>
+                            <span className="text-[12.5px] font-semibold text-[#17181c]">{rep.name}</span>
+                          </button>
+                        );
+                      })}
                     </motion.div>
                   )}
                 </AnimatePresence>
 
-                {/* Assign a Rep */}
+                {/* Assign a Rep — green CTA */}
                 <button
+                  type="button"
                   onClick={() => { setShowReps(s => !s); soundClick(); }}
                   title="Assign a sales rep to this lead"
-                  className="flex items-center gap-2 border border-white/20 bg-[#111]/70 px-5 py-2.5 text-[12px] font-bold text-white backdrop-blur-sm transition-all hover:border-white/40 hover:bg-[#111]"
+                  className="flex items-center gap-2 rounded-[10px] bg-[#00f78e] px-5 py-2.5 text-[12px] font-bold text-[#0c3524] shadow-lg transition-all hover:bg-[#06c97a] hover:scale-[1.02]"
+                  style={{ boxShadow: '0 8px 22px rgba(0,247,142,.35)' }}
                 >
                   <UserCheck className="h-3.5 w-3.5" />
                   {assignedRep ? `Rep: ${assignedRep}` : 'Assign a Rep'}
@@ -8979,9 +8994,11 @@ export function LeadPanel({ lead, onClose }: { lead: Lead | null; onClose: () =>
 
                 {/* Build a Quote */}
                 <button
+                  type="button"
                   onClick={handleBuildQuote}
                   title={`Start a quote for ${lead.name}`}
-                  className="flex items-center gap-2 bg-blue-600 px-5 py-2.5 text-[13px] font-bold text-white shadow-lg shadow-blue-600/40 transition-transform hover:scale-105 hover:bg-blue-700"
+                  className="flex items-center gap-2 rounded-[10px] bg-[#0894ce] px-5 py-2.5 text-[13px] font-bold text-white shadow-lg transition-transform hover:scale-105 hover:bg-[#0678a8]"
+                  style={{ boxShadow: '0 8px 22px rgba(8,148,206,.35)' }}
                 >
                   <ReceiptText className="h-4 w-4" />
                   Build a Quote
@@ -12649,93 +12666,79 @@ import { soundClick, soundOpen, soundClose, soundTab } from '@/lib/sounds';
 import './Home.css';
 import './ProgressNotes.css';
 
-/** Row shape returned by GET /api/leads */
-interface ApiLead {
-  id: number;
+// n8n is the automation database + backend engine for leads.
+const LEAD_FETCH_URL = 'https://meeraworkflows.app.n8n.cloud/webhook/LeadDataFetch';
+
+interface RawLead {
+  enquiryDate: string;
   name: string;
-  email: string | null;
-  phone: string | null;
-  company: string | null;
-  designation: string | null;
-  sector: string | null;
-  source: string | null;
-  referenceNumber: string | null;
-  linkedin: string | null;
-  status: string | null;
-  market: string | null;
-  eventType: string | null;
-  yearOfEvent: string | null;
-  fullEventDate: string | null;
-  eventDateFlexible: string | null;
-  requestedEventTimes: string | null;
-  groupSize: string | null;
-  budget: string | null;
-  bestTimeToCall: string | null;
-  howHeard: string | null;
-  enquiryDate: string | null;
-  createdAt?: string;
+  jobRole: string;
+  companyName: string;
+  companySector: string;
+  email: string;
+  phone: string;
+  referenceNumber: string;
+  source: string;
+  bestTimeToCall: string;
+  market: string;
+  eventType: string;
+  yearOfEvent: string;
+  fullEventDate: string;
+  eventDateFlexible: string;
+  requestedEventTimes: string;
+  groupSize: string;
+  budget: string;
+  howHeard: string;
+  status: string;
+  linkedin?: string;
 }
 
 function toInitials(name: string) {
   return name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
 }
 
-function mapApiLead(row: ApiLead): Lead {
-  const name = row.name || '—';
+function mapRaw(raw: RawLead, index: number): Lead {
+  const name = raw.name || '—';
   return {
-    id: row.id,
+    id: index + 1,
     name,
-    email: row.email || '—',
-    code: row.referenceNumber || `#${row.id}`,
-    designation: row.designation || '—',
-    phone: row.phone || '—',
-    joined: row.enquiryDate || (row.createdAt ? row.createdAt.slice(0, 10) : '—'),
+    email: raw.email || '—',
+    code: raw.referenceNumber || `#${index + 1}`,
+    designation: raw.jobRole || '—',
+    phone: raw.phone || '—',
+    joined: raw.enquiryDate || '—',
     color: '#0894ce',
     initials: toInitials(name),
-    linkedin: row.linkedin || undefined,
-    sector: row.sector || '—',
-    referenceNumber: row.referenceNumber || '—',
-    source: row.source || '—',
-    company: row.company || '—',
-    status: (row.status || 'live').toLowerCase().trim(),
-    market: row.market || '',
-    eventType: row.eventType || '',
-    yearOfEvent: row.yearOfEvent || '',
-    fullEventDate: row.fullEventDate || '',
-    eventDateFlexible: row.eventDateFlexible || '',
-    requestedEventTimes: row.requestedEventTimes || '',
-    groupSize: row.groupSize || '',
-    budget: row.budget || '',
-    bestTimeToCall: row.bestTimeToCall || '',
-    howHeard: row.howHeard || '',
+    linkedin: raw.linkedin || undefined,
+    sector: raw.companySector || '—',
+    referenceNumber: raw.referenceNumber || '—',
+    source: raw.source || '—',
+    company: raw.companyName || '—',
+    status: (raw.status || 'live').toLowerCase().trim(),
+    market: raw.market || '',
+    eventType: raw.eventType || '',
+    yearOfEvent: raw.yearOfEvent || '',
+    fullEventDate: raw.fullEventDate || '',
+    eventDateFlexible: raw.eventDateFlexible || '',
+    requestedEventTimes: raw.requestedEventTimes || '',
+    groupSize: raw.groupSize || '',
+    budget: raw.budget || '',
+    bestTimeToCall: raw.bestTimeToCall || '',
+    howHeard: raw.howHeard || '',
   };
 }
 
-/**
- * Data pipeline:
- * 1) Prefer local API (Postgres via Express)
- * 2) If empty, sync once from upstream n8n through the API
- * Frontend never talks to n8n directly.
- */
+/** Fetch leads directly from the n8n LeadDataFetch webhook. */
 async function fetchLeads(): Promise<Lead[]> {
-  const listRes = await fetch('/api/leads');
-  if (!listRes.ok) throw new Error(`API /leads responded ${listRes.status}`);
-  const listData = (await listRes.json()) as { leads?: ApiLead[] };
-  let rows = Array.isArray(listData.leads) ? listData.leads : [];
-
-  if (rows.length === 0) {
-    const syncRes = await fetch('/api/leads/sync', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
-    });
-    if (syncRes.ok) {
-      const syncData = (await syncRes.json()) as { leads?: ApiLead[] };
-      rows = Array.isArray(syncData.leads) ? syncData.leads : [];
-    }
-  }
-
-  return rows.map(mapApiLead);
+  const res = await fetch(LEAD_FETCH_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+  if (!res.ok) throw new Error(`n8n LeadDataFetch responded ${res.status}`);
+  const data = await res.json();
+  const rows: RawLead[] = Array.isArray(data?.leads) ? data.leads : [];
+  return rows.map(mapRaw);
 }
 
 const TABS = ['Live', 'Booked', 'Dead', 'Blacklisted'] as const;
@@ -13932,13 +13935,7 @@ export function ProgressNotes() {
                         disabled={!activeLead}
                         onClick={() => {
                           if (!activeLead) return;
-                          const next = label.toLowerCase();
-                          setActiveLead({ ...activeLead, status: next });
-                          void fetch(`/api/leads/${activeLead.id}/status`, {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ status: next }),
-                          });
+                          setActiveLead({ ...activeLead, status: label.toLowerCase() });
                         }}
                       >
                         <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -15407,7 +15404,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     route: '/leads',
     selector: '[data-tour="leads-tabs"]',
     title: 'Leads pipeline tabs',
-    body: 'Filter leads by Live, Booked, Dead, or Blacklisted. Counts update as records load from the API.',
+    body: 'Filter leads by Live, Booked, Dead, or Blacklisted. Counts update as records load from n8n.',
     placement: 'bottom',
     settleMs: 400,
   },

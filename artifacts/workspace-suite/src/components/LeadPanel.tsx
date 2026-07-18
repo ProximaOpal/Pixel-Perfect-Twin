@@ -445,7 +445,12 @@ function NoteView({ lead, onBack }: { lead: Lead; onBack: () => void }) {
   );
 }
 
-const REPS = ['Natasha', 'Lily-May', 'Elizabeth', 'Katherine'] as const;
+const REPS = [
+  { name: 'Natasha',   initial: 'N', color: '#f59e0b' }, // orange
+  { name: 'Lily-May',  initial: 'L', color: '#a855f7' }, // purple
+  { name: 'Elizabeth', initial: 'E', color: '#0894ce' }, // blue
+  { name: 'Katherine', initial: 'K', color: '#00f78e' }, // luminous green
+] as const;
 
 /* ─── Main export: centered overlay ─── */
 export function LeadPanel({ lead, onClose }: { lead: Lead | null; onClose: () => void }) {
@@ -541,39 +546,53 @@ export function LeadPanel({ lead, onClose }: { lead: Lead | null; onClose: () =>
 
             {/* Action buttons: Assign a Rep + Build a Quote */}
             {view !== 'note' && (
-              <div className="absolute bottom-16 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-2">
+              <div className="absolute bottom-16 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-2.5">
 
-                {/* Rep picker cards — animate in above the buttons */}
+                {/* Rep picker — vertical white pills (matches product screenshot) */}
                 <AnimatePresence>
                   {showReps && (
                     <motion.div
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      initial={{ opacity: 0, y: 10, scale: 0.96 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.96 }}
                       transition={{ type: 'spring', stiffness: 380, damping: 28 }}
-                      className="flex gap-2"
+                      className="flex w-[200px] flex-col gap-1.5"
                     >
-                      {REPS.map(rep => (
-                        <button
-                          key={rep}
-                          onClick={() => { setAssignedRep(rep); setShowReps(false); soundClick(); }}
-                          className="flex flex-col items-center gap-1.5 border border-white/20 bg-[#111]/85 px-3 py-2.5 backdrop-blur-sm transition-colors hover:border-[#00f78e]/60 hover:bg-[#1a1a1a]"
-                        >
-                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#00f78e]/20 text-[10px] font-black text-[#00f78e]">
-                            {rep[0]}
-                          </div>
-                          <span className="text-[10px] font-semibold text-white/80">{rep}</span>
-                        </button>
-                      ))}
+                      {REPS.map(rep => {
+                        const selected = assignedRep === rep.name;
+                        return (
+                          <button
+                            key={rep.name}
+                            type="button"
+                            onClick={() => { setAssignedRep(rep.name); setShowReps(false); soundClick(); }}
+                            className="flex items-center gap-2.5 rounded-full bg-white px-3 py-2 text-left shadow-md transition-transform hover:scale-[1.02]"
+                            style={{
+                              boxShadow: selected
+                                ? `0 0 0 2px ${rep.color}, 0 8px 20px rgba(0,0,0,.18)`
+                                : '0 6px 16px rgba(0,0,0,.16)',
+                            }}
+                          >
+                            <span
+                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-black text-white"
+                              style={{ background: rep.color }}
+                            >
+                              {rep.initial}
+                            </span>
+                            <span className="text-[12.5px] font-semibold text-[#17181c]">{rep.name}</span>
+                          </button>
+                        );
+                      })}
                     </motion.div>
                   )}
                 </AnimatePresence>
 
-                {/* Assign a Rep */}
+                {/* Assign a Rep — green CTA */}
                 <button
+                  type="button"
                   onClick={() => { setShowReps(s => !s); soundClick(); }}
                   title="Assign a sales rep to this lead"
-                  className="flex items-center gap-2 border border-white/20 bg-[#111]/70 px-5 py-2.5 text-[12px] font-bold text-white backdrop-blur-sm transition-all hover:border-white/40 hover:bg-[#111]"
+                  className="flex items-center gap-2 rounded-[10px] bg-[#00f78e] px-5 py-2.5 text-[12px] font-bold text-[#0c3524] shadow-lg transition-all hover:bg-[#06c97a] hover:scale-[1.02]"
+                  style={{ boxShadow: '0 8px 22px rgba(0,247,142,.35)' }}
                 >
                   <UserCheck className="h-3.5 w-3.5" />
                   {assignedRep ? `Rep: ${assignedRep}` : 'Assign a Rep'}
@@ -581,9 +600,11 @@ export function LeadPanel({ lead, onClose }: { lead: Lead | null; onClose: () =>
 
                 {/* Build a Quote */}
                 <button
+                  type="button"
                   onClick={handleBuildQuote}
                   title={`Start a quote for ${lead.name}`}
-                  className="flex items-center gap-2 bg-blue-600 px-5 py-2.5 text-[13px] font-bold text-white shadow-lg shadow-blue-600/40 transition-transform hover:scale-105 hover:bg-blue-700"
+                  className="flex items-center gap-2 rounded-[10px] bg-[#0894ce] px-5 py-2.5 text-[13px] font-bold text-white shadow-lg transition-transform hover:scale-105 hover:bg-[#0678a8]"
+                  style={{ boxShadow: '0 8px 22px rgba(8,148,206,.35)' }}
                 >
                   <ReceiptText className="h-4 w-4" />
                   Build a Quote

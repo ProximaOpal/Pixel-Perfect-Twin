@@ -11,93 +11,79 @@ import { soundClick, soundOpen, soundClose, soundTab } from '@/lib/sounds';
 import './Home.css';
 import './ProgressNotes.css';
 
-/** Row shape returned by GET /api/leads */
-interface ApiLead {
-  id: number;
+// n8n is the automation database + backend engine for leads.
+const LEAD_FETCH_URL = 'https://meeraworkflows.app.n8n.cloud/webhook/LeadDataFetch';
+
+interface RawLead {
+  enquiryDate: string;
   name: string;
-  email: string | null;
-  phone: string | null;
-  company: string | null;
-  designation: string | null;
-  sector: string | null;
-  source: string | null;
-  referenceNumber: string | null;
-  linkedin: string | null;
-  status: string | null;
-  market: string | null;
-  eventType: string | null;
-  yearOfEvent: string | null;
-  fullEventDate: string | null;
-  eventDateFlexible: string | null;
-  requestedEventTimes: string | null;
-  groupSize: string | null;
-  budget: string | null;
-  bestTimeToCall: string | null;
-  howHeard: string | null;
-  enquiryDate: string | null;
-  createdAt?: string;
+  jobRole: string;
+  companyName: string;
+  companySector: string;
+  email: string;
+  phone: string;
+  referenceNumber: string;
+  source: string;
+  bestTimeToCall: string;
+  market: string;
+  eventType: string;
+  yearOfEvent: string;
+  fullEventDate: string;
+  eventDateFlexible: string;
+  requestedEventTimes: string;
+  groupSize: string;
+  budget: string;
+  howHeard: string;
+  status: string;
+  linkedin?: string;
 }
 
 function toInitials(name: string) {
   return name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
 }
 
-function mapApiLead(row: ApiLead): Lead {
-  const name = row.name || '—';
+function mapRaw(raw: RawLead, index: number): Lead {
+  const name = raw.name || '—';
   return {
-    id: row.id,
+    id: index + 1,
     name,
-    email: row.email || '—',
-    code: row.referenceNumber || `#${row.id}`,
-    designation: row.designation || '—',
-    phone: row.phone || '—',
-    joined: row.enquiryDate || (row.createdAt ? row.createdAt.slice(0, 10) : '—'),
+    email: raw.email || '—',
+    code: raw.referenceNumber || `#${index + 1}`,
+    designation: raw.jobRole || '—',
+    phone: raw.phone || '—',
+    joined: raw.enquiryDate || '—',
     color: '#0894ce',
     initials: toInitials(name),
-    linkedin: row.linkedin || undefined,
-    sector: row.sector || '—',
-    referenceNumber: row.referenceNumber || '—',
-    source: row.source || '—',
-    company: row.company || '—',
-    status: (row.status || 'live').toLowerCase().trim(),
-    market: row.market || '',
-    eventType: row.eventType || '',
-    yearOfEvent: row.yearOfEvent || '',
-    fullEventDate: row.fullEventDate || '',
-    eventDateFlexible: row.eventDateFlexible || '',
-    requestedEventTimes: row.requestedEventTimes || '',
-    groupSize: row.groupSize || '',
-    budget: row.budget || '',
-    bestTimeToCall: row.bestTimeToCall || '',
-    howHeard: row.howHeard || '',
+    linkedin: raw.linkedin || undefined,
+    sector: raw.companySector || '—',
+    referenceNumber: raw.referenceNumber || '—',
+    source: raw.source || '—',
+    company: raw.companyName || '—',
+    status: (raw.status || 'live').toLowerCase().trim(),
+    market: raw.market || '',
+    eventType: raw.eventType || '',
+    yearOfEvent: raw.yearOfEvent || '',
+    fullEventDate: raw.fullEventDate || '',
+    eventDateFlexible: raw.eventDateFlexible || '',
+    requestedEventTimes: raw.requestedEventTimes || '',
+    groupSize: raw.groupSize || '',
+    budget: raw.budget || '',
+    bestTimeToCall: raw.bestTimeToCall || '',
+    howHeard: raw.howHeard || '',
   };
 }
 
-/**
- * Data pipeline:
- * 1) Prefer local API (Postgres via Express)
- * 2) If empty, sync once from upstream n8n through the API
- * Frontend never talks to n8n directly.
- */
+/** Fetch leads directly from the n8n LeadDataFetch webhook. */
 async function fetchLeads(): Promise<Lead[]> {
-  const listRes = await fetch('/api/leads');
-  if (!listRes.ok) throw new Error(`API /leads responded ${listRes.status}`);
-  const listData = (await listRes.json()) as { leads?: ApiLead[] };
-  let rows = Array.isArray(listData.leads) ? listData.leads : [];
-
-  if (rows.length === 0) {
-    const syncRes = await fetch('/api/leads/sync', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
-    });
-    if (syncRes.ok) {
-      const syncData = (await syncRes.json()) as { leads?: ApiLead[] };
-      rows = Array.isArray(syncData.leads) ? syncData.leads : [];
-    }
-  }
-
-  return rows.map(mapApiLead);
+  const res = await fetch(LEAD_FETCH_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+  if (!res.ok) throw new Error(`n8n LeadDataFetch responded ${res.status}`);
+  const data = await res.json();
+  const rows: RawLead[] = Array.isArray(data?.leads) ? data.leads : [];
+  return rows.map(mapRaw);
 }
 
 const TABS = ['Live', 'Booked', 'Dead', 'Blacklisted'] as const;

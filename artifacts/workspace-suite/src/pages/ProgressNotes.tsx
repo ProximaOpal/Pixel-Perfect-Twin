@@ -304,13 +304,7 @@ export function ProgressNotes() {
                         disabled={!activeLead}
                         onClick={() => {
                           if (!activeLead) return;
-                          const next = label.toLowerCase();
-                          setActiveLead({ ...activeLead, status: next });
-                          void fetch(`/api/leads/${activeLead.id}/status`, {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ status: next }),
-                          });
+                          setActiveLead({ ...activeLead, status: label.toLowerCase() });
                         }}
                       >
                         <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

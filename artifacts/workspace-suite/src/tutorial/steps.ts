@@ -52,7 +52,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     route: '/leads',
     selector: '[data-tour="leads-tabs"]',
     title: 'Leads pipeline tabs',
-    body: 'Filter leads by Live, Booked, Dead, or Blacklisted. Counts update as records load from the API.',
+    body: 'Filter leads by Live, Booked, Dead, or Blacklisted. Counts update as records load from n8n.',
     placement: 'bottom',
     settleMs: 400,
   },
