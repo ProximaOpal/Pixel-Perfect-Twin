@@ -18,6 +18,7 @@ import {
 } from '@/lib/quoteDraftStore';
 import { VESSEL_TYPES, MENU_TYPES } from '@/lib/formOptions';
 import { soundClick } from '@/lib/sounds';
+import { toast } from '@/hooks/use-toast';
 
 type ListMode = 'built' | 'approved';
 
@@ -57,6 +58,7 @@ export function QuoteLibrary({ mode, onBuildProposal, onStartBuilding }: Props) 
   function approve(q: BuiltQuote) {
     saveQuote({ ...q, status: 'approved', updatedAt: new Date().toISOString() });
     soundClick();
+    toast({ title: 'Quote approved', description: 'Moved to Approved Quotes.' });
   }
 
   function saveEdits() {
@@ -78,6 +80,7 @@ export function QuoteLibrary({ mode, onBuildProposal, onStartBuilding }: Props) 
     setEditing(null);
     setDraft(null);
     soundClick();
+    toast({ title: 'Quote updated' });
   }
 
   function toggleInList(key: 'vesselType' | 'menuType' | 'selectedUpgrades', value: string) {

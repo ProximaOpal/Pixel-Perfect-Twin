@@ -10,6 +10,7 @@ import { NOTE_CATEGORIES, detectTag, loadNotes, addNote, type NoteTag, type Lead
 import { soundClick } from '@/lib/sounds';
 import { personAvatarUrl, companyAvatarUrl } from '@/lib/avatar';
 import { setQuoteLead } from '@/lib/quoteLeadStore';
+import { toast } from '@/hooks/use-toast';
 
 const NOTE_ICONS: Record<NoteTag, typeof Search> = {
   initial:      Zap,
@@ -567,7 +568,12 @@ export function LeadPanel({ lead, onClose }: { lead: Lead | null; onClose: () =>
                           <button
                             key={rep.name}
                             type="button"
-                            onClick={() => { setAssignedRep(rep.name); setShowReps(false); soundClick(); }}
+                            onClick={() => {
+                              setAssignedRep(rep.name);
+                              setShowReps(false);
+                              soundClick();
+                              toast({ title: 'Rep assigned', description: `${rep.name} → ${lead.name}` });
+                            }}
                             className="flex items-center gap-2.5 rounded-full bg-white px-3 py-2 text-left shadow-md transition-transform hover:scale-[1.02]"
                             style={{
                               boxShadow: selected

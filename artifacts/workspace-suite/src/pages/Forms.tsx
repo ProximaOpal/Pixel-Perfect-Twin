@@ -10,6 +10,7 @@ import { saveQuote, type BuiltQuote } from '@/lib/quoteDraftStore';
 import { QuoteLibrary } from '@/components/QuoteLibrary';
 import { PanelNav } from '@/components/PanelNav';
 import { soundClick } from '@/lib/sounds';
+import { toast } from '@/hooks/use-toast';
 import './Home.css';
 import './ProgressNotes.css';
 
@@ -287,6 +288,7 @@ export function Forms() {
     setMode('built');
     setQIdx(0);
     scrollRef.current?.scrollTo({ top: 0 });
+    toast({ title: 'Quote saved', description: 'Added to Built Quotes for review.' });
   }
 
   const currentQ    = QUESTIONS[qIdx];

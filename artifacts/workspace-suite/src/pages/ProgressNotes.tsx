@@ -3,14 +3,21 @@ import { useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, ArrowRight, ArrowLeft, Plus, Send,
-  Zap, Phone, MessageSquare, FileText, Bell, Mail, CheckCircle2,
+  Zap, Phone, MessageSquare, FileText, Bell, Mail, CheckCircle2, Check,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { NOTE_CATEGORIES, detectTag, loadNotes, loadAllNotes, addNote, type NoteTag, type LeadNote } from '@/lib/leadNotes';
+import {
+  NEXT_ACTION_CATEGORIES,
+  getNextAction,
+  setNextAction,
+  type NextActionCategoryId,
+} from '@/lib/nextActions';
 import { useActiveLead } from '@/context/ActiveLeadContext';
 import { Avatar } from '@/components/Avatar';
 import { personAvatarUrl } from '@/lib/avatar';
 import { soundClick } from '@/lib/sounds';
+import { toast } from '@/hooks/use-toast';
 import { PanelNav } from '@/components/PanelNav';
 import './Home.css';
 import './ProgressNotes.css';
@@ -30,7 +37,12 @@ function timeAgo(iso: string) {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-type ViewMode = 'notes' | 'status';
+type ViewMode = 'notes' | 'status' | 'next';
+const VIEW_MODES: { id: ViewMode; label: string }[] = [
+  { id: 'notes', label: 'Progress Notes' },
+  { id: 'status', label: 'Status' },
+  { id: 'next', label: 'Next Action' },
+];
 
 export function ProgressNotes() {
   const [, navigate] = useLocation();
@@ -44,9 +56,11 @@ export function ProgressNotes() {
   const [noLeadPrompt, setNoLeadPrompt] = useState(false);
   const [refresh, setRefresh]     = useState(0);
   const [fading, setFading]       = useState(false);
+  const [openActionCat, setOpenActionCat] = useState<NextActionCategoryId | null>(null);
   const cursorRef                 = useRef<HTMLDivElement>(null);
 
   void refresh;
+  const modeIndex = VIEW_MODES.findIndex(m => m.id === mode);
 
   /* fake cursor */
   useEffect(() => {
@@ -87,7 +101,10 @@ export function ProgressNotes() {
     setFading(true);
     setTimeout(() => { cb(); setFading(false); }, 240);
   }
-  function switchMode(m: ViewMode) { if (m === mode) return; fade(() => { setMode(m); setDetailIdx(null); }); }
+  function switchMode(m: ViewMode) {
+    if (m === mode) return;
+    fade(() => { setMode(m); setDetailIdx(null); setOpenActionCat(null); });
+  }
   function openNote(i: number)    { fade(() => setDetailIdx(i)); }
   function goBackToList()         { fade(() => setDetailIdx(null)); }
   function continueNote()         { detailIdx !== null && detailIdx < filtered.length - 1 ? fade(() => setDetailIdx(d => (d ?? 0) + 1)) : fade(() => setDetailIdx(null)); }
@@ -95,6 +112,7 @@ export function ProgressNotes() {
   function handleFabClick() {
     if (!leadKey) {
       setNoLeadPrompt(true);
+      toast({ title: 'Select a lead first', description: 'Open a lead from Leads before adding a note.' });
     } else {
       setShowAdd(true);
     }
@@ -106,6 +124,23 @@ export function ProgressNotes() {
     setRefresh(r => r + 1);
     setNoteText(''); setShowAdd(false);
     soundClick();
+    toast({ title: 'Note saved', description: activeLead ? `Added for ${activeLead.name}` : 'Progress note saved.' });
+  }
+
+  const currentNextAction = leadKey ? getNextAction(leadKey) : null;
+  const currentNextCat = currentNextAction
+    ? NEXT_ACTION_CATEGORIES.find(c => c.id === currentNextAction.categoryId)
+    : null;
+
+  function pickNextAction(categoryId: NextActionCategoryId, action: string) {
+    if (!leadKey) {
+      toast({ title: 'Select a lead first', description: 'Open a lead from Leads to set a next action.' });
+      return;
+    }
+    setNextAction(leadKey, { categoryId, action, updatedAt: new Date().toISOString() });
+    setRefresh(r => r + 1);
+    soundClick();
+    toast({ title: 'Next action set', description: action });
   }
 
   const currentNote = detailIdx !== null ? filtered[detailIdx] : null;
@@ -145,8 +180,15 @@ export function ProgressNotes() {
               {activeLead ? (
                 <>
                   <span className="nhome-tag">#LEAD</span>
-                  <span className="nhome-tag">#NOTES</span>
-                  {allNotes.length > 0 && <span className="nhome-tag">{allNotes.length} NOTE{allNotes.length !== 1 ? 'S' : ''}</span>}
+                  <span className="nhome-tag">
+                    {mode === 'next' ? '#NEXT ACTION' : mode === 'status' ? '#STATUS' : '#NOTES'}
+                  </span>
+                  {mode === 'notes' && allNotes.length > 0 && (
+                    <span className="nhome-tag">{allNotes.length} NOTE{allNotes.length !== 1 ? 'S' : ''}</span>
+                  )}
+                  {mode === 'next' && currentNextCat && (
+                    <span className="nhome-tag">#{currentNextCat.shortLabel.toUpperCase()}</span>
+                  )}
                   {statusTagText && <span className="nhome-tag">{statusTagText}</span>}
                 </>
               ) : (
@@ -178,7 +220,9 @@ export function ProgressNotes() {
             )}
 
             <div className="nhome-byline">
-              <div className="by">PROGRESS NOTES</div>
+              <div className="by">
+                {mode === 'next' ? 'NEXT ACTION' : mode === 'status' ? 'LEAD STATUS' : 'PROGRESS NOTES'}
+              </div>
               <div className="date">SALES WORKFLOW TRACKER</div>
             </div>
           </div>
@@ -199,18 +243,27 @@ export function ProgressNotes() {
               />
             </label>
 
-            <div className="pn-mode-toggle" data-tour="notes-mode" style={{ marginTop: 14, marginBottom: 4 }}>
+            <div
+              className="pn-mode-toggle"
+              data-tour="notes-mode"
+              style={{ marginTop: 14, marginBottom: 4, width: '100%', maxWidth: 460 }}
+            >
               <span
                 className="pn-mode-indicator"
-                style={{ transform: mode === 'status' ? 'translateX(100%)' : 'translateX(0)' }}
+                style={{
+                  width: 'calc(33.333% - 3px)',
+                  transform: `translateX(calc(${Math.max(0, modeIndex)} * (100% + 4.5px)))`,
+                }}
               />
-              {(['notes', 'status'] as ViewMode[]).map(m => (
+              {VIEW_MODES.map(m => (
                 <button
-                  key={m}
-                  className={`pn-mode-btn${mode === m ? ' active' : ''}`}
-                  onClick={() => switchMode(m)}
+                  key={m.id}
+                  type="button"
+                  className={`pn-mode-btn${mode === m.id ? ' active' : ''}`}
+                  style={{ flex: 1, padding: '9px 6px', fontSize: 12 }}
+                  onClick={() => switchMode(m.id)}
                 >
-                  {m === 'notes' ? 'Progress Notes' : 'Status'}
+                  {m.label}
                 </button>
               ))}
             </div>
@@ -305,6 +358,8 @@ export function ProgressNotes() {
                         onClick={() => {
                           if (!activeLead) return;
                           setActiveLead({ ...activeLead, status: label.toLowerCase() });
+                          soundClick();
+                          toast({ title: 'Status updated', description: `${activeLead.name} → ${label}` });
                         }}
                       >
                         <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -322,6 +377,109 @@ export function ProgressNotes() {
                     <div style={{ marginTop: 18, padding: '14px 16px', background: '#eef6ff', borderRadius: 12, fontSize: 12.5, color: '#0894ce', fontWeight: 600, textAlign: 'center' }}>
                       Select a lead to update its status
                     </div>
+                  )}
+                </div>
+              )}
+
+              {/* NEXT ACTION mode — category cards, then expand to full list */}
+              {mode === 'next' && (
+                <div className="pn-section" style={{ width: '100%' }}>
+                  <p className="pn-eyebrow">NEXT ACTION</p>
+                  <h2 className="pn-q-title">
+                    {openActionCat
+                      ? NEXT_ACTION_CATEGORIES.find(c => c.id === openActionCat)?.label
+                      : 'Choose the next move'}
+                  </h2>
+
+                  {currentNextAction && !openActionCat && (() => {
+                    const CurIcon = currentNextCat?.icon ?? CheckCircle2;
+                    const curColor = currentNextCat?.color ?? '#0894ce';
+                    return (
+                      <div
+                        className="nhome-nav-card"
+                        style={{ marginBottom: 16, width: '100%', cursor: 'default' }}
+                      >
+                        <div
+                          className="nhome-nav-card-icon"
+                          style={{ background: `${curColor}22` }}
+                        >
+                          <CurIcon size={18} color={curColor} strokeWidth={1.7} />
+                        </div>
+                        <div className="nhome-nav-card-text">
+                          <p className="nhome-nav-card-title" style={{ color: '#17181c' }}>Current next action</p>
+                          <p className="nhome-nav-card-desc">{currentNextAction.action}</p>
+                        </div>
+                        <div className="nhome-nav-card-arrow" style={{ background: 'rgba(0,247,142,.18)' }}>
+                          <Check size={13} color="#06c97a" strokeWidth={2.4} />
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {!activeLead && (
+                    <div style={{ marginBottom: 16, padding: '14px 16px', background: '#eef6ff', borderRadius: 12, fontSize: 12.5, color: '#0894ce', fontWeight: 600, textAlign: 'center' }}>
+                      Select a lead to assign a next action
+                    </div>
+                  )}
+
+                  {openActionCat ? (
+                    <>
+                      <button className="pn-back-to-list" onClick={() => fade(() => setOpenActionCat(null))}>
+                        <ArrowLeft size={13} /> All actions
+                      </button>
+                      {(() => {
+                        const cat = NEXT_ACTION_CATEGORIES.find(c => c.id === openActionCat)!;
+                        const CatIcon = cat.icon;
+                        return cat.actions.map(action => {
+                          const selected = currentNextAction?.action === action;
+                          return (
+                            <button
+                              key={action}
+                              type="button"
+                              className={`pn-text-opt${selected ? ' selected' : ''}`}
+                              style={{ marginBottom: 8 }}
+                              onClick={() => pickNextAction(openActionCat, action)}
+                            >
+                              <span style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left' }}>
+                                <CatIcon size={15} color={selected ? '#fff' : cat.color} strokeWidth={1.8} />
+                                {action}
+                              </span>
+                              {selected && <span className="pn-text-opt-dot"><Check size={9} color="#0894ce" strokeWidth={3} /></span>}
+                            </button>
+                          );
+                        });
+                      })()}
+                    </>
+                  ) : (
+                    NEXT_ACTION_CATEGORIES.map(cat => {
+                      const Icon = cat.icon;
+                      const isActiveCat = currentNextAction?.categoryId === cat.id;
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          className="nhome-nav-card"
+                          style={{ marginBottom: 10, width: '100%' }}
+                          onClick={() => { soundClick(); fade(() => setOpenActionCat(cat.id)); }}
+                        >
+                          <div className="nhome-nav-card-icon" style={{ background: `${cat.color}22` }}>
+                            <Icon size={18} color={cat.color} strokeWidth={1.7} />
+                          </div>
+                          <div className="nhome-nav-card-text">
+                            <p className="nhome-nav-card-title" style={{ color: '#17181c' }}>
+                              {cat.shortLabel}
+                              {isActiveCat ? ' · active' : ''}
+                            </p>
+                            <p className="nhome-nav-card-desc">
+                              {cat.description} · {cat.actions.length} options
+                            </p>
+                          </div>
+                          <div className="nhome-nav-card-arrow">
+                            <ArrowRight size={13} color="var(--ink)" strokeWidth={2.2} />
+                          </div>
+                        </button>
+                      );
+                    })
                   )}
                 </div>
               )}
