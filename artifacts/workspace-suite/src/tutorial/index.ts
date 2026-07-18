@@ -1,3 +1,4 @@
 export { TutorialProvider, useTutorial } from './TutorialContext';
 export { TutorialOverlay } from './TutorialOverlay';
 export { TUTORIAL_STEPS, TUTORIAL_STORAGE_KEY } from './steps';
+export { HELP_PAGES, matchHelpQuery } from './helpNlp';

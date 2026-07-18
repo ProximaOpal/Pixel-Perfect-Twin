@@ -140,7 +140,7 @@ function arrowPath(placement: TutorialPlacement, hole: Rect, card: Rect): string
 }
 
 export function TutorialOverlay() {
-  const { active, step, stepIndex, total, next, prev, skip } = useTutorial();
+  const { active, step, stepIndex, total, scopeRoute, next, prev, skip } = useTutorial();
   const [location] = useLocation();
   const [hole, setHole] = useState<Rect | null>(null);
   const [cardBox, setCardBox] = useState<Rect>(EMPTY);
@@ -324,7 +324,9 @@ export function TutorialOverlay() {
           >
             <div className="nexus-tour-card-glow" />
             <div className="nexus-tour-meta">
-              <span className="nexus-tour-eyebrow">NEXUS TOUR</span>
+              <span className="nexus-tour-eyebrow">
+                {scopeRoute ? 'PAGE TOUR' : 'NEXUS TOUR'}
+              </span>
               <span className="nexus-tour-progress">
                 {stepIndex + 1} / {total}
               </span>
