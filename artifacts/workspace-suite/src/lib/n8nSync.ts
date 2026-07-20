@@ -1,6 +1,6 @@
 /**
  * n8n write-back client — Sheets is the source of truth.
- * Demo mode writes to the Nexus Ops tab; Live writes to Enquiry - Lead Data.
+ * Demo mode writes to the StarGTM Ops tab; Live writes to Enquiry - Lead Data.
  */
 import { getSheetsMode, type SheetsMode } from '@/lib/sheetsMode';
 import { toast } from '@/hooks/use-toast';

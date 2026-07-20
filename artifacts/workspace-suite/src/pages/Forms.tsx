@@ -399,7 +399,7 @@ export function Forms() {
 
             {/* top row */}
             <div className="nhome-top-row">
-              <div className="nhome-brand">Nexus<span className="nhome-brand-dot" /></div>
+              <div className="nhome-brand">StarGTM<span className="nhome-brand-dot" /></div>
               {quoteLead && (
                 <span style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,.55)', fontFamily:'inherit' }}>
                   {quoteLead.name.split(' ')[0]}

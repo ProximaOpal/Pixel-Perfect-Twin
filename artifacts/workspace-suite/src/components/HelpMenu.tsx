@@ -164,7 +164,7 @@ export function HelpMenu() {
             >
               <div className="nexus-help-head">
                 <div>
-                  <p className="nexus-help-eyebrow">NEXUS HELP</p>
+                  <p className="nexus-help-eyebrow">STARGTM HELP</p>
                   <p className="nexus-help-title">
                     {mode === 'ask' ? 'Ask in plain English' : 'How can we help?'}
                   </p>

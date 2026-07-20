@@ -8,7 +8,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: 'welcome',
     route: '/',
-    title: 'Welcome to Nexus',
+    title: 'Welcome to StarGTM',
     body: 'A quick tour of your business operations suite — leads, quotes, proposals, notes, and packages.',
     placement: 'center',
   },
@@ -17,7 +17,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     route: '/',
     selector: '[data-tour="home-brand"]',
     title: 'Your workspace brand',
-    body: 'Every page opens with the Nexus identity on the navy kaleidoscope panel — your home base.',
+    body: 'Every page opens with the StarGTM identity on the navy kaleidoscope panel — your home base.',
     placement: 'right',
     padding: 10,
   },
@@ -35,7 +35,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     route: '/',
     selector: '[data-tour="home-search"]',
     title: 'Quick search',
-    body: 'Use the search bar on the light panel to find your way around Nexus.',
+    body: 'Use the search bar on the light panel to find your way around StarGTM.',
     placement: 'bottom',
   },
   {

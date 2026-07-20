@@ -1,5 +1,5 @@
 {
-  "name": "Nexus Sheets Engine",
+  "name": "StarGTM Sheets Engine",
   "nodes": [
     {
       "parameters": {
@@ -32,7 +32,7 @@
         112,
         0
       ],
-      "notes": "Maps Nexus quote financials (Quote Sheet) \u2192 stargtm calculations.package_cost / vat / grand_total"
+      "notes": "Maps StarGTM quote financials (Quote Sheet) \u2192 stargtm calculations.package_cost / vat / grand_total"
     },
     {
       "parameters": {
@@ -181,7 +181,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Normalize LeadUpdate payload for Google Sheets write.\n// mode=demo \u2192 Nexus Ops tab (append/update by ref/email)\n// mode=live \u2192 Enquiry - Lead Data (2026)\nconst body = $input.first().json;\nconst mode = body.mode === 'live' ? 'live' : 'demo';\nconst lookup = String(body.referenceNumber || body.email || '').trim();\n\nconst row = {\n  mode,\n  lookup,\n  referenceNumber: body.referenceNumber || '',\n  email: body.email || '',\n  leadName: body.leadName || '',\n  status: body.status || '',\n  assignedRep: body.assignedRep || '',\n  nextAction: body.nextAction || '',\n  packageAbbreviation: body.packageAbbreviation || '',\n  vivaTag: body.vivaTag === true || body.vivaTag === 'true' ? 'YES' : (body.vivaTag === false || body.vivaTag === 'false' ? 'NO' : ''),\n  quoteBuilt: body.quoteBuilt === true ? 'YES' : (body.quoteBuilt === false ? 'NO' : ''),\n  quoteApproved: body.quoteApproved === true ? 'YES' : (body.quoteApproved === false ? 'NO' : ''),\n  quoteVersion: body.quoteVersion || '',\n  updatedAt: new Date().toISOString(),\n};\n\nreturn [{ json: row }];"
+        "jsCode": "// Normalize LeadUpdate payload for Google Sheets write.\n// mode=demo \u2192 StarGTM Ops tab (append/update by ref/email)\n// mode=live \u2192 Enquiry - Lead Data (2026)\nconst body = $input.first().json;\nconst mode = body.mode === 'live' ? 'live' : 'demo';\nconst lookup = String(body.referenceNumber || body.email || '').trim();\n\nconst row = {\n  mode,\n  lookup,\n  referenceNumber: body.referenceNumber || '',\n  email: body.email || '',\n  leadName: body.leadName || '',\n  status: body.status || '',\n  assignedRep: body.assignedRep || '',\n  nextAction: body.nextAction || '',\n  packageAbbreviation: body.packageAbbreviation || '',\n  vivaTag: body.vivaTag === true || body.vivaTag === 'true' ? 'YES' : (body.vivaTag === false || body.vivaTag === 'false' ? 'NO' : ''),\n  quoteBuilt: body.quoteBuilt === true ? 'YES' : (body.quoteBuilt === false ? 'NO' : ''),\n  quoteApproved: body.quoteApproved === true ? 'YES' : (body.quoteApproved === false ? 'NO' : ''),\n  quoteVersion: body.quoteVersion || '',\n  updatedAt: new Date().toISOString(),\n};\n\nreturn [{ json: row }];"
       },
       "id": "a11b0002-lead-update-normalize",
       "name": "Normalize LeadUpdate",
@@ -281,7 +281,7 @@
         },
         "sheetName": {
           "__rl": true,
-          "value": "Nexus Ops",
+          "value": "StarGTM Ops",
           "mode": "name"
         },
         "columns": {
@@ -305,7 +305,7 @@
         "options": {}
       },
       "id": "a11b0005-write-demo",
-      "name": "Append Demo Nexus Ops",
+      "name": "Append Demo StarGTM Ops",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
@@ -318,7 +318,7 @@
           "name": "Google Sheets OAuth2 API"
         }
       },
-      "notes": "DEMO default. Create a tab named exactly Nexus Ops with these headers before first run."
+      "notes": "DEMO default. Create a tab named exactly StarGTM Ops with these headers before first run."
     },
     {
       "parameters": {
@@ -377,7 +377,7 @@
         },
         "sheetName": {
           "__rl": true,
-          "value": "Nexus Ops Notes",
+          "value": "StarGTM Ops Notes",
           "mode": "name"
         },
         "columns": {
@@ -408,7 +408,7 @@
           "name": "Google Sheets OAuth2 API"
         }
       },
-      "notes": "Create tab Nexus Ops Notes. Demo and Live both append here with Mode column; Live can later also mirror into Enquiry if desired."
+      "notes": "Create tab StarGTM Ops Notes. Demo and Live both append here with Mode column; Live can later also mirror into Enquiry if desired."
     },
     {
       "parameters": {
@@ -467,7 +467,7 @@
         },
         "sheetName": {
           "__rl": true,
-          "value": "Nexus Ops Quotes",
+          "value": "StarGTM Ops Quotes",
           "mode": "name"
         },
         "columns": {
@@ -514,7 +514,7 @@
           "name": "Google Sheets OAuth2 API"
         }
       },
-      "notes": "Create tab Nexus Ops Quotes with full Quote Sheet financial columns."
+      "notes": "Create tab StarGTM Ops Quotes with full Quote Sheet financial columns."
     },
     {
       "parameters": {
@@ -621,7 +621,7 @@
         ],
         [
           {
-            "node": "Append Demo Nexus Ops",
+            "node": "Append Demo StarGTM Ops",
             "type": "main",
             "index": 0
           }
@@ -639,7 +639,7 @@
         ]
       ]
     },
-    "Append Demo Nexus Ops": {
+    "Append Demo StarGTM Ops": {
       "main": [
         [
           {

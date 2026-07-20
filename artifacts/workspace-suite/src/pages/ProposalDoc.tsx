@@ -309,7 +309,7 @@ export function ProposalDoc() {
           <div className="nhome-left-inner">
 
             <div className="nhome-top-row">
-              <div className="nhome-brand">Nexus<span className="nhome-brand-dot" /></div>
+              <div className="nhome-brand">StarGTM<span className="nhome-brand-dot" /></div>
             </div>
             <PanelNav />
 

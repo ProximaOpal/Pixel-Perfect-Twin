@@ -218,7 +218,7 @@ export function ProgressNotes() {
 
             {/* top row: brand + back */}
             <div className="nhome-top-row">
-              <div className="nhome-brand">Nexus<span className="nhome-brand-dot" /></div>
+              <div className="nhome-brand">StarGTM<span className="nhome-brand-dot" /></div>
               {activeLead && (
                 <button
                   onClick={() => navigate('/leads')}

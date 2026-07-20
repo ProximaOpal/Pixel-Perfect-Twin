@@ -325,7 +325,7 @@ export function TutorialOverlay() {
             <div className="nexus-tour-card-glow" />
             <div className="nexus-tour-meta">
               <span className="nexus-tour-eyebrow">
-                {scopeRoute ? 'PAGE TOUR' : 'NEXUS TOUR'}
+                {scopeRoute ? 'PAGE TOUR' : 'STARGTM TOUR'}
               </span>
               <span className="nexus-tour-progress">
                 {stepIndex + 1} / {total}

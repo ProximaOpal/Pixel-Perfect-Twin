@@ -1,6 +1,6 @@
-# Nexus — Business Operations Suite
+# StarGTM-Automation
 
-Lead management and sales workspace: capture leads, build quotes, review proposals, track progress notes, and browse bespoke packages.
+Business operations suite for West End on the Thames: capture leads, build quotes, review proposals, track progress notes, and browse bespoke packages.
 
 **Google Sheets is the source of truth.** **n8n** is the automation engine (read + write). There is no Postgres database in this project.
 
@@ -16,9 +16,9 @@ pnpm dev:web
 
 ```
 Frontend ──POST──► LeadDataFetch     → read Enquiry sheet
-Frontend ──POST──► LeadUpdate        → Demo: Nexus Ops / Live: Enquiry
-Frontend ──POST──► NoteAppend        → Nexus Ops Notes
-Frontend ──POST──► QuoteStatus       → Nexus Ops Quotes
+Frontend ──POST──► LeadUpdate        → Demo: StarGTM Ops / Live: Enquiry
+Frontend ──POST──► NoteAppend        → StarGTM Ops Notes
+Frontend ──POST──► QuoteStatus       → StarGTM Ops Quotes
 Frontend ──POST──► QuoteBuilder      → stargtm PDF
 ```
 
@@ -30,13 +30,13 @@ Frontend ──POST──► QuoteBuilder      → stargtm PDF
 | Quote built/approved | `POST …/webhook/QuoteStatus` |
 | Generate proposal PDF | `POST …/webhook/QuoteBuilder` |
 
-Import the workflow from [`n8n/nexus-sheets-workflow.json`](./n8n/nexus-sheets-workflow.json) (see [`n8n/README.md`](./n8n/README.md)).
+Import the workflow from [`n8n/stargtm-sheets-workflow.json`](./n8n/stargtm-sheets-workflow.json) (see [`n8n/README.md`](./n8n/README.md)).
 
 ### Live / Demo mode
 
 Left-panel toggle (**DEMO** by default):
 
-- **DEMO** → writes to `Nexus Ops*` tabs (safe for trials)
+- **DEMO** → writes to `StarGTM Ops*` tabs (safe for trials)
 - **LIVE** → writes into Enquiry - Lead Data (2026)
 
 ## Product features (MVP)
@@ -60,3 +60,8 @@ Left-panel toggle (**DEMO** by default):
 ## Deploy
 
 Netlify builds `pnpm run build:web` and publishes `artifacts/workspace-suite/dist/public`.
+
+## GitHub
+
+Preferred repository name: **StarGTM-Automation**  
+(If the GitHub repo is still `Pixel-Perfect-Twin`, rename it under Settings → General → Repository name.)

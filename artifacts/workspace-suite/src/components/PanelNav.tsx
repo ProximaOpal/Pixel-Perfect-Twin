@@ -1,6 +1,6 @@
 /**
  * PanelNav — horizontal icon nav shown on dark left-panel pages (Home, Forms,
- * ProgressNotes, ProposalDoc, Bespoke). Placed directly below the "Nexus" brand word.
+ * ProgressNotes, ProposalDoc, Bespoke). Placed directly below the "StarGTM" brand word.
  */
 import { Link, useLocation } from 'wouter';
 import { Home, Users, NotebookPen, ClipboardList, FileText, Sparkles } from 'lucide-react';

@@ -1,5 +1,5 @@
 /**
- * Nexus workspace team — login users + sales reps.
+ * StarGTM-Automation team — login users + sales reps.
  * Avatars resolve via local overrides / LinkedIn / email (see avatar.ts).
  */
 import { personAvatarSources, initialsFor } from '@/lib/avatar';

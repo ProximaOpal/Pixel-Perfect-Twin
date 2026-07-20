@@ -26,7 +26,7 @@ export function SheetsModeToggle() {
       type="button"
       data-tour="sheets-mode"
       title={`Sheets write-back: ${sheetsTargetLabel(mode)}. Click to switch.`}
-      aria-label={isLive ? 'Live mode — writing to Enquiry sheet' : 'Demo mode — writing to Nexus Ops'}
+      aria-label={isLive ? 'Live mode — writing to Enquiry sheet' : 'Demo mode — writing to StarGTM Ops'}
       onClick={toggle}
       style={{
         display: 'inline-flex',

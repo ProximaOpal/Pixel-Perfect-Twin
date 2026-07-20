@@ -1,6 +1,6 @@
-# Nexus n8n workflow (Google Sheets engine)
+# StarGTM-Automation n8n workflow (Google Sheets engine)
 
-Import `nexus-sheets-workflow.json` into your n8n cloud instance.
+Import `stargtm-sheets-workflow.json` into your n8n cloud instance.
 
 ## Webhooks (frontend already wired)
 
@@ -94,18 +94,18 @@ The frontend resolves real photos via unavatar (LinkedIn + email) and domain log
 
 Frontend sends `mode: "demo" | "live"` on every write.
 
-- **Demo (default):** appends to tabs `Nexus Ops`, `Nexus Ops Notes`, `Nexus Ops Quotes`
+- **Demo (default):** appends to tabs `StarGTM Ops`, `StarGTM Ops Notes`, `StarGTM Ops Quotes`
 - **Live:** updates Enquiry - Lead Data (2026) columns for lead fields
 
 ## One-time Sheet setup
 
 In spreadsheet `1STCEp_UgqH1qoDskFj2rvb8xA9hCdXgntOPPWmCzV6o`:
 
-1. Create tab **Nexus Ops** with headers:  
+1. Create tab **StarGTM Ops** with headers:  
    `Updated At, Reference, Email, Lead Name, Status, Assigned Rep, Next Action, Package Abbreviation, Viva Tag, Quote Built, Quote Approved, Quote Version, Mode`
-2. Create tab **Nexus Ops Notes** with headers:  
+2. Create tab **StarGTM Ops Notes** with headers:  
    `Created At, Mode, Reference, Email, Lead Name, Tag, Note`
-3. Create tab **Nexus Ops Quotes** with headers:  
+3. Create tab **StarGTM Ops Quotes** with headers:  
    `Updated At, Mode, Reference, Email, Lead Name, Quote Id, Status, Version, Title, Event Type, Event Date, Guests, Repeat Client, Selected Upgrades, Base Cost, Contingency, Margin, Margin Amount, Cost To Client, Package Cost, VAT, Upgrade Total, Grand Total`
 4. For Live mode, add (or map) columns on **Enquiry - Lead Data (2026)**:  
    `Assigned Rep`, `Next Action`, `Package Abbreviation`, `Viva Tag`, `Quote Built`, `Quote Approved`, `Quote Version`

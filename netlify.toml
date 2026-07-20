@@ -1,4 +1,4 @@
-# Deploy the Nexus Vite frontend (workspace-suite) as a static SPA.
+# Deploy the StarGTM-Automation Vite frontend (workspace-suite) as a static SPA.
 [build]
   command = "corepack enable && corepack prepare pnpm@10.33.3 --activate && pnpm install && pnpm run build:web"
   publish = "artifacts/workspace-suite/dist/public"

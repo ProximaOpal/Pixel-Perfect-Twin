@@ -152,7 +152,7 @@ export function Home() {
               </div>
             </div>
 
-            <h1 className="nhome-landing-hero">Nexus</h1>
+            <h1 className="nhome-landing-hero">StarGTM</h1>
             <p className="nhome-landing-sub">Your Business Operations Suite</p>
             <div className="nhome-loader">
               <span /><span /><span />
@@ -188,7 +188,7 @@ export function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.18, duration: 0.48, ease: [0.65, 0, 0.35, 1] }}
             >
-              <p className="nhome-login-eyebrow">NEXUS WORKSPACE</p>
+              <p className="nhome-login-eyebrow">STARGTM AUTOMATION</p>
               <h1 className="nhome-login-heading">Login as</h1>
 
               <div className="nhome-login-cards">
@@ -237,7 +237,7 @@ export function Home() {
             <div className="nhome-left-inner">
               <div className="nhome-top-row">
                 <div className="nhome-brand" data-tour="home-brand">
-                  Nexus<span className="nhome-brand-dot" />
+                  StarGTM<span className="nhome-brand-dot" />
                 </div>
               </div>
               <PanelNav />
@@ -261,7 +261,7 @@ export function Home() {
               </p>
 
               <div className="nhome-byline">
-                <div className="by">NEXUS WORKSPACE</div>
+                <div className="by">STARGTM AUTOMATION</div>
                 <div className="date">BUSINESS OPERATIONS SUITE</div>
               </div>
             </div>
@@ -272,7 +272,7 @@ export function Home() {
             <div className="nhome-panel-right-header">
               <label className="nhome-search-bar" data-tour="home-search">
                 <Search size={16} style={{ flexShrink: 0, color: 'var(--ink-soft)' }} />
-                <input type="text" placeholder="Search Nexus…" />
+                <input type="text" placeholder="Search StarGTM…" />
               </label>
             </div>
 

@@ -1,6 +1,6 @@
 ---
 name: West End on the Thames brand rebrand
-description: Coral/void brand palette decisions for the Nexus workspace suite, and the rule for keeping functional success colors green.
+description: Coral/void brand palette decisions for the StarGTM-Automation workspace suite, and the rule for keeping functional success colors green.
 ---
 
 - Brand primary is coral `#FF5A45` (HSL ~6.8 100% 63.5%), replacing the old emerald `#2ecc71` theme. Dark "void" background is `#0A0A0C` (HSL ~240 9% 4%).

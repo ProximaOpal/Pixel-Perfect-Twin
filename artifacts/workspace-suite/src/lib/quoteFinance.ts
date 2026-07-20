@@ -1,5 +1,5 @@
 /**
- * Quote Sheet financial model — single source of truth for Nexus.
+ * Quote Sheet financial model — single source of truth for StarGTM-Automation.
  *
  * Rates mirror the WEOTT Client Data & Quote Sheet / proposal catalogue:
  *   - Vessel hire, menu, ops, peak uplift, contingency, margin, VAT

@@ -1,6 +1,6 @@
 /**
  * Live / Demo mode for Google Sheets write-back.
- * Demo (default) → Nexus Ops tab. Live → Enquiry - Lead Data (2026).
+ * Demo (default) → StarGTM Ops tab. Live → Enquiry - Lead Data (2026).
  */
 export type SheetsMode = 'demo' | 'live';
 
@@ -36,5 +36,5 @@ export function subscribeSheetsMode(cb: (mode: SheetsMode) => void): () => void 
 }
 
 export function sheetsTargetLabel(mode: SheetsMode = getSheetsMode()): string {
-  return mode === 'live' ? 'Enquiry - Lead Data (2026)' : 'Nexus Ops (Demo)';
+  return mode === 'live' ? 'Enquiry - Lead Data (2026)' : 'StarGTM Ops (Demo)';
 }
